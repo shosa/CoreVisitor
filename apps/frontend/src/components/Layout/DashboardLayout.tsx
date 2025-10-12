@@ -81,6 +81,12 @@ const navigationItems: NavigationItem[] = [
     href: '/departments',
     icon: <BusinessIcon />,
   },
+  {
+    label: 'Utenti',
+    href: '/users',
+    icon: <GroupIcon />,
+    roles: ['ADMIN'],
+  },
 ];
 
 interface DashboardLayoutProps {

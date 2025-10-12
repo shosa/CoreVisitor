@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Visit, Visitor, VisitStats, Department } from '../types/visitor';
+import type { Visit, Visitor, VisitStats, Department, User, UserRole } from '../types/visitor';
 
 // Auth
 export const authApi = {
@@ -45,10 +45,24 @@ export const visitsApi = {
 export const departmentsApi = {
   getAll: () => api.get<Department[]>('/departments'),
   getOne: (id: string) => api.get<Department>(`/departments/${id}`),
+  create: (data: CreateDepartmentDto) => api.post<Department>('/departments', data),
+  update: (id: string, data: UpdateDepartmentDto) => api.patch<Department>(`/departments/${id}`, data),
+  delete: (id: string) => api.delete(`/departments/${id}`),
 };
+
+// DTOs for Department API
+export type CreateDepartmentDto = Omit<Department, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateDepartmentDto = Partial<CreateDepartmentDto>;
+
+// DTOs for User API
+export type CreateUserDto = Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password?: string };
+export type UpdateUserDto = Partial<CreateUserDto>;
 
 // Users
 export const usersApi = {
-  getAll: () => api.get('/users'),
-  getOne: (id: string) => api.get(`/users/${id}`),
+  getAll: () => api.get<User[]>('/users'),
+  getOne: (id: string) => api.get<User>(`/users/${id}`),
+  create: (data: CreateUserDto) => api.post<User>('/users', data),
+  update: (id: string, data: UpdateUserDto) => api.patch<User>(`/users/${id}`, data),
+  delete: (id: string) => api.delete(`/users/${id}`),
 };

@@ -14,6 +14,7 @@ export class MinioService implements OnModuleInit {
       useSSL: this.configService.get('MINIO_USE_SSL') === 'true',
       accessKey: this.configService.get('MINIO_ACCESS_KEY'),
       secretKey: this.configService.get('MINIO_SECRET_KEY'),
+      region: 'us-east-1', // Hardcoded region
     });
     this.bucketName = this.configService.get('MINIO_BUCKET_NAME');
   }
@@ -24,7 +25,7 @@ export class MinioService implements OnModuleInit {
       if (!exists) {
         await this.minioClient.makeBucket(
           this.bucketName,
-          this.configService.get('MINIO_REGION'),
+          'us-east-1', // Hardcoded region
         );
         console.log(`✅ MinIO bucket '${this.bucketName}' created`);
       } else {

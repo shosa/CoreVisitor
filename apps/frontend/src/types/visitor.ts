@@ -98,3 +98,22 @@ export interface VisitStats {
   scheduledToday: number;
   totalThisMonth: number;
 }
+
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  RECEPTIONIST = 'RECEPTIONIST',
+  EMPLOYEE = 'EMPLOYEE',
+  USER = 'USER',
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  phone?: string;
+  department?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

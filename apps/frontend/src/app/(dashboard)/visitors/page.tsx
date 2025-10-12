@@ -27,9 +27,11 @@ import { Visitor } from '@/types/visitor';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
+import { useSnackbar } from 'notistack';
 
 export default function VisitorsPage() {
   const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [filteredVisitors, setFilteredVisitors] = useState<Visitor[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,7 +82,7 @@ export default function VisitorsPage() {
       loadVisitors();
     } catch (error) {
       console.error('Error deleting visitor:', error);
-      alert('Errore durante l\'eliminazione');
+      enqueueSnackbar("Errore durante l'eliminazione del visitatore", { variant: 'error' });
     }
   };
 
@@ -94,6 +96,11 @@ export default function VisitorsPage() {
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push('/visitors/new')}
+          sx={{
+            backgroundColor: 'common.black',
+            color: 'common.white',
+            '&:hover': { backgroundColor: 'grey.800' },
+          }}
         >
           Nuovo Visitatore
         </Button>
@@ -211,15 +218,26 @@ export default function VisitorsPage() {
                         <IconButton
                           size="small"
                           onClick={() => router.push(`/visitors/${visitor.id}`)}
+                          sx={{
+                            backgroundColor: 'common.black',
+                            color: 'common.white',
+                            borderRadius: 1,
+                            '&:hover': { backgroundColor: 'grey.800' },
+                          }}
                         >
-                          <Visibility />
+                          <Visibility fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
-                          color="error"
                           onClick={() => handleDelete(visitor.id)}
+                          sx={{
+                            backgroundColor: 'common.black',
+                            color: 'common.white',
+                            borderRadius: 1,
+                            '&:hover': { backgroundColor: 'grey.800' },
+                          }}
                         >
-                          <Delete />
+                          <Delete fontSize="small" />
                         </IconButton>
                       </Stack>
                     </TableCell>

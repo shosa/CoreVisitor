@@ -336,6 +336,7 @@ export default function DashboardPage() {
                             {visit.visitor?.firstName} {visit.visitor?.lastName}
                           </Typography>
                         }
+                        secondaryTypographyProps={{ component: 'div' }}
                         secondary={
                           <Stack spacing={0.5} sx={{ mt: 0.5 }}>
                             {visit.visitor?.company && (

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSnackbar } from 'notistack';
 import {
   Box,
   Typography,
@@ -9,12 +11,53 @@ import {
   Grid,
   Chip,
   Stack,
+  Button,
+  CardActions,
+  IconButton,
 } from '@mui/material';
-import { Business, Person } from '@mui/icons-material';
+import {
+  Business,
+  Person,
+  Add,
+  Edit,
+  Delete,
+  HomeWork,
+  MeetingRoom,
+  Warehouse,
+  LocalShipping,
+  Engineering,
+  Biotech,
+  Computer,
+  Store,
+  HelpCenter,
+} from '@mui/icons-material';
 import { departmentsApi, visitsApi } from '@/lib/api';
 import { Department, Visit } from '@/types/visitor';
 
+const iconMap: { [key: string]: React.ReactElement } = {
+  Business: <Business />,
+  HomeWork: <HomeWork />,
+  MeetingRoom: <MeetingRoom />,
+  Warehouse: <Warehouse />,
+  LocalShipping: <LocalShipping />,
+  Engineering: <Engineering />,
+  Biotech: <Biotech />,
+  Computer: <Computer />,
+  Store: <Store />,
+  HelpCenter: <HelpCenter />,
+  Default: <Business />,
+};
+
+const renderIcon = (iconName?: string) => {
+  if (!iconName || !iconMap[iconName]) {
+    return iconMap.Default;
+  }
+  return iconMap[iconName];
+};
+
 export default function DepartmentsPage() {
+  const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [currentVisits, setCurrentVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +67,7 @@ export default function DepartmentsPage() {
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [deptsRes, visitsRes] = await Promise.all([
         departmentsApi.getAll(),
@@ -35,6 +79,17 @@ export default function DepartmentsPage() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questo reparto?')) return;
+    try {
+      await departmentsApi.delete(id);
+      enqueueSnackbar('Reparto eliminato con successo', { variant: 'success' });
+      loadData();
+    } catch (err) {
+      enqueueSnackbar("Errore durante l'eliminazione del reparto", { variant: 'error' });
     }
   };
 
@@ -52,13 +107,28 @@ export default function DepartmentsPage() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Reparti Aziendali
-      </Typography>
-
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Visualizzazione reparti con visitatori presenti in tempo reale
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Box>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            Reparti Aziendali
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Visualizzazione reparti con visitatori presenti in tempo reale
+          </Typography>
+        </Box>
+        <Button 
+          variant="contained" 
+          startIcon={<Add />} 
+          onClick={() => router.push('/departments/new')}
+          sx={{
+            backgroundColor: 'common.black',
+            color: 'common.white',
+            '&:hover': { backgroundColor: 'grey.800' },
+          }}
+        >
+          Nuovo Reparto
+        </Button>
+      </Stack>
 
       <Grid container spacing={3}>
         {departments.map((dept) => {
@@ -71,9 +141,11 @@ export default function DepartmentsPage() {
                   height: '100%',
                   border: visitorsHere.length > 0 ? '2px solid' : '1px solid',
                   borderColor: visitorsHere.length > 0 ? 'primary.main' : 'divider',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
-                <CardContent>
+                <CardContent sx={{ flexGrow: 1 }}>
                   <Stack spacing={2}>
                     <Stack
                       direction="row"
@@ -82,7 +154,7 @@ export default function DepartmentsPage() {
                     >
                       <Box>
                         <Stack direction="row" spacing={1} alignItems="center">
-                          <Business sx={{ color: dept.color || 'primary.main' }} />
+                          {renderIcon(dept.icon)}
                           <Typography variant="h6" fontWeight="bold">
                             {dept.name}
                           </Typography>
@@ -151,6 +223,28 @@ export default function DepartmentsPage() {
                     )}
                   </Stack>
                 </CardContent>
+                <CardActions sx={{ justifyContent: 'flex-end' }}>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => router.push(`/departments/${dept.id}/edit`)}
+                    sx={{
+                      backgroundColor: 'common.black',
+                      color: 'common.white',
+                      borderRadius: 1,
+                      '&:hover': { backgroundColor: 'grey.800' },
+                    }}
+                  ><Edit fontSize="small" /></IconButton>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => handleDelete(dept.id)}
+                    sx={{
+                      backgroundColor: 'common.black',
+                      color: 'common.white',
+                      borderRadius: 1,
+                      '&:hover': { backgroundColor: 'grey.800' },
+                    }}
+                  ><Delete fontSize="small" /></IconButton>
+                </CardActions>
               </Card>
             </Grid>
           );
