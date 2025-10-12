@@ -1,0 +1,24 @@
+{
+  "name": "corevisitor",
+  "version": "1.0.0",
+  "description": "CoreVisitor - Sistema gestione visite esterne",
+  "private": true,
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=@corevisitor/backend",
+    "dev:frontend": "npm run dev --workspace=@corevisitor/frontend",
+    "build:backend": "npm run build --workspace=@corevisitor/backend",
+    "build:frontend": "npm run build --workspace=@corevisitor/frontend",
+    "migrate": "npm run migrate --workspace=@corevisitor/backend",
+    "seed": "npm run seed --workspace=@corevisitor/backend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.2"
+  }
+}

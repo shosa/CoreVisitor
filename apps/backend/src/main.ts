@@ -1,0 +1,31 @@
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Enable CORS
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN?.split(',') || '*',
+    credentials: true,
+  });
+
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
+
+  // API prefix
+  app.setGlobalPrefix('api');
+
+  const port = process.env.APP_PORT_BACKEND || 3004;
+  await app.listen(port);
+
+  console.log(`🚀 CoreVisitor Backend running on port ${port}`);
+}
+
+bootstrap();

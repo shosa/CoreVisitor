@@ -1,0 +1,94 @@
+# CoreVisitor - Applicazione (usa servizi condivisi da CoreServices)
+#
+# IMPORTANTE: Prima di avviare questo stack, assicurati che CoreServices sia attivo:
+#   cd ../CoreServices
+#   docker-compose up -d
+#
+# Avvio:   docker-compose up -d
+# Stop:    docker-compose down
+# Logs:    docker-compose logs -f
+
+services:
+  # Backend API (NestJS)
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: corevisitor-backend
+    restart: unless-stopped
+    environment:
+      # Database - usa il MySQL condiviso da CoreServices
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+
+      # MinIO - usa il MinIO condiviso da CoreServices
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+
+      # Meilisearch - usa il Meilisearch condiviso da CoreServices
+      MEILISEARCH_HOST: ${MEILISEARCH_HOST}
+      MEILISEARCH_API_KEY: ${MEILISEARCH_API_KEY}
+
+      # SMTP
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+
+      # App
+      APP_PORT: ${APP_PORT_BACKEND}
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT_BACKEND}:${APP_PORT_BACKEND}"
+    networks:
+      - coreservices_default  # Usa la network esterna di CoreServices
+    command: sh -c "npx prisma migrate deploy || true && node dist/main"
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    container_name: corevisitor-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT_FRONTEND}:${APP_PORT_FRONTEND}"
+    depends_on:
+      - backend
+    networks:
+      - coreservices_default  # Usa la network esterna di CoreServices
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: corevisitor-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - coreservices_default  # Usa la network esterna di CoreServices
+
+# Usa la network esterna creata da CoreServices
+networks:
+  coreservices_default:
+    external: true
