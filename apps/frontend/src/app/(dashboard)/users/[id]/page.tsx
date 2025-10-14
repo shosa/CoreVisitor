@@ -6,8 +6,6 @@ import { Box, Typography, Card, Grid, Stack, Button, Chip, CircularProgress, Ale
 import { ArrowBack, Edit, Person } from '@mui/icons-material';
 import { usersApi } from '@/lib/api';
 import { User } from '@/types/visitor';
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
 
 export default function UserDetailPage() {
   const router = useRouter();
@@ -87,7 +85,7 @@ export default function UserDetailPage() {
               <Grid item xs={12} sm={6}><Typography><strong>Telefono:</strong> {user.phone || '-'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Dipartimento:</strong> {user.department || '-'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Stato:</strong> <Chip label={user.active ? 'Attivo' : 'Inattivo'} color={user.active ? 'success' : 'default'} size="small" /></Typography></Grid>
-              <Grid item xs={12} sm={6}><Typography><strong>Membro dal:</strong> {format(new Date(user.createdAt), 'dd/MM/yyyy', { locale: it })}</Typography></Grid>
+              <Grid item xs={12} sm={6}><Typography><strong>Membro dal:</strong> {new Date(user.createdAt).toLocaleDateString('it-IT')}</Typography></Grid>
             </Grid>
           </Card>
         </Grid>

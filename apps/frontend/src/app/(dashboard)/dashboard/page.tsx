@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import {
   Box,
   Grid,
-  Card,
-  CardContent,
   Typography,
   Button,
   List,
@@ -18,6 +16,7 @@ import {
   IconButton,
   Tooltip,
   Paper,
+  ListItemButton,
 } from '@mui/material';
 import {
   People,
@@ -28,12 +27,73 @@ import {
   Refresh,
   Person,
   Business,
+  TrendingUp,
 } from '@mui/icons-material';
+import Widget from '@/components/Widget';
 import { visitsApi, departmentsApi } from '@/lib/api';
 import { Visit, VisitStats, Department } from '@/types/visitor';
-import { format, formatDistanceToNow } from 'date-fns';
-import { it } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
+
+// Helper function to format distance to now (simple implementation)
+const formatDistanceToNow = (date: Date) => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+  let interval = seconds / 31536000; // years
+  if (interval > 1) return Math.floor(interval) + ' anni fa';
+  interval = seconds / 2592000; // months
+  if (interval > 1) return Math.floor(interval) + ' mesi fa';
+  interval = seconds / 86400; // days
+  if (interval > 1) return Math.floor(interval) + ' giorni fa';
+  interval = seconds / 3600; // hours
+  if (interval > 1) return Math.floor(interval) + ' ore fa';
+  interval = seconds / 60; // minutes
+  if (interval > 1) return Math.floor(interval) + ' minuti fa';
+  return Math.floor(seconds) + ' secondi fa';
+};
+
+interface StatCardProps {
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+  color: string;
+  subtitle?: string;
+}
+
+function StatCard({ title, value, icon, color, subtitle }: StatCardProps) {
+  return (
+    <Widget>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {title}
+          </Typography>
+          <Typography variant="h3" fontWeight={700} sx={{ mb: 0.5 }}>
+            {value}
+          </Typography>
+          {subtitle && (
+            <Typography variant="caption" color="text.secondary">
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: 2,
+            bgcolor: `${color}15`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: color,
+          }}
+        >
+          {icon}
+        </Box>
+      </Box>
+    </Widget>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -61,7 +121,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
-    // Auto-refresh ogni 30 secondi
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -72,10 +131,9 @@ export default function DashboardPage() {
       loadData();
     } catch (error) {
       console.error('Error checking out:', error);
-    }
+    } 
   };
 
-  // Raggruppa visite per reparto per la mappa
   const visitsByDepartment = currentVisits.reduce((acc, visit) => {
     const dept = visit.department || 'Non specificato';
     if (!acc[dept]) acc[dept] = [];
@@ -93,10 +151,9 @@ export default function DashboardPage() {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header con refresh */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">
-          Dashboard Visitatori
+          Dashboard
         </Typography>
         <Tooltip title="Aggiorna dati">
           <IconButton onClick={loadData}>
@@ -105,205 +162,148 @@ export default function DashboardPage() {
         </Tooltip>
       </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* KPI Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'primary.main', color: 'white' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <People sx={{ fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h3" fontWeight="bold">
-                    {stats?.currentVisitors || 0}
-                  </Typography>
-                  <Typography variant="body2">Visitatori Presenti</Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Visitatori Presenti"
+            value={stats?.currentVisitors || 0}
+            icon={<People sx={{ fontSize: 28 }} />}
+            color="#1976d2"
+          />
         </Grid>
-
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'success.main', color: 'white' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <EventAvailable sx={{ fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h3" fontWeight="bold">
-                    {stats?.todayVisits || 0}
-                  </Typography>
-                  <Typography variant="body2">Visite Oggi</Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Visite Oggi"
+            value={stats?.todayVisits || 0}
+            icon={<EventAvailable sx={{ fontSize: 28 }} />}
+            color="#2e7d32"
+          />
         </Grid>
-
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'warning.main', color: 'white' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <CalendarMonth sx={{ fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h3" fontWeight="bold">
-                    {stats?.scheduledToday || 0}
-                  </Typography>
-                  <Typography variant="body2">Programmate Oggi</Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Programmate Oggi"
+            value={stats?.scheduledToday || 0}
+            icon={<CalendarMonth sx={{ fontSize: 28 }} />}
+            color="#ed6c02"
+            subtitle="Da effettuare"
+          />
         </Grid>
-
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'info.main', color: 'white' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <EventAvailable sx={{ fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h3" fontWeight="bold">
-                    {stats?.totalThisMonth || 0}
-                  </Typography>
-                  <Typography variant="body2">Questo Mese</Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Visite Mese"
+            value={stats?.totalThisMonth || 0}
+            icon={<TrendingUp sx={{ fontSize: 28 }} />}
+            color="#9c27b0"
+          />
         </Grid>
       </Grid>
 
       <Grid container spacing={3}>
         {/* Mappa Interattiva Reparti */}
         <Grid item xs={12} lg={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>
-                🗺️ Mappa Reparti - Visitatori Presenti
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Visualizzazione in tempo reale dei visitatori per reparto
-              </Typography>
+          <Widget title="🗺️ Mappa Reparti - Visitatori in Tempo Reale">
+            <Grid container spacing={2}>
+              {departments.map((dept) => {
+                const visitsInDept = visitsByDepartment[dept.name] || [];
+                const hasVisitors = visitsInDept.length > 0;
 
-              <Grid container spacing={2}>
-                {departments.map((dept) => {
-                  const visitsInDept = visitsByDepartment[dept.name] || [];
-                  const hasVisitors = visitsInDept.length > 0;
-
-                  return (
-                    <Grid item xs={12} sm={6} md={4} key={dept.id}>
-                      <Paper
-                        elevation={hasVisitors ? 8 : 1}
-                        sx={{
-                          p: 2,
-                          bgcolor: dept.color || '#e0e0e0',
-                          color: 'white',
-                          position: 'relative',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s',
-                          border: hasVisitors ? '3px solid #fff' : 'none',
-                          '&:hover': {
-                            transform: 'scale(1.05)',
-                            elevation: 12,
-                          },
-                        }}
-                        onClick={() => router.push('/visits/current')}
-                      >
-                        <Stack spacing={1}>
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Typography variant="h6" fontWeight="bold">
-                              {dept.name}
-                            </Typography>
-                            <Business />
-                          </Stack>
-
-                          {dept.floor !== null && (
-                            <Typography variant="caption">
-                              Piano {dept.floor} - {dept.area}
-                            </Typography>
-                          )}
-
-                          <Box sx={{ mt: 2 }}>
-                            <Stack
-                              direction="row"
-                              alignItems="center"
-                              spacing={1}
-                            >
-                              <People />
-                              <Typography variant="h4" fontWeight="bold">
-                                {visitsInDept.length}
-                              </Typography>
-                            </Stack>
-                            <Typography variant="caption">
-                              {visitsInDept.length === 0
-                                ? 'Nessun visitatore'
-                                : visitsInDept.length === 1
-                                ? '1 visitatore presente'
-                                : `${visitsInDept.length} visitatori presenti`}
-                            </Typography>
-                          </Box>
-
-                          {/* Lista visitatori nel reparto */}
-                          {visitsInDept.length > 0 && (
-                            <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.3)' }}>
-                              {visitsInDept.slice(0, 3).map((visit) => (
-                                <Typography
-                                  key={visit.id}
-                                  variant="caption"
-                                  sx={{ display: 'block' }}
-                                >
-                                  • {visit.visitor?.firstName}{' '}
-                                  {visit.visitor?.lastName}
-                                  {visit.visitor?.company &&
-                                    ` (${visit.visitor.company})`}
-                                </Typography>
-                              ))}
-                              {visitsInDept.length > 3 && (
-                                <Typography variant="caption">
-                                  + altri {visitsInDept.length - 3}
-                                </Typography>
-                              )}
-                            </Box>
-                          )}
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={dept.id}>
+                    <Paper
+                      elevation={hasVisitors ? 4 : 1}
+                      sx={{
+                        p: 2,
+                        bgcolor: dept.color || '#e0e0e0',
+                        color: 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s',
+                        border: hasVisitors ? '2px solid' : '1px solid',
+                        borderColor: hasVisitors ? 'white' : 'transparent',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: 4,
+                        },
+                      }}
+                      onClick={() => router.push('/visits/current')}
+                    >
+                      <Stack spacing={1.5}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="h6" fontWeight="bold">
+                            {dept.name}
+                          </Typography>
+                          <Business />
                         </Stack>
-                      </Paper>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-            </CardContent>
-          </Card>
+
+                        {dept.floor !== null && (
+                          <Typography variant="caption">
+                            Piano {dept.floor} • {dept.area}
+                          </Typography>
+                        )}
+
+                        <Box
+                          sx={{
+                            p: 1.5,
+                            bgcolor: 'rgba(255,255,255,0.2)',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <People sx={{ fontSize: 32 }} />
+                            <Typography variant="h4" fontWeight="bold">
+                              {visitsInDept.length}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                            {visitsInDept.length === 0
+                              ? 'Nessun visitatore'
+                              : visitsInDept.length === 1
+                              ? '1 visitatore presente'
+                              : `${visitsInDept.length} visitatori presenti`}
+                          </Typography>
+                        </Box>
+
+                        {visitsInDept.length > 0 && (
+                          <Box sx={{ pt: 1, borderTop: '1px solid rgba(255,255,255,0.3)' }}>
+                            {visitsInDept.slice(0, 3).map((visit) => (
+                              <Typography
+                                key={visit.id}
+                                variant="caption"
+                                sx={{ display: 'block', mb: 0.3 }}
+                              >
+                                • {visit.visitor?.firstName} {visit.visitor?.lastName}
+                                {visit.visitor?.company && ` (${visit.visitor.company})`}
+                              </Typography>
+                            ))}
+                            {visitsInDept.length > 3 && (
+                              <Typography variant="caption" fontWeight="bold">
+                                + altri {visitsInDept.length - 3}
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Widget>
         </Grid>
 
-        {/* Lista Visitatori Presenti con Quick Actions */}
+        {/* Lista Visitatori Presenti */}
         <Grid item xs={12} lg={4}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ mb: 2 }}
-              >
-                <Typography variant="h6" fontWeight="bold">
-                  Visitatori Presenti
-                </Typography>
-                <Chip
-                  label={currentVisits.length}
-                  color="primary"
-                  size="small"
-                />
-              </Stack>
-
-              {currentVisits.length === 0 ? (
-                <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                  Nessun visitatore presente
-                </Typography>
-              ) : (
-                <List sx={{ maxHeight: 600, overflow: 'auto' }}>
+          <Widget
+            title="Visitatori Presenti"
+            action={<Chip label={currentVisits.length} color="primary" size="small" />}
+          >
+            {currentVisits.length === 0 ? (
+              <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                Nessun visitatore presente
+              </Typography>
+            ) : (
+              <>
+                <List sx={{ maxHeight: 500, overflow: 'auto', mb: 2 }}>
                   {currentVisits.map((visit) => (
                     <ListItem
                       key={visit.id}
@@ -312,11 +312,13 @@ export default function DashboardPage() {
                         borderColor: 'divider',
                         borderRadius: 1,
                         mb: 1,
+                        bgcolor: 'background.paper',
                       }}
                       secondaryAction={
                         <Tooltip title="Check-out">
                           <IconButton
                             edge="end"
+                            size="small"
                             color="error"
                             onClick={() => handleCheckOut(visit.id)}
                           >
@@ -327,74 +329,61 @@ export default function DashboardPage() {
                     >
                       <ListItemAvatar>
                         <Avatar sx={{ bgcolor: 'primary.main' }}>
-                          <Person />
+                          {visit.visitor?.firstName[0]}
+                          {visit.visitor?.lastName[0]}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         primary={
-                          <Typography variant="subtitle2" fontWeight="bold">
+                          <Typography variant="subtitle2" fontWeight={600}>
                             {visit.visitor?.firstName} {visit.visitor?.lastName}
                           </Typography>
                         }
-                        secondaryTypographyProps={{ component: 'div' }}
                         secondary={
-                          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                          <Stack spacing={0.3} sx={{ mt: 0.5 }}>
                             {visit.visitor?.company && (
-                              <Typography variant="caption">
-                                🏢 {visit.visitor.company}
+                              <Typography variant="caption" color="text.secondary">
+                                {visit.visitor.company}
                               </Typography>
                             )}
-                            <Typography variant="caption">
-                              👤 Host: {visit.host?.name}
-                            </Typography>
-                            <Typography variant="caption">
-                              📍 {visit.department} - {visit.area}
+                            <Typography variant="caption" color="text.secondary">
+                              Host: {visit.host?.name}
                             </Typography>
                             <Typography variant="caption" color="success.main">
-                              ⏱️ Entrato{' '}
+                              Entrato{' '}
                               {visit.checkInTime &&
-                                formatDistanceToNow(new Date(visit.checkInTime), {
-                                  addSuffix: true,
-                                  locale: it,
-                                })}
+                                formatDistanceToNow(new Date(visit.checkInTime))}
                             </Typography>
-                            {visit.badgeNumber && (
-                              <Chip
-                                label={visit.badgeNumber}
-                                size="small"
-                                sx={{ width: 'fit-content' }}
-                              />
-                            )}
                           </Stack>
                         }
                       />
                     </ListItem>
                   ))}
                 </List>
-              )}
 
-              {/* Quick Actions */}
-              <Stack spacing={1} sx={{ mt: 2 }}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  startIcon={<LoginOutlined />}
-                  onClick={() => router.push('/visits/new')}
-                >
-                  Nuova Visita
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  onClick={() => router.push('/visits/current')}
-                >
-                  Vedi Tutte le Visite in Corso
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
+                <Stack spacing={1}>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    startIcon={<LoginOutlined />}
+                    onClick={() => router.push('/visits/new')}
+                  >
+                    Nuova Visita
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => router.push('/visits/current')}
+                  >
+                    Vedi Tutte
+                  </Button>
+                </Stack>
+              </>
+            )}
+          </Widget>
         </Grid>
       </Grid>
     </Box>
   );
 }
+

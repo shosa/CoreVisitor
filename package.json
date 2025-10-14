@@ -20,7 +20,9 @@
     "docker:build": "docker-compose build"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.90.2"
+    "@tanstack/react-query": "^5.90.2",
+    "date-fns": "^2.30.0",
+    "supports-color": "^10.2.2"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

@@ -1,3 +1,5 @@
+
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -12,6 +14,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true, // <--- ignora errori ESLint in build
   },
+
   async redirects() {
     return [
       {

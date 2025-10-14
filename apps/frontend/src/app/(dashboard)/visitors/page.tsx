@@ -24,8 +24,6 @@ import {
 import { Search, Add, Visibility, Edit, Delete, Person } from '@mui/icons-material';
 import { visitorsApi } from '@/lib/api';
 import { Visitor } from '@/types/visitor';
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { useSnackbar } from 'notistack';
 
@@ -211,7 +209,7 @@ export default function VisitorsPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      {format(new Date(visitor.createdAt), 'dd/MM/yyyy', { locale: it })}
+                      {new Date(visitor.createdAt).toLocaleDateString('it-IT')}
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -219,10 +217,10 @@ export default function VisitorsPage() {
                           size="small"
                           onClick={() => router.push(`/visitors/${visitor.id}`)}
                           sx={{
-                            backgroundColor: 'common.black',
-                            color: 'common.white',
-                            borderRadius: 1,
-                            '&:hover': { backgroundColor: 'grey.800' },
+                            bgcolor: 'black',
+                            color: 'white',
+                            borderRadius: '6px',
+                            '&:hover': { bgcolor: 'grey.800' },
                           }}
                         >
                           <Visibility fontSize="small" />
@@ -231,10 +229,10 @@ export default function VisitorsPage() {
                           size="small"
                           onClick={() => handleDelete(visitor.id)}
                           sx={{
-                            backgroundColor: 'common.black',
-                            color: 'common.white',
-                            borderRadius: 1,
-                            '&:hover': { backgroundColor: 'grey.800' },
+                            bgcolor: 'black',
+                            color: 'white',
+                            borderRadius: '6px',
+                            '&:hover': { bgcolor: 'grey.800' },
                           }}
                         >
                           <Delete fontSize="small" />

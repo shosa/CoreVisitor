@@ -9,16 +9,13 @@ import * as yup from 'yup';
 import { useSnackbar } from 'notistack';
 import { visitsApi } from '@/lib/api';
 import { Visit, VisitPurpose } from '@/types/visitor';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
-import { it } from 'date-fns/locale';
 
 const schema = yup.object().shape({
   purpose: yup.mixed<VisitPurpose>().oneOf(Object.values(VisitPurpose)).required('Lo scopo è obbligatorio'),
   purposeNotes: yup.string().optional(),
   department: yup.string().optional(),
-  scheduledDate: yup.date().required('La data di inizio è obbligatoria'),
-  scheduledEndDate: yup.date().optional(),
+  scheduledDate: yup.string().required('La data di inizio è obbligatoria'),
+  scheduledEndDate: yup.string().optional(),
   notes: yup.string().optional(),
 });
 
@@ -52,8 +49,8 @@ export default function EditVisitPage() {
         purpose: visitData.purpose,
         purposeNotes: visitData.purposeNotes || '',
         department: visitData.department || '',
-        scheduledDate: new Date(visitData.scheduledDate),
-        scheduledEndDate: visitData.scheduledEndDate ? new Date(visitData.scheduledEndDate) : undefined,
+        scheduledDate: new Date(visitData.scheduledDate).toISOString().slice(0, 16), // Format for datetime-local input
+        scheduledEndDate: visitData.scheduledEndDate ? new Date(visitData.scheduledEndDate).toISOString().slice(0, 16) : '',
         notes: visitData.notes || ''
       });
     } catch (err) {
@@ -67,8 +64,8 @@ export default function EditVisitPage() {
     try {
       await visitsApi.update(id, {
         ...data,
-        scheduledDate: data.scheduledDate.toISOString(),
-        scheduledEndDate: data.scheduledEndDate?.toISOString(),
+        scheduledDate: new Date(data.scheduledDate).toISOString(),
+        scheduledEndDate: data.scheduledEndDate ? new Date(data.scheduledEndDate).toISOString() : undefined,
       });
       enqueueSnackbar('Visita aggiornata con successo', { variant: 'success' });
       router.push(`/visits/${id}`);
@@ -111,14 +108,38 @@ export default function EditVisitPage() {
                             <Controller name="purposeNotes" control={control} render={({ field }) => <TextField {...field} fullWidth label="Note sullo scopo" error={!!errors.purposeNotes} helperText={errors.purposeNotes?.message} />} />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={it}>
-                                <Controller name="scheduledDate" control={control} render={({ field }) => <DateTimePicker {...field} label="Data e ora programmata" sx={{ width: '100%' }} />} />
-                            </LocalizationProvider>
+                            <Controller
+                                name="scheduledDate"
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Data e ora programmata"
+                                        type="datetime-local"
+                                        InputLabelProps={{ shrink: true }}
+                                        error={!!errors.scheduledDate}
+                                        helperText={errors.scheduledDate?.message}
+                                    />
+                                )}
+                            />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={it}>
-                                <Controller name="scheduledEndDate" control={control} render={({ field }) => <DateTimePicker {...field} label="Data e ora fine (opzionale)" sx={{ width: '100%' }} />} />
-                            </LocalizationProvider>
+                            <Controller
+                                name="scheduledEndDate"
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Data e ora fine (opzionale)"
+                                        type="datetime-local"
+                                        InputLabelProps={{ shrink: true }}
+                                        error={!!errors.scheduledEndDate}
+                                        helperText={errors.scheduledEndDate?.message}
+                                    />
+                                )}
+                            />
                         </Grid>
                         <Grid item xs={12}>
                             <Controller name="department" control={control} render={({ field }) => <TextField {...field} fullWidth label="Dipartimento/Area di destinazione" error={!!errors.department} helperText={errors.department?.message} />} />

@@ -76,7 +76,7 @@ export default function EditVisitorPage() {
       router.push(`/visitors/${id}`);
     } catch (error) {
       console.error(error);
-      enqueueSnackbar('Errore durante l'aggiornamento del visitatore', { variant: 'error' });
+      enqueueSnackbar('Errore durante l\'aggiornamento del visitatore', { variant: 'error' });
     }
   };
 

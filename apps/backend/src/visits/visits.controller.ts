@@ -8,7 +8,9 @@ import {
   Delete,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { VisitsService } from './visits.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
@@ -52,16 +54,26 @@ export class VisitsController {
     return this.visitsService.getStats();
   }
 
-  @Get(':id')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
-  findOne(@Param('id') id: string) {
-    return this.visitsService.findOne(id);
-  }
-
   @Get(':id/badge')
   @Roles('ADMIN', 'RECEPTIONIST')
   getBadge(@Param('id') id: string) {
     return this.visitsService.getBadge(id);
+  }
+
+  @Get(':id/badge/pdf')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  async getBadgePdf(@Param('id') id: string, @Res() res: Response) {
+    const pdf = await this.visitsService.getBadgePdf(id);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=badge-${id}.pdf`);
+    res.send(pdf);
+  }
+
+  @Get(':id')
+  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  findOne(@Param('id') id: string) {
+    return this.visitsService.findOne(id);
   }
 
   @Post(':id/check-in')

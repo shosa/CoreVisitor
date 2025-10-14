@@ -21,8 +21,6 @@ import {
 } from '@mui/icons-material';
 import { departmentsApi } from '@/lib/api';
 import { Department } from '@/types/visitor';
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
 
 const iconMap: { [key: string]: React.ReactElement } = {
   Business: <Business />,
@@ -158,7 +156,7 @@ export default function DepartmentDetailPage() {
               <Grid item xs={12} sm={6}><Typography><strong>Colore:</strong> 
                 <Box component="span" sx={{ ml: 1, width: 20, height: 20, backgroundColor: department.color || 'transparent', display: 'inline-block', verticalAlign: 'middle', border: '1px solid grey' }} />
               </Typography></Grid>
-              <Grid item xs={12} sm={6}><Typography><strong>Creato il:</strong> {format(new Date(department.createdAt), 'dd/MM/yyyy', { locale: it })}</Typography></Grid>
+              <Grid item xs={12} sm={6}><Typography><strong>Creato il:</strong> {new Date(department.createdAt).toLocaleDateString('it-IT')}</Typography></Grid>
             </Grid>
           </Card>
         </Grid>

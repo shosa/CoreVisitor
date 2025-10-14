@@ -2,13 +2,28 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Box, Typography, Card, Grid, Stack, Button, Avatar, Chip, CircularProgress, Alert } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Card,
+  Grid,
+  Stack,
+  Button,
+  Avatar,
+  Chip,
+  CircularProgress,
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
+} from '@mui/material';
 import { Person, Edit, Delete, ArrowBack } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { visitorsApi } from '@/lib/api';
 import { Visitor } from '@/types/visitor';
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
 
 export default function VisitorDetailPage() {
   const router = useRouter();
@@ -126,51 +141,50 @@ export default function VisitorDetailPage() {
               <Grid item xs={12} sm={6}><Typography><strong>Azienda:</strong> {visitor.company || '-'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Targa:</strong> {visitor.licensePlate || '-'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Documento:</strong> {visitor.documentType ? `${visitor.documentType}: ${visitor.documentNumber}` : '-'}</Typography></Grid>
-              <Grid item xs={12} sm={6}><Typography><strong>Registrato il:</strong> {format(new Date(visitor.createdAt), 'dd/MM/yyyy HH:mm', { locale: it })}</Typography></Grid>
+              <Grid item xs={12} sm={6}><Typography><strong>Registrato il:</strong> {new Date(visitor.createdAt).toLocaleString('it-IT')}</Typography></Grid>
               <Grid item xs={12}><Typography><strong>Note:</strong> {visitor.notes || '-'}</Typography></Grid>
             </Grid>
           </Card>
         </Grid>
-      </Grid>
 
-      <Grid item xs={12}>
-        <Card sx={{ p: 3 }}>
-          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Cronologia Visite</Typography>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Data</TableCell>
-                  <TableCell>Ospite</TableCell>
-                  <TableCell>Scopo</TableCell>
-                  <TableCell>Stato</TableCell>
-                  <TableCell align="right">Azioni</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {visitor.visits && visitor.visits.length > 0 ? (
-                  visitor.visits.map((visit) => (
-                    <TableRow hover key={visit.id}>
-                      <TableCell>{format(new Date(visit.scheduledDate), 'dd/MM/yyyy HH:mm', { locale: it })}</TableCell>
-                      <TableCell>{visit.host?.name || '-'}</TableCell>
-                      <TableCell>{visit.purpose}</TableCell>
-                      <TableCell><Chip label={visit.status} size="small" /></TableCell> {/* Add color later if needed */}
-                      <TableCell align="right">
-                        <Button size="small" onClick={() => router.push(`/visits/${visit.id}`)}>Vedi</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
+        <Grid item xs={12}>
+          <Card sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Cronologia Visite</Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={5} align="center">Nessuna visita registrata.</TableCell>
+                    <TableCell>Data</TableCell>
+                    <TableCell>Ospite</TableCell>
+                    <TableCell>Scopo</TableCell>
+                    <TableCell>Stato</TableCell>
+                    <TableCell align="right">Azioni</TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Card>
+                </TableHead>
+                <TableBody>
+                  {visitor.visits && visitor.visits.length > 0 ? (
+                    visitor.visits.map((visit) => (
+                      <TableRow hover key={visit.id}>
+                        <TableCell>{new Date(visit.scheduledDate).toLocaleString('it-IT')}</TableCell>
+                        <TableCell>{visit.host?.name || '-'}</TableCell>
+                        <TableCell>{visit.purpose}</TableCell>
+                        <TableCell><Chip label={visit.status} size="small" /></TableCell>
+                        <TableCell align="right">
+                          <Button size="small" onClick={() => router.push(`/visits/${visit.id}`)}>Vedi</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">Nessuna visita registrata.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Card>
+        </Grid>
       </Grid>
-    </Grid>
-  </Box>
-);
+    </Box>
+  );
 }

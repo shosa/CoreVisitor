@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { MeilisearchService } from '../meilisearch/meilisearch.service';
 import { BadgeService } from '../badge/badge.service';
+import { PdfService } from '../pdf/pdf.service'; // Import PdfService
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { VisitStatus } from '@prisma/client';
@@ -12,7 +13,54 @@ export class VisitsService {
     private prisma: PrismaService,
     private meilisearch: MeilisearchService,
     private badge: BadgeService,
+    private pdf: PdfService, // Inject PdfService
   ) {}
+
+  // ... existing methods ...
+
+  /**
+   * Genera il PDF del badge per la stampa
+   */
+  async getBadgePdf(id: string): Promise<Buffer> {
+    const badgeData = await this.getBadge(id);
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; }
+          .badge { width: 350px; height: 550px; border: 5px solid #007bff; border-radius: 10px; padding: 20px; margin: auto; }
+          .header { font-size: 24px; font-weight: bold; color: #007bff; }
+          .photo { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin: 20px auto; border: 3px solid #ddd; }
+          .name { font-size: 22px; font-weight: bold; }
+          .company { font-size: 18px; color: #555; }
+          .qr-code { width: 200px; height: 200px; margin: 20px auto; }
+          .footer { font-size: 14px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="badge">
+          <div class="header">VISITOR</div>
+          <img src="${badgeData.visitor.photo || 'https://via.placeholder.com/150'}" alt="Visitor Photo" class="photo">
+          <div class="name">${badgeData.visitor.name}</div>
+          <div class="company">${badgeData.visitor.company}</div>
+          <img src="${badgeData.qrCode}" alt="QR Code" class="qr-code">
+          <div class="footer">
+            <div>Host: ${badgeData.host}</div>
+            <div>Valid Until: ${new Date(badgeData.validUntil).toLocaleString()}</div>
+            <div>${badgeData.badgeNumber}</div>
+          </div>
+        </div>
+      </body>
+    </html>
+    `;
+
+    return this.pdf.generatePdf(htmlContent);
+  }
+
+  // ... rest of the service
+
 
   async create(createVisitDto: CreateVisitDto, createdById: string) {
     const visit = await this.prisma.visit.create({

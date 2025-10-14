@@ -135,7 +135,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const isItemActive = (href: string) => {
-    return pathname === href || pathname.startsWith(`${href}/`);
+    // Exact match per evitare che /visits matchi /visits/current
+    if (pathname === href) return true;
+
+    // Per le route con children, controlla se il path inizia con href
+    // Ma non considerare /visits attivo quando siamo in /visits/current o /visits/new
+    if (href === '/visits' && (pathname === '/visits/current' || pathname === '/visits/new')) {
+      return false;
+    }
+
+    return pathname.startsWith(`${href}/`) && pathname !== href;
   };
 
   const filterNavItems = (items: NavigationItem[]): NavigationItem[] => {
@@ -270,7 +279,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {!sidebarCollapsed && (
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body2" fontWeight={600} noWrap>
-                {user.firstName} {user.lastName}
+                {user.name}
               </Typography>
               <Typography variant="caption" noWrap>
                 {user.role}

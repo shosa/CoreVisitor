@@ -7,8 +7,6 @@ import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business } from 
 import { useSnackbar } from 'notistack';
 import { visitsApi } from '@/lib/api';
 import { Visit, VisitStatus } from '@/types/visitor';
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
 
 // Helper to get status color
 const getStatusChipColor = (status: VisitStatus) => {
@@ -126,18 +124,20 @@ export default function VisitDetailPage() {
               Annulla
             </Button>
           )}
-          <Button
-            variant="contained"
-            startIcon={<Print />}
-            onClick={() => window.open(`/api/visits/${visit.id}/badge`, '_blank')}
-            sx={{
-              backgroundColor: 'common.black',
-              color: 'common.white',
-              '&:hover': { backgroundColor: 'grey.800' },
-            }}
-          >
-            Stampa Badge
-          </Button>
+          {visit.badgeIssued && (
+            <Button
+              variant="contained"
+              startIcon={<Print />}
+              onClick={() => window.open(`/visits/${visit.id}/badge`, '_blank')}
+              sx={{
+                backgroundColor: 'common.black',
+                color: 'common.white',
+                '&:hover': { backgroundColor: 'grey.800' },
+              }}
+            >
+              Stampa Badge
+            </Button>
+          )}
           <Button
             variant="contained"
             startIcon={<Edit />}
@@ -198,9 +198,9 @@ export default function VisitDetailPage() {
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Stato:</strong> <Chip label={visit.status} size="small" color={getStatusChipColor(visit.status)} /></Typography></Grid>
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Scopo:</strong> {visit.purpose} {visit.purposeNotes ? `(${visit.purposeNotes})` : ''}</Typography></Grid>
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Area/Dipartimento:</strong> {visit.department || '-'}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Data Programmata:</strong> {format(new Date(visit.scheduledDate), 'dd/MM/yyyy HH:mm', { locale: it })}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-In:</strong> {visit.checkInTime ? format(new Date(visit.checkInTime), 'dd/MM/yyyy HH:mm', { locale: it }) : '-'}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-Out:</strong> {visit.checkOutTime ? format(new Date(visit.checkOutTime), 'dd/MM/yyyy HH:mm', { locale: it }) : '-'}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Data Programmata:</strong> {new Date(visit.scheduledDate).toLocaleString('it-IT')}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-In:</strong> {visit.checkInTime ? new Date(visit.checkInTime).toLocaleString('it-IT') : '-'}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-Out:</strong> {visit.checkOutTime ? new Date(visit.checkOutTime).toLocaleString('it-IT') : '-'}</Typography></Grid>
               <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Badge:</strong> {visit.badgeIssued ? `Sì, #${visit.badgeNumber}` : 'No'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Notifica Inviata:</strong> {visit.notificationSent ? 'Sì' : 'No'}</Typography></Grid>
