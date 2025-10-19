@@ -54,12 +54,6 @@ export class VisitsController {
     return this.visitsService.getStats();
   }
 
-  @Get(':id/badge')
-  @Roles('ADMIN', 'RECEPTIONIST')
-  getBadge(@Param('id') id: string) {
-    return this.visitsService.getBadge(id);
-  }
-
   @Get(':id/badge/pdf')
   @Roles('ADMIN', 'RECEPTIONIST')
   async getBadgePdf(@Param('id') id: string, @Res() res: Response) {
@@ -68,6 +62,12 @@ export class VisitsController {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=badge-${id}.pdf`);
     res.send(pdf);
+  }
+
+  @Get(':id/badge')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  getBadge(@Param('id') id: string) {
+    return this.visitsService.getBadge(id);
   }
 
   @Get(':id')

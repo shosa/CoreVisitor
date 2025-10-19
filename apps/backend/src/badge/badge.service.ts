@@ -18,24 +18,11 @@ export class BadgeService {
 
   /**
    * Genera QR code per badge
-   * Contiene: badgeNumber, visitorId, visitId, validUntil
+   * Contiene solo l'ID della visita per compatibilità con lettori esterni
    */
-  async generateBadgeQRCode(data: {
-    badgeNumber: string;
-    visitorId: string;
-    visitId: string;
-    validUntil: Date;
-  }): Promise<string> {
-    const qrData = JSON.stringify({
-      badge: data.badgeNumber,
-      visitor: data.visitorId,
-      visit: data.visitId,
-      validUntil: data.validUntil.toISOString(),
-      issuer: 'CoreVisitor',
-    });
-
-    // Genera QR code come data URL (base64)
-    return await QRCode.toDataURL(qrData, {
+  async generateBadgeQRCode(visitId: string): Promise<string> {
+    // QR code contiene solo l'ID visita (semplice stringa)
+    return await QRCode.toDataURL(visitId, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
       width: 300,
@@ -45,28 +32,22 @@ export class BadgeService {
 
   /**
    * Verifica validità badge
+   * Ritorna l'ID visita se valido
    */
   verifyBadge(qrData: string): {
     valid: boolean;
-    data?: any;
+    visitId?: string;
     reason?: string;
   } {
-    try {
-      const parsed = JSON.parse(qrData);
+    // Il QR code contiene solo l'ID visita (UUID)
+    // Verifica che sia un UUID valido
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-      if (parsed.issuer !== 'CoreVisitor') {
-        return { valid: false, reason: 'Invalid issuer' };
-      }
-
-      const validUntil = new Date(parsed.validUntil);
-      if (validUntil < new Date()) {
-        return { valid: false, reason: 'Badge expired' };
-      }
-
-      return { valid: true, data: parsed };
-    } catch (error) {
-      return { valid: false, reason: 'Invalid QR code' };
+    if (!uuidRegex.test(qrData)) {
+      return { valid: false, reason: 'Invalid visit ID format' };
     }
+
+    return { valid: true, visitId: qrData };
   }
 
   /**

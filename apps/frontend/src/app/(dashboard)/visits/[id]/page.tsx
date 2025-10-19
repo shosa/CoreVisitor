@@ -2,8 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Box, Typography, Card, Grid, Stack, Button, Chip, CircularProgress, Alert, Divider, Avatar } from '@mui/material';
-import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business } from '@mui/icons-material';
+import {
+  Box,
+  Typography,
+  Card,
+  Grid,
+  Stack,
+  Button,
+  Chip,
+  CircularProgress,
+  Alert,
+  Divider,
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+} from '@mui/material';
+import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business, Close, QrCode2 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { visitsApi } from '@/lib/api';
 import { Visit, VisitStatus } from '@/types/visitor';
@@ -29,6 +46,8 @@ export default function VisitDetailPage() {
   const [visit, setVisit] = useState<Visit | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
+  const [badgeData, setBadgeData] = useState<any>(null);
 
   const loadVisit = async () => {
     if (!id) return;
@@ -57,6 +76,21 @@ export default function VisitDetailPage() {
       enqueueSnackbar(`Errore durante l'esecuzione dell'azione`, { variant: 'error' });
       console.error(err);
     }
+  };
+
+  const handleOpenBadge = async () => {
+    try {
+      const res = await visitsApi.getBadge(id);
+      setBadgeData(res.data);
+      setBadgeModalOpen(true);
+    } catch (err) {
+      enqueueSnackbar('Errore nel caricamento del badge', { variant: 'error' });
+      console.error(err);
+    }
+  };
+
+  const handlePrintBadge = () => {
+    window.print();
   };
 
   if (loading) {
@@ -127,15 +161,15 @@ export default function VisitDetailPage() {
           {visit.badgeIssued && (
             <Button
               variant="contained"
-              startIcon={<Print />}
-              onClick={() => window.open(`/visits/${visit.id}/badge`, '_blank')}
+              startIcon={<QrCode2 />}
+              onClick={handleOpenBadge}
               sx={{
                 backgroundColor: 'common.black',
                 color: 'common.white',
                 '&:hover': { backgroundColor: 'grey.800' },
               }}
             >
-              Stampa Badge
+              Visualizza Badge
             </Button>
           )}
           <Button
@@ -195,7 +229,12 @@ export default function VisitDetailPage() {
           <Card sx={{ p: 3 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Dettagli Visita</Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Stato:</strong> <Chip label={visit.status} size="small" color={getStatusChipColor(visit.status)} /></Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography><strong>Stato:</strong></Typography>
+                  <Chip label={visit.status} size="small" color={getStatusChipColor(visit.status)} />
+                </Stack>
+              </Grid>
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Scopo:</strong> {visit.purpose} {visit.purposeNotes ? `(${visit.purposeNotes})` : ''}</Typography></Grid>
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Area/Dipartimento:</strong> {visit.department || '-'}</Typography></Grid>
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Data Programmata:</strong> {new Date(visit.scheduledDate).toLocaleString('it-IT')}</Typography></Grid>
@@ -209,6 +248,120 @@ export default function VisitDetailPage() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Badge Modal */}
+      <Dialog
+        open={badgeModalOpen}
+        onClose={() => setBadgeModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            '@media print': {
+              boxShadow: 'none',
+              margin: 0,
+            }
+          }
+        }}
+      >
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight="bold">
+              Badge Visitatore
+            </Typography>
+            <IconButton onClick={() => setBadgeModalOpen(false)} size="small" className="no-print">
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          {badgeData && (
+            <Box
+              sx={{
+                textAlign: 'center',
+                py: 3,
+                border: '4px solid',
+                borderColor: 'primary.main',
+                borderRadius: 3,
+                bgcolor: 'grey.50',
+                '@media print': {
+                  border: '2px solid black',
+                }
+              }}
+            >
+              {/* Header */}
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+                color="primary.main"
+                sx={{ mb: 3 }}
+              >
+                VISITATORE
+              </Typography>
+
+              {/* Visitor Info */}
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+                {badgeData.visitor?.name}
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                {badgeData.visitor?.company || 'N/A'}
+              </Typography>
+
+              {/* QR Code */}
+              {badgeData.qrCode && (
+                <Box
+                  component="img"
+                  src={badgeData.qrCode}
+                  alt="Badge QR Code"
+                  sx={{
+                    width: 250,
+                    height: 250,
+                    margin: '0 auto',
+                    display: 'block',
+                    border: '2px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    bgcolor: 'white',
+                    p: 1
+                  }}
+                />
+              )}
+
+              {/* Badge Details */}
+              <Stack spacing={1} sx={{ mt: 3, px: 3 }}>
+                <Typography variant="body2">
+                  <strong>Badge:</strong> {badgeData.badgeNumber}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Host:</strong> {badgeData.host}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Valido fino:</strong>{' '}
+                  {badgeData.validUntil &&
+                    new Date(badgeData.validUntil).toLocaleString('it-IT')}
+                </Typography>
+              </Stack>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions className="no-print">
+          <Button onClick={() => setBadgeModalOpen(false)}>
+            Chiudi
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Print />}
+            onClick={handlePrintBadge}
+            sx={{
+              bgcolor: 'black',
+              '&:hover': { bgcolor: 'grey.800' },
+            }}
+          >
+            Stampa
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

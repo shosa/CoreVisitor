@@ -49,9 +49,10 @@ a {
     overflow: visible !important;
   }
 
-  /* Hide the dialog title and close button if desired */
+  /* Hide elements with no-print class */
+  .no-print,
   .MuiDialogTitle-root,
-  .MuiDialog-root .MuiIconButton-root {
+  .MuiDialogActions-root {
     display: none !important;
   }
 }

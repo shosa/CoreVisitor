@@ -73,8 +73,41 @@ export default function CurrentVisitsPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!selectedBadge?.visitId) {
+      // Fallback to browser print
+      window.print();
+      return;
+    }
+
+    try {
+      // Get PDF from backend
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/${selectedBadge.visitId}/badge/pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `badge-${selectedBadge.badgeNumber}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error printing badge:', error);
+      alert('Errore nella generazione del PDF. Usa la stampa del browser.');
+      window.print();
+    }
   };
 
   return (
@@ -216,10 +249,10 @@ export default function CurrentVisitsPage() {
           {selectedBadge && (
             <Stack spacing={3} alignItems="center" sx={{ py: 2 }}>
               {/* QR Code */}
-              {selectedBadge.badgeQRCode && (
+              {selectedBadge.qrCode && (
                 <Box
                   component="img"
-                  src={selectedBadge.badgeQRCode}
+                  src={selectedBadge.qrCode}
                   alt="Badge QR Code"
                   sx={{ width: 300, height: 300, border: '2px solid', borderColor: 'divider', borderRadius: 2 }}
                 />
@@ -228,7 +261,7 @@ export default function CurrentVisitsPage() {
               {/* Visitor Info */}
               <Box sx={{ textAlign: 'center', width: '100%' }}>
                 <Typography variant="h5" fontWeight="bold">
-                  {selectedBadge.visitor?.firstName} {selectedBadge.visitor?.lastName}
+                  {selectedBadge.visitor?.name}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
                   {selectedBadge.visitor?.company || 'N/A'}
@@ -250,24 +283,7 @@ export default function CurrentVisitsPage() {
                     Host:
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    {selectedBadge.host?.name}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Reparto/Area:
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {selectedBadge.department} - {selectedBadge.area}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Check-in:
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {selectedBadge.checkInTime &&
-                      new Date(selectedBadge.checkInTime).toLocaleString('it-IT')}
+                    {selectedBadge.host}
                   </Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
@@ -275,8 +291,8 @@ export default function CurrentVisitsPage() {
                     Valido fino a:
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    {selectedBadge.scheduledEndDate &&
-                      new Date(selectedBadge.scheduledEndDate).toLocaleString('it-IT')}
+                    {selectedBadge.validUntil &&
+                      new Date(selectedBadge.validUntil).toLocaleString('it-IT')}
                   </Typography>
                 </Stack>
               </Stack>

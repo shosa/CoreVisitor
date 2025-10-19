@@ -198,13 +198,7 @@ export class VisitsService {
 
     // Genera badge
     const badgeNumber = this.badge.generateBadgeNumber();
-    const validUntil = this.badge.calculateBadgeExpiry(visit.scheduledEndDate);
-    const qrCode = await this.badge.generateBadgeQRCode({
-      badgeNumber,
-      visitorId: visit.visitorId,
-      visitId: visit.id,
-      validUntil,
-    });
+    const qrCode = await this.badge.generateBadgeQRCode(visit.id);
 
     // Aggiorna visita
     const updatedVisit = await this.prisma.visit.update({
@@ -286,6 +280,7 @@ export class VisitsService {
     }
 
     return {
+      visitId: visit.id,
       badgeNumber: visit.badgeNumber,
       qrCode: visit.badgeQRCode,
       visitor: {
