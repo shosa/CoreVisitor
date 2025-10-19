@@ -51,6 +51,9 @@ RUN ls -la node_modules/.prisma/client/ && ls -la node_modules/@prisma/client/
 WORKDIR /app/apps/backend
 RUN npm run build
 
+# Verify build output exists
+RUN ls -la dist/ && test -f dist/main.js || (echo "Build failed: dist/main.js not found" && exit 1)
+
 # Stage 3: Runner
 FROM node:18-alpine AS runner
 RUN apk add --no-cache openssl
