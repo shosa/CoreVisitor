@@ -5,14 +5,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
+  // Enable CORS for frontend
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production'
-      ? process.env.CORS_ORIGIN?.split(',')
-      : true, // In sviluppo accetta tutte le origin
+    origin: process.env.APP_URL || 'http://localhost:3000',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global validation pipe
@@ -26,7 +22,7 @@ async function bootstrap() {
   // API prefix
   app.setGlobalPrefix('api');
 
-  const port = process.env.APP_PORT_BACKEND || 3004;
+  const port = process.env.APP_PORT || 3006;
   await app.listen(port);
 
   console.log(`🚀 CoreVisitor Backend running on port ${port}`);

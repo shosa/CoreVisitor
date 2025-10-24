@@ -6,7 +6,7 @@ const nextConfig = {
   swcMinify: true,
   output: 'standalone', // Enable standalone build for Docker
   env: {
-    API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+    API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006',
   },
   typescript: {
     ignoreBuildErrors: true, // <--- ignora errori TypeScript in build
