@@ -20,17 +20,14 @@ export class VisitsService {
       data: {
         ...createVisitDto,
         scheduledDate: new Date(createVisitDto.scheduledDate),
-        scheduledEndDate: createVisitDto.scheduledEndDate
-          ? new Date(createVisitDto.scheduledEndDate)
-          : null,
-        status: VisitStatus.SCHEDULED,
+        scheduledTimeStart: new Date(createVisitDto.scheduledTimeStart),
+        scheduledTimeEnd: new Date(createVisitDto.scheduledTimeEnd),
+        status: VisitStatus.pending,
         createdById,
       },
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true, department: true },
-        },
+        department: true,
       },
     });
 
@@ -75,9 +72,7 @@ export class VisitsService {
       where,
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true, department: true },
-        },
+        department: true,
       },
       orderBy: { scheduledDate: 'desc' },
     });
@@ -88,11 +83,9 @@ export class VisitsService {
       where: { id },
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true, department: true },
-        },
+        department: true,
         createdBy: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
       },
     });
@@ -118,9 +111,7 @@ export class VisitsService {
       },
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true },
-        },
+        department: true,
       },
     });
 
@@ -166,9 +157,7 @@ export class VisitsService {
       },
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true },
-        },
+        department: true,
       },
     });
 
@@ -195,9 +184,7 @@ export class VisitsService {
       },
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true },
-        },
+        department: true,
       },
     });
 
@@ -214,9 +201,7 @@ export class VisitsService {
       where: { status: VisitStatus.CHECKED_IN },
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true, department: true },
-        },
+        department: true,
       },
       orderBy: { checkInTime: 'desc' },
     });
@@ -255,9 +240,7 @@ export class VisitsService {
       data: { status: VisitStatus.CANCELLED },
       include: {
         visitor: true,
-        host: {
-          select: { id: true, name: true, email: true },
-        },
+        department: true,
       },
     });
 

@@ -5,36 +5,29 @@ import {
   IsDateString,
   IsUUID,
 } from 'class-validator';
-import { VisitPurpose } from '@prisma/client';
+import { VisitType } from '@prisma/client';
 
 export class CreateVisitDto {
   @IsUUID()
   visitorId: string;
 
   @IsUUID()
-  hostId: string;
+  departmentId: string;
 
-  @IsEnum(VisitPurpose)
-  purpose: VisitPurpose;
-
-  @IsString()
-  @IsOptional()
-  purposeNotes?: string;
+  @IsEnum(VisitType)
+  visitType: VisitType;
 
   @IsString()
-  @IsOptional()
-  department?: string;
-
-  @IsString()
-  @IsOptional()
-  area?: string;
+  purpose: string;
 
   @IsDateString()
   scheduledDate: string;
 
   @IsDateString()
-  @IsOptional()
-  scheduledEndDate?: string;
+  scheduledTimeStart: string;
+
+  @IsDateString()
+  scheduledTimeEnd: string;
 
   @IsString()
   @IsOptional()
