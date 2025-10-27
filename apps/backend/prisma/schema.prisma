@@ -53,6 +53,8 @@ model User {
   // Relations
   visitsCreated Visit[] @relation("VisitCreatedBy")
   visitsUpdated Visit[] @relation("VisitUpdatedBy")
+  visitsAsHost  Visit[] @relation("VisitHost")
+  auditLogs     AuditLog[]
 
   @@map("users")
 }
@@ -61,6 +63,10 @@ model Department {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?  @db.Text
+  floor       Int?
+  area        String?  @db.VarChar(100)
+  color       String?  @db.VarChar(7)
+  icon        String?  @db.VarChar(50)
   contactPerson String? @map("contact_person")
   contactEmail String? @map("contact_email")
   contactPhone String? @map("contact_phone")
@@ -81,10 +87,12 @@ model Visitor {
   email       String?
   phone       String?
   company     String?
-  documentType DocumentType @default(id_card) @map("document_type")
-  documentNumber String @map("document_number")
+  documentType DocumentType? @map("document_type")
+  documentNumber String? @map("document_number")
   documentExpiry DateTime? @map("document_expiry")
   photoPath   String?  @map("photo_path")
+  licensePlate String? @map("license_plate")
+  privacyConsent Boolean @default(false) @map("privacy_consent")
   notes       String?  @db.Text
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -102,17 +110,21 @@ model Visit {
   visitorId         String      @map("visitor_id")
   departmentId      String      @map("department_id")
   hostUserId        String?     @map("host_user_id")
+  hostName          String?     @map("host_name")
   visitType         VisitType   @default(business)
   purpose           String      @db.Text
   scheduledDate     DateTime    @map("scheduled_date")
   scheduledTimeStart DateTime   @map("scheduled_time_start")
-  scheduledTimeEnd DateTime     @map("scheduled_time_end")
+  scheduledTimeEnd DateTime?    @map("scheduled_time_end")
   actualCheckIn     DateTime?   @map("actual_check_in")
   actualCheckOut    DateTime?   @map("actual_check_out")
   status            VisitStatus @default(pending)
   notes             String?     @db.Text
   badgeNumber       String?     @map("badge_number")
-  qrCode            String?     @map("qr_code")
+  badgeQRCode       String?     @map("badge_qr_code") @db.Text
+  badgeIssued       Boolean     @default(false) @map("badge_issued")
+  badgeIssuedAt     DateTime?   @map("badge_issued_at")
+  qrCode            String?     @map("qr_code") @db.Text
   createdById       String      @map("created_by_id")
   updatedById       String?     @map("updated_by_id")
   createdAt         DateTime    @default(now()) @map("created_at")
@@ -121,6 +133,7 @@ model Visit {
   // Relations
   visitor    Visitor   @relation(fields: [visitorId], references: [id], onDelete: Cascade)
   department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  hostUser   User?     @relation("VisitHost", fields: [hostUserId], references: [id], onDelete: SetNull)
   createdBy  User      @relation("VisitCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy  User?     @relation("VisitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
@@ -140,4 +153,36 @@ model VisitorDocument {
   visitor Visitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
 
   @@map("visitor_documents")
+}
+
+enum AuditAction {
+  create
+  update
+  delete
+  login
+  logout
+  check_in
+  check_out
+  badge_issued
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  userId      String?     @map("user_id")
+  action      AuditAction
+  entityType  String      @map("entity_type") // 'user', 'visitor', 'visit', 'department'
+  entityId    String?     @map("entity_id")
+  entityName  String?     @map("entity_name")
+  details     String?     @db.Text
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent") @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

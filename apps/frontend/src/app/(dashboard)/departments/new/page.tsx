@@ -19,6 +19,7 @@ import {
   Store,
   HelpCenter,
 } from '@mui/icons-material';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const iconMap: { [key: string]: React.ReactElement } = {
   Business: <Business />,
@@ -70,6 +71,13 @@ export default function NewDepartmentPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Reparti', href: '/departments' },
+          { label: 'Nuovo' }
+        ]}
+      />
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>Nuovo Reparto</Typography>
       <Card sx={{ p: 4 }}>
         <form onSubmit={handleSubmit(onSubmit)}>

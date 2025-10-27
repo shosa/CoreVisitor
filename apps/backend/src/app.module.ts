@@ -10,6 +10,7 @@ import { MinioModule } from './minio/minio.module';
 import { MeilisearchModule } from './meilisearch/meilisearch.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DepartmentsModule } from './departments/departments.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DepartmentsModule } from './departments/departments.module';
     MeilisearchModule,
     NotificationsModule,
     DepartmentsModule,
+    AuditLogsModule,
   ],
 })
 export class AppModule {}

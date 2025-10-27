@@ -28,11 +28,13 @@ import {
   Person,
   Business,
   TrendingUp,
+  Map,
 } from '@mui/icons-material';
 import Widget from '@/components/Widget';
 import { visitsApi, departmentsApi } from '@/lib/api';
 import { Visit, VisitStats, Department } from '@/types/visitor';
 import { useRouter } from 'next/navigation';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 // Helper function to format distance to now (simple implementation)
 const formatDistanceToNow = (date: Date) => {
@@ -151,6 +153,13 @@ export default function DashboardPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Dashboard' },
+        ]}
+      />
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">
           Dashboard
@@ -202,7 +211,14 @@ export default function DashboardPage() {
       <Grid container spacing={3}>
         {/* Mappa Interattiva Reparti */}
         <Grid item xs={12} lg={8}>
-          <Widget title="🗺️ Mappa Reparti - Visitatori in Tempo Reale">
+          <Widget
+            title={
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Map />
+                <span>Mappa Reparti - Visitatori in Tempo Reale</span>
+              </Stack>
+            }
+          >
             <Grid container spacing={2}>
               {departments.map((dept) => {
                 const visitsInDept = visitsByDepartment[dept.name] || [];

@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `departments` ADD COLUMN `area` VARCHAR(100) NULL,
+    ADD COLUMN `color` VARCHAR(7) NULL,
+    ADD COLUMN `floor` INTEGER NULL,
+    ADD COLUMN `icon` VARCHAR(50) NULL;

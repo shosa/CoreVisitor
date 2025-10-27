@@ -4,8 +4,10 @@ import {
   IsOptional,
   IsEnum,
   IsBoolean,
+  IsDateString,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { DocumentType } from '@prisma/client';
 
 export class CreateVisitorDto {
@@ -31,20 +33,40 @@ export class CreateVisitorDto {
   @MaxLength(200)
   company?: string;
 
+  @Transform(({ value }) => {
+    // Map Italian frontend values to English backend enum
+    const mappings: Record<string, DocumentType> = {
+      'CARTA_IDENTITA': DocumentType.id_card,
+      'PASSAPORTO': DocumentType.passport,
+      'PATENTE': DocumentType.driving_license,
+      'ALTRO': DocumentType.other,
+    };
+    return mappings[value] || value;
+  })
   @IsEnum(DocumentType)
   @IsOptional()
   documentType?: DocumentType;
 
   @IsString()
-  @IsOptional()
   @MaxLength(50)
+  @IsOptional()
   documentNumber?: string;
+
+  @IsDateString()
+  @IsOptional()
+  documentExpiry?: string;
 
   @IsString()
   @IsOptional()
   @MaxLength(20)
   licensePlate?: string;
 
+  @Transform(({ value }) => {
+    // Convert string boolean to actual boolean
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   privacyConsent?: boolean;

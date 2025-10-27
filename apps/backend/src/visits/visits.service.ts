@@ -21,7 +21,9 @@ export class VisitsService {
         ...createVisitDto,
         scheduledDate: new Date(createVisitDto.scheduledDate),
         scheduledTimeStart: new Date(createVisitDto.scheduledTimeStart),
-        scheduledTimeEnd: new Date(createVisitDto.scheduledTimeEnd),
+        scheduledTimeEnd: createVisitDto.scheduledTimeEnd
+          ? new Date(createVisitDto.scheduledTimeEnd)
+          : undefined,
         status: VisitStatus.pending,
         createdById,
       },
@@ -56,7 +58,7 @@ export class VisitsService {
 
     const where: any = {};
     if (status) where.status = status;
-    if (hostId) where.hostId = hostId;
+    if (hostId) where.hostUserId = hostId;
     if (date) {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
@@ -73,6 +75,9 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
       orderBy: { scheduledDate: 'desc' },
     });
@@ -84,6 +89,9 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         createdBy: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
@@ -105,8 +113,11 @@ export class VisitsService {
         scheduledDate: updateVisitDto.scheduledDate
           ? new Date(updateVisitDto.scheduledDate)
           : undefined,
-        scheduledEndDate: updateVisitDto.scheduledEndDate
-          ? new Date(updateVisitDto.scheduledEndDate)
+        scheduledTimeStart: updateVisitDto.scheduledTimeStart
+          ? new Date(updateVisitDto.scheduledTimeStart)
+          : undefined,
+        scheduledTimeEnd: updateVisitDto.scheduledTimeEnd
+          ? new Date(updateVisitDto.scheduledTimeEnd)
           : undefined,
       },
       include: {
@@ -132,11 +143,11 @@ export class VisitsService {
   async checkIn(id: string) {
     const visit = await this.findOne(id);
 
-    if (visit.status === VisitStatus.CHECKED_IN) {
+    if (visit.status === VisitStatus.checked_in) {
       throw new BadRequestException('Visit already checked in');
     }
 
-    if (visit.status === VisitStatus.CHECKED_OUT) {
+    if (visit.status === VisitStatus.checked_out) {
       throw new BadRequestException('Visit already completed');
     }
 
@@ -148,8 +159,8 @@ export class VisitsService {
     const updatedVisit = await this.prisma.visit.update({
       where: { id },
       data: {
-        status: VisitStatus.CHECKED_IN,
-        checkInTime: new Date(),
+        status: VisitStatus.checked_in,
+        actualCheckIn: new Date(),
         badgeNumber,
         badgeQRCode: qrCode,
         badgeIssued: true,
@@ -158,6 +169,9 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
     });
 
@@ -172,19 +186,22 @@ export class VisitsService {
   async checkOut(id: string) {
     const visit = await this.findOne(id);
 
-    if (visit.status !== VisitStatus.CHECKED_IN) {
+    if (visit.status !== VisitStatus.checked_in) {
       throw new BadRequestException('Visit not checked in');
     }
 
     const updatedVisit = await this.prisma.visit.update({
       where: { id },
       data: {
-        status: VisitStatus.CHECKED_OUT,
-        checkOutTime: new Date(),
+        status: VisitStatus.checked_out,
+        actualCheckOut: new Date(),
       },
       include: {
         visitor: true,
         department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
     });
 
@@ -198,12 +215,15 @@ export class VisitsService {
    */
   async getCurrentVisits() {
     return this.prisma.visit.findMany({
-      where: { status: VisitStatus.CHECKED_IN },
+      where: { status: VisitStatus.checked_in },
       include: {
         visitor: true,
         department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
-      orderBy: { checkInTime: 'desc' },
+      orderBy: { actualCheckIn: 'desc' },
     });
   }
 
@@ -211,7 +231,20 @@ export class VisitsService {
    * Ottieni badge QR code per stampa
    */
   async getBadge(id: string) {
-    const visit = await this.findOne(id);
+    const visit = await this.prisma.visit.findUnique({
+      where: { id },
+      include: {
+        visitor: true,
+        department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+      },
+    });
+
+    if (!visit) {
+      throw new NotFoundException(`Visit ${id} not found`);
+    }
 
     if (!visit.badgeIssued) {
       throw new NotFoundException('Badge not issued for this visit');
@@ -226,8 +259,8 @@ export class VisitsService {
         company: visit.visitor.company,
         photo: visit.visitor.photoPath,
       },
-      host: visit.host.name,
-      validUntil: this.badge.calculateBadgeExpiry(visit.scheduledEndDate),
+      host: visit.hostUser ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}` : visit.hostName || 'N/A',
+      validUntil: this.badge.calculateBadgeExpiry(visit.scheduledTimeEnd),
     };
   }
 
@@ -237,7 +270,7 @@ export class VisitsService {
   async cancel(id: string) {
     const visit = await this.prisma.visit.update({
       where: { id },
-      data: { status: VisitStatus.CANCELLED },
+      data: { status: VisitStatus.cancelled },
       include: {
         visitor: true,
         department: true,
@@ -263,17 +296,17 @@ export class VisitsService {
       totalThisMonth,
     ] = await Promise.all([
       this.prisma.visit.count({
-        where: { status: VisitStatus.CHECKED_IN },
+        where: { status: VisitStatus.checked_in },
       }),
       this.prisma.visit.count({
         where: {
-          checkInTime: { gte: today },
+          actualCheckIn: { gte: today },
         },
       }),
       this.prisma.visit.count({
         where: {
           scheduledDate: { gte: today },
-          status: VisitStatus.SCHEDULED,
+          status: VisitStatus.approved,
         },
       }),
       this.prisma.visit.count({

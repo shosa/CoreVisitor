@@ -24,13 +24,13 @@ export class VisitsController {
   constructor(private readonly visitsService: VisitsService) {}
 
   @Post()
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE')
+  @Roles('admin', 'receptionist')
   create(@Body() createVisitDto: CreateVisitDto, @CurrentUser() user: any) {
     return this.visitsService.create(createVisitDto, user.id);
   }
 
   @Get()
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  @Roles('admin', 'receptionist', 'security')
   findAll(
     @Query('status') status?: VisitStatus,
     @Query('hostId') hostId?: string,
@@ -41,55 +41,55 @@ export class VisitsController {
   }
 
   @Get('current')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  @Roles('admin', 'receptionist', 'security')
   getCurrentVisits() {
     return this.visitsService.getCurrentVisits();
   }
 
   @Get('stats')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  @Roles('admin', 'receptionist', 'security')
   getStats() {
     return this.visitsService.getStats();
   }
 
   @Get(':id/badge')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('admin', 'receptionist')
   getBadge(@Param('id') id: string) {
     return this.visitsService.getBadge(id);
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  @Roles('admin', 'receptionist', 'security')
   findOne(@Param('id') id: string) {
     return this.visitsService.findOne(id);
   }
 
   @Post(':id/check-in')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('admin', 'receptionist')
   checkIn(@Param('id') id: string) {
     return this.visitsService.checkIn(id);
   }
 
   @Post(':id/check-out')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('admin', 'receptionist')
   checkOut(@Param('id') id: string) {
     return this.visitsService.checkOut(id);
   }
 
   @Post(':id/cancel')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE')
+  @Roles('admin', 'receptionist')
   cancel(@Param('id') id: string) {
     return this.visitsService.cancel(id);
   }
 
   @Patch(':id')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE')
+  @Roles('admin', 'receptionist')
   update(@Param('id') id: string, @Body() updateVisitDto: UpdateVisitDto) {
     return this.visitsService.update(id, updateVisitDto);
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.visitsService.remove(id);
   }

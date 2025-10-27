@@ -66,3 +66,32 @@ export const usersApi = {
   update: (id: string, data: UpdateUserDto) => api.patch<User>(`/users/${id}`, data),
   delete: (id: string) => api.delete(`/users/${id}`),
 };
+
+// Audit Logs
+export interface AuditLog {
+  id: string;
+  userId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  entityName: string | null;
+  details: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+export const auditLogsApi = {
+  getAll: (limit?: number) =>
+    api.get<AuditLog[]>('/audit-logs', { params: { limit } }),
+  getByUser: (userId: string, limit?: number) =>
+    api.get<AuditLog[]>(`/audit-logs/user/${userId}`, { params: { limit } }),
+  getByEntity: (entityType: string, entityId: string, limit?: number) =>
+    api.get<AuditLog[]>(`/audit-logs/entity/${entityType}/${entityId}`, { params: { limit } }),
+};

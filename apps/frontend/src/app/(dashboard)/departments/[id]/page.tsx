@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import { departmentsApi } from '@/lib/api';
 import { Department } from '@/types/visitor';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const iconMap: { [key: string]: React.ReactElement } = {
   Business: <Business />,
@@ -99,6 +100,13 @@ export default function DepartmentDetailPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Reparti', href: '/departments' },
+          { label: department.name }
+        ]}
+      />
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button startIcon={<ArrowBack />} onClick={() => router.push('/departments')}>
           Tutti i Dipartimenti

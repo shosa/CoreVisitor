@@ -28,6 +28,7 @@ import { LogoutOutlined, QrCode2, Refresh, AddCircle, Close, Print } from '@mui/
 import { visitsApi } from '@/lib/api';
 import { Visit } from '@/types/visitor';
 import { useRouter } from 'next/navigation';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function CurrentVisitsPage() {
   const router = useRouter();
@@ -112,6 +113,14 @@ export default function CurrentVisitsPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Visite', href: '/visits' },
+          { label: 'In Corso' },
+        ]}
+      />
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">
           Visite in Corso
@@ -178,13 +187,21 @@ export default function CurrentVisitsPage() {
                     </Stack>
                   </TableCell>
                   <TableCell>{visit.visitor?.company || '-'}</TableCell>
-                  <TableCell>{visit.host?.name}</TableCell>
                   <TableCell>
-                    {visit.department}
-                    <br />
-                    <Typography variant="caption" color="text.secondary">
-                      {visit.area}
-                    </Typography>
+                    {visit.hostUser
+                      ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+                      : visit.hostName || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {visit.department?.name || '-'}
+                    {visit.department?.area && (
+                      <>
+                        <br />
+                        <Typography variant="caption" color="text.secondary">
+                          {visit.department.area}
+                        </Typography>
+                      </>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Chip label={visit.purpose} size="small" />

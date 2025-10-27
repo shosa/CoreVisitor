@@ -8,7 +8,8 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useSnackbar } from 'notistack';
 import { usersApi, UpdateUserDto } from '@/lib/api';
-import { UserRole } from '@/types/visitor';
+import { UserRole, User } from '@/types/visitor';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const schema = yup.object().shape({
   name: yup.string().required('Il nome è obbligatorio'),
@@ -28,6 +29,7 @@ export default function EditUserPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<UpdateUserDto>({
     resolver: yupResolver(schema),
@@ -44,6 +46,7 @@ export default function EditUserPage() {
     try {
       const res = await usersApi.getOne(id);
       const userData = res.data;
+      setUser(userData);
       reset({
         name: userData.name,
         email: userData.email,
@@ -86,6 +89,14 @@ export default function EditUserPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Utenti', href: '/users' },
+          { label: user ? `${user.firstName} ${user.lastName}` : id, href: `/users/${id}` },
+          { label: 'Modifica' }
+        ]}
+      />
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>Modifica Utente</Typography>
       <Card sx={{ p: 4 }}>
         <form onSubmit={handleSubmit(onSubmit)}>

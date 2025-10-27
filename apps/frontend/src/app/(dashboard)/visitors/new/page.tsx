@@ -10,6 +10,7 @@ import { useSnackbar } from 'notistack';
 import { visitorsApi } from '@/lib/api';
 import { DocumentType } from '@/types/visitor';
 import { UploadFile } from '@mui/icons-material';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const schema = yup.object().shape({
   firstName: yup.string().required('Il nome è obbligatorio').max(100),
@@ -19,6 +20,7 @@ const schema = yup.object().shape({
   company: yup.string().max(200).optional(),
   documentType: yup.mixed<DocumentType>().oneOf(Object.values(DocumentType)).optional(),
   documentNumber: yup.string().max(50).optional(),
+  documentExpiry: yup.string().optional(),
   licensePlate: yup.string().max(20).optional(),
   privacyConsent: yup.boolean().optional(),
   notes: yup.string().optional(),
@@ -42,6 +44,7 @@ export default function NewVisitorPage() {
       company: '',
       documentType: undefined,
       documentNumber: '',
+      documentExpiry: '',
       licensePlate: '',
       privacyConsent: false,
       notes: ''
@@ -78,6 +81,14 @@ export default function NewVisitorPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Visitatori', href: '/visitors' },
+          { label: 'Nuovo' },
+        ]}
+      />
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">Nuovo Visitatore</Typography>
       </Stack>
@@ -93,7 +104,8 @@ export default function NewVisitorPage() {
             <Grid item xs={12}><Controller name="company" control={control} render={({ field }) => <TextField {...field} fullWidth label="Azienda" error={!!errors.company} helperText={errors.company?.message} />} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="documentType" control={control} render={({ field }) => <FormControl fullWidth error={!!errors.documentType}><InputLabel>Tipo Documento</InputLabel><Select {...field} label="Tipo Documento"><MenuItem value={DocumentType.CARTA_IDENTITA}>Carta d'Identità</MenuItem><MenuItem value={DocumentType.PASSAPORTO}>Passaporto</MenuItem><MenuItem value={DocumentType.PATENTE}>Patente di Guida</MenuItem><MenuItem value={DocumentType.ALTRO}>Altro</MenuItem></Select></FormControl>} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="documentNumber" control={control} render={({ field }) => <TextField {...field} fullWidth label="Numero Documento" error={!!errors.documentNumber} helperText={errors.documentNumber?.message} />} /></Grid>
-            
+            <Grid item xs={12} sm={6}><Controller name="documentExpiry" control={control} render={({ field }) => <TextField {...field} fullWidth label="Scadenza Documento" type="date" InputLabelProps={{ shrink: true }} error={!!errors.documentExpiry} helperText={errors.documentExpiry?.message} />} /></Grid>
+
             {/* File Uploads */}
             <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" gutterBottom>Foto Visitatore</Typography>

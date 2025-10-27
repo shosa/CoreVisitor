@@ -11,20 +11,16 @@ export class CreateUserDto {
 
   @IsString()
   @MinLength(2)
-  name: string;
+  firstName: string;
+
+  @IsString()
+  @MinLength(2)
+  lastName: string;
 
   @IsEnum(UserRole)
   role: UserRole;
 
-  @IsString()
-  @IsOptional()
-  phone?: string;
-
-  @IsString()
-  @IsOptional()
-  department?: string;
-
   @IsBoolean()
   @IsOptional()
-  active?: boolean;
+  isActive?: boolean;
 }

@@ -20,6 +20,10 @@ export class CreateVisitDto {
   @IsString()
   purpose: string;
 
+  @IsString()
+  @IsOptional()
+  hostName?: string;
+
   @IsDateString()
   scheduledDate: string;
 
@@ -27,7 +31,8 @@ export class CreateVisitDto {
   scheduledTimeStart: string;
 
   @IsDateString()
-  scheduledTimeEnd: string;
+  @IsOptional()
+  scheduledTimeEnd?: string;
 
   @IsString()
   @IsOptional()

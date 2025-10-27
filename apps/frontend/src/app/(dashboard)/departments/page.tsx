@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import { departmentsApi, visitsApi } from '@/lib/api';
 import { Department, Visit } from '@/types/visitor';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const iconMap: { [key: string]: React.ReactElement } = {
   Business: <Business />,
@@ -107,6 +108,12 @@ export default function DepartmentsPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Reparti' }
+        ]}
+      />
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold" gutterBottom>

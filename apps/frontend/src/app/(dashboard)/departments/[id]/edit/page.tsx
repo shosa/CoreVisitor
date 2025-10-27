@@ -20,6 +20,8 @@ import {
   Store,
   HelpCenter,
 } from '@mui/icons-material';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import { Department } from '@/types/visitor';
 
 const iconMap: { [key: string]: React.ReactElement } = {
   Business: <Business />,
@@ -51,6 +53,7 @@ export default function EditDepartmentPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [department, setDepartment] = useState<Department | null>(null);
 
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<UpdateDepartmentDto>({
     resolver: yupResolver(schema),
@@ -67,6 +70,7 @@ export default function EditDepartmentPage() {
     try {
       const res = await departmentsApi.getOne(id);
       const deptData = res.data;
+      setDepartment(deptData);
       reset({
         name: deptData.name,
         description: deptData.description,
@@ -103,6 +107,14 @@ export default function EditDepartmentPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Reparti', href: '/departments' },
+          { label: department?.name || id, href: `/departments/${id}` },
+          { label: 'Modifica' }
+        ]}
+      />
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>Modifica Reparto</Typography>
       <Card sx={{ p: 4 }}>
         <form onSubmit={handleSubmit(onSubmit)}>

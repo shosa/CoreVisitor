@@ -26,6 +26,8 @@ import { visitorsApi } from '@/lib/api';
 import { Visitor } from '@/types/visitor';
 import { useRouter } from 'next/navigation';
 import { useSnackbar } from 'notistack';
+import { translateDocumentType } from '@/lib/translations';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function VisitorsPage() {
   const router = useRouter();
@@ -86,6 +88,13 @@ export default function VisitorsPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Visitatori' },
+        ]}
+      />
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">
           Visitatori
@@ -191,7 +200,7 @@ export default function VisitorsPage() {
                     <TableCell>
                       {visitor.documentType && visitor.documentNumber ? (
                         <>
-                          {visitor.documentType}
+                          {translateDocumentType(visitor.documentType)}
                           <br />
                           <Typography variant="caption" color="text.secondary">
                             {visitor.documentNumber}

@@ -23,19 +23,9 @@ import {
 import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business, Close, QrCode2 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { visitsApi } from '@/lib/api';
-import { Visit, VisitStatus } from '@/types/visitor';
-
-// Helper to get status color
-const getStatusChipColor = (status: VisitStatus) => {
-  switch (status) {
-    case VisitStatus.SCHEDULED: return 'info';
-    case VisitStatus.CHECKED_IN: return 'success';
-    case VisitStatus.CHECKED_OUT: return 'default';
-    case VisitStatus.CANCELLED: return 'error';
-    case VisitStatus.EXPIRED: return 'warning';
-    default: return 'default';
-  }
-};
+import { Visit } from '@/types/visitor';
+import { translateVisitStatus, getVisitStatusColor, translateVisitType } from '@/lib/translations';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function VisitDetailPage() {
   const router = useRouter();
@@ -105,12 +95,19 @@ export default function VisitDetailPage() {
     return <Alert severity="info">Nessuna visita trovata.</Alert>;
   }
 
-  const canCheckIn = visit.status === VisitStatus.SCHEDULED;
-  const canCheckOut = visit.status === VisitStatus.CHECKED_IN;
-  const canCancel = visit.status === VisitStatus.SCHEDULED;
+  const canCheckIn = visit.status === 'pending';
+  const canCheckOut = visit.status === 'checked_in';
+  const canCancel = visit.status === 'pending';
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Visite', href: '/visits' },
+          { label: visit.purpose || visit.id }
+        ]}
+      />
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button startIcon={<ArrowBack />} onClick={() => router.push('/visits')}>
           Tutte le Visite
@@ -218,9 +215,12 @@ export default function VisitDetailPage() {
               <Avatar sx={{ bgcolor: 'secondary.main' }}><Business /></Avatar>
               <Typography variant="h6">Ospite</Typography>
             </Stack>
-            <Typography><strong>Nome:</strong> {visit.host?.name}</Typography>
-            <Typography><strong>Email:</strong> {visit.host?.email}</Typography>
-            <Typography><strong>Dipartimento:</strong> {visit.host?.department || '-'}</Typography>
+            <Typography>
+              <strong>Nome:</strong>{' '}
+              {visit.hostUser
+                ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+                : visit.hostName || '-'}
+            </Typography>
           </Card>
         </Grid>
 
@@ -232,14 +232,18 @@ export default function VisitDetailPage() {
               <Grid item xs={12} sm={6} md={4}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography><strong>Stato:</strong></Typography>
-                  <Chip label={visit.status} size="small" color={getStatusChipColor(visit.status)} />
+                  <Chip label={translateVisitStatus(visit.status)} size="small" color={getVisitStatusColor(visit.status)} />
                 </Stack>
               </Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Scopo:</strong> {visit.purpose} {visit.purposeNotes ? `(${visit.purposeNotes})` : ''}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Area/Dipartimento:</strong> {visit.department || '-'}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Scopo:</strong> {visit.purpose}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Tipo Visita:</strong> {translateVisitType(visit.visitType)}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Dipartimento:</strong> {visit.department?.name || '-'}</Typography></Grid>
+              {visit.department?.area && (
+                <Grid item xs={12} sm={6} md={4}><Typography><strong>Area:</strong> {visit.department.area}</Typography></Grid>
+              )}
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Data Programmata:</strong> {new Date(visit.scheduledDate).toLocaleString('it-IT')}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-In:</strong> {visit.checkInTime ? new Date(visit.checkInTime).toLocaleString('it-IT') : '-'}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-Out:</strong> {visit.checkOutTime ? new Date(visit.checkOutTime).toLocaleString('it-IT') : '-'}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-In:</strong> {visit.actualCheckIn ? new Date(visit.actualCheckIn).toLocaleString('it-IT') : '-'}</Typography></Grid>
+              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-Out:</strong> {visit.actualCheckOut ? new Date(visit.actualCheckOut).toLocaleString('it-IT') : '-'}</Typography></Grid>
               <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Badge:</strong> {visit.badgeIssued ? `Sì, #${visit.badgeNumber}` : 'No'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Notifica Inviata:</strong> {visit.notificationSent ? 'Sì' : 'No'}</Typography></Grid>

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useSnackbar } from 'notistack';
 import { usersApi } from '@/lib/api';
 import { User } from '@/types/visitor';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function UsersPage() {
   const router = useRouter();
@@ -56,6 +57,12 @@ export default function UsersPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Utenti' }
+        ]}
+      />
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">Gestione Utenti</Typography>
         <Button 
@@ -87,10 +94,10 @@ export default function UsersPage() {
             <TableBody>
               {users.map((user) => (
                 <TableRow hover key={user.id}>
-                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.firstName} {user.lastName}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell><Chip label={user.role} size="small" /></TableCell>
-                  <TableCell><Chip label={user.active ? 'Attivo' : 'Inattivo'} color={user.active ? 'success' : 'default'} size="small" /></TableCell>
+                  <TableCell><Chip label={user.isActive ? 'Attivo' : 'Inattivo'} color={user.isActive ? 'success' : 'default'} size="small" /></TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
                       <IconButton 

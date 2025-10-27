@@ -25,7 +25,7 @@ export class VisitorsController {
   constructor(private readonly visitorsService: VisitorsService) {}
 
   @Post()
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('admin', 'receptionist')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'document', maxCount: 1 },
@@ -48,37 +48,37 @@ export class VisitorsController {
   }
 
   @Get()
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  @Roles('admin', 'receptionist', 'security')
   findAll(@Query('search') search?: string, @Query('company') company?: string) {
     return this.visitorsService.findAll(search, company);
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  @Roles('admin', 'receptionist', 'security')
   findOne(@Param('id') id: string) {
     return this.visitorsService.findOne(id);
   }
 
   @Get(':id/document-url')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('admin', 'receptionist')
   getDocumentUrl(@Param('id') id: string) {
     return this.visitorsService.getDocumentUrl(id);
   }
 
   @Get(':id/photo-url')
-  @Roles('ADMIN', 'RECEPTIONIST', 'EMPLOYEE', 'USER')
+  @Roles('admin', 'receptionist', 'security')
   getPhotoUrl(@Param('id') id: string) {
     return this.visitorsService.getPhotoUrl(id);
   }
 
   @Patch(':id')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('admin', 'receptionist')
   update(@Param('id') id: string, @Body() updateVisitorDto: UpdateVisitorDto) {
     return this.visitorsService.update(id, updateVisitorDto);
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.visitorsService.remove(id);
   }

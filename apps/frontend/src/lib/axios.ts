@@ -6,9 +6,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export const axiosInstance = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor to add auth token
@@ -18,6 +15,12 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Se i dati sono FormData, NON impostare Content-Type (il browser lo farà automaticamente con boundary)
+    if (!(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
     return config;
   },
   (error) => {
@@ -47,7 +50,7 @@ axiosInstance.interceptors.response.use(
         if (isTokenError && hasToken) {
           // Check if we're already on the login page to avoid redirect loops
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            console.log('🔒 Session expired - redirecting to login');
+            console.log('Session expired - redirecting to login');
 
             // Clear auth data from storage
             localStorage.removeItem('auth-token');

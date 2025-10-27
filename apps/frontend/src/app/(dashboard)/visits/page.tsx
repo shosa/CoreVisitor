@@ -38,8 +38,10 @@ import {
 import { visitsApi, departmentsApi } from '@/lib/api';
 import { Visit, VisitStatus, Department } from '@/types/visitor';
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { translateVisitStatus, getVisitStatusColor, translateVisitType } from '@/lib/translations';
 import { it } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function VisitsPage() {
   const router = useRouter();
@@ -109,9 +111,10 @@ export default function VisitsPage() {
           v.visitor?.firstName?.toLowerCase().includes(query) ||
           v.visitor?.lastName?.toLowerCase().includes(query) ||
           v.visitor?.company?.toLowerCase().includes(query) ||
-          v.host?.name?.toLowerCase().includes(query) ||
+          v.hostName?.toLowerCase().includes(query) ||
+          (v.hostUser && `${v.hostUser.firstName} ${v.hostUser.lastName}`.toLowerCase().includes(query)) ||
           v.badgeNumber?.toLowerCase().includes(query) ||
-          v.department?.toLowerCase().includes(query)
+          v.department?.name?.toLowerCase().includes(query)
       );
     }
 
@@ -137,14 +140,14 @@ export default function VisitsPage() {
       format(new Date(v.scheduledDate), 'dd/MM/yyyy HH:mm'),
       `${v.visitor?.firstName} ${v.visitor?.lastName}`,
       v.visitor?.company || '',
-      v.host?.name || '',
-      v.department || '',
-      v.area || '',
+      v.hostUser ? `${v.hostUser.firstName} ${v.hostUser.lastName}` : v.hostName || '',
+      v.department?.name || '',
+      v.department?.area || '',
       v.purpose,
       v.badgeNumber || '',
       v.status,
-      v.checkInTime ? format(new Date(v.checkInTime), 'dd/MM/yyyy HH:mm') : '',
-      v.checkOutTime ? format(new Date(v.checkOutTime), 'dd/MM/yyyy HH:mm') : '',
+      v.actualCheckIn ? format(new Date(v.actualCheckIn), 'dd/MM/yyyy HH:mm') : '',
+      v.actualCheckOut ? format(new Date(v.actualCheckOut), 'dd/MM/yyyy HH:mm') : '',
     ]);
 
     const csvContent = [
@@ -168,35 +171,6 @@ export default function VisitsPage() {
     setSearchQuery('');
   };
 
-  const getStatusColor = (status: VisitStatus) => {
-    switch (status) {
-      case VisitStatus.CHECKED_IN:
-        return 'success';
-      case VisitStatus.SCHEDULED:
-        return 'warning';
-      case VisitStatus.CHECKED_OUT:
-        return 'default';
-      case VisitStatus.CANCELLED:
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: VisitStatus) => {
-    switch (status) {
-      case VisitStatus.CHECKED_IN:
-        return 'Presente';
-      case VisitStatus.SCHEDULED:
-        return 'Programmata';
-      case VisitStatus.CHECKED_OUT:
-        return 'Completata';
-      case VisitStatus.CANCELLED:
-        return 'Cancellata';
-      default:
-        return status;
-    }
-  };
 
   const activeFiltersCount =
     (statusFilter !== 'ALL' ? 1 : 0) +
@@ -206,6 +180,13 @@ export default function VisitsPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Visite' },
+        ]}
+      />
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">
           Tutte le Visite
@@ -366,14 +347,18 @@ export default function VisitsPage() {
                       </Typography>
                     </TableCell>
                     <TableCell>{visit.visitor?.company || '-'}</TableCell>
-                    <TableCell>{visit.host?.name}</TableCell>
                     <TableCell>
-                      {visit.department}
-                      {visit.area && (
+                      {visit.hostUser
+                        ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+                        : visit.hostName || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {visit.department?.name || '-'}
+                      {visit.department?.area && (
                         <>
                           <br />
                           <Typography variant="caption" color="text.secondary">
-                            {visit.area}
+                            {visit.department.area}
                           </Typography>
                         </>
                       )}
@@ -388,9 +373,9 @@ export default function VisitsPage() {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={getStatusLabel(visit.status)}
+                        label={translateVisitStatus(visit.status)}
                         size="small"
-                        color={getStatusColor(visit.status)}
+                        color={getVisitStatusColor(visit.status)}
                       />
                     </TableCell>
                     <TableCell align="right">

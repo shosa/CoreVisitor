@@ -9,6 +9,7 @@ import * as yup from 'yup';
 import { useSnackbar } from 'notistack';
 import { visitsApi } from '@/lib/api';
 import { Visit, VisitPurpose } from '@/types/visitor';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const schema = yup.object().shape({
   purpose: yup.mixed<VisitPurpose>().oneOf(Object.values(VisitPurpose)).required('Lo scopo è obbligatorio'),
@@ -84,6 +85,14 @@ export default function EditVisitPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Visite', href: '/visits' },
+          { label: visit?.purpose || id, href: `/visits/${id}` },
+          { label: 'Modifica' }
+        ]}
+      />
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>Modifica Visita</Typography>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Grid container spacing={3}>

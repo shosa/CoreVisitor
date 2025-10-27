@@ -88,14 +88,16 @@ export class MeilisearchService implements OnModuleInit {
         {
           id: visit.id,
           visitorName: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
-          hostName: visit.host.name,
-          department: visit.department,
-          area: visit.area,
+          hostName: visit.hostUser
+            ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+            : visit.hostName || '',
+          departmentName: visit.department?.name || '',
+          departmentArea: visit.department?.area || '',
           purpose: visit.purpose,
           status: visit.status,
           badgeNumber: visit.badgeNumber,
           scheduledDate: visit.scheduledDate,
-          checkInTime: visit.checkInTime,
+          actualCheckIn: visit.actualCheckIn,
         },
       ]);
     } catch (error) {

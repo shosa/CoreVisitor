@@ -1,13 +1,15 @@
 // User types
-export type UserRole = 'admin' | 'tecnico' | 'utente';
+export type UserRole = 'admin' | 'receptionist' | 'security' | 'visitor';
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
   firstName: string;
   lastName: string;
   role: UserRole;
   isActive: boolean;
+  phone?: string;
+  department?: string;
   createdAt?: string;
   updatedAt?: string;
 }

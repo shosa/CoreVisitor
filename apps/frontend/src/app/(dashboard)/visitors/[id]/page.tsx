@@ -18,12 +18,19 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  IconButton,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogActions
 } from '@mui/material';
-import { Person, Edit, Delete, ArrowBack } from '@mui/icons-material';
+import { Person, Edit, Delete, ArrowBack, Visibility, VisibilityOff, ZoomIn, Description } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { visitorsApi } from '@/lib/api';
 import { Visitor } from '@/types/visitor';
+import { translateDocumentType, translateVisitStatus } from '@/lib/translations';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function VisitorDetailPage() {
   const router = useRouter();
@@ -34,6 +41,14 @@ export default function VisitorDetailPage() {
   const [visitor, setVisitor] = useState<Visitor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [isThumbnailBlurred, setIsThumbnailBlurred] = useState(true);
+  const [isModalPhotoBlurred, setIsModalPhotoBlurred] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [documentMimeType, setDocumentMimeType] = useState<string | null>(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [loadingDocument, setLoadingDocument] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -47,11 +62,50 @@ export default function VisitorDetailPage() {
     try {
       const res = await visitorsApi.getOne(id);
       setVisitor(res.data);
+      console.log('📸 Visitor data:', res.data);
+      console.log('📸 photoPath:', res.data.photoPath);
+      console.log('📄 documents:', res.data.documents);
+      console.log('📄 documentScanPath:', res.data.documentScanPath);
+
+      // Carica la foto se presente
+      if (res.data.photoPath) {
+        try {
+          console.log('📸 Fetching photo URL...');
+          const photoRes = await visitorsApi.getPhotoUrl(id);
+          console.log('📸 Photo URL response:', photoRes.data);
+          setPhotoUrl(photoRes.data.url);
+        } catch (err) {
+          console.error('❌ Errore nel caricamento della foto:', err);
+        }
+      } else {
+        console.log('📸 No photoPath found in visitor data');
+      }
     } catch (err) {
       setError('Impossibile caricare i dati del visitatore.');
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewDocument = async () => {
+    if (!visitor?.documents || visitor.documents.length === 0) {
+      enqueueSnackbar('Nessun documento disponibile', { variant: 'warning' });
+      return;
+    }
+
+    setLoadingDocument(true);
+    try {
+      const docRes = await visitorsApi.getDocumentUrl(id);
+      setDocumentUrl(docRes.data.url);
+      // Salva il mimeType dal documento più recente
+      setDocumentMimeType(visitor.documents[0].mimeType);
+      setIsDocumentModalOpen(true);
+    } catch (err) {
+      console.error('Errore nel caricamento del documento:', err);
+      enqueueSnackbar('Errore nel caricamento del documento', { variant: 'error' });
+    } finally {
+      setLoadingDocument(false);
     }
   };
 
@@ -82,11 +136,34 @@ export default function VisitorDetailPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Visitatori', href: '/visitors' },
+          { label: `${visitor.firstName} ${visitor.lastName}` },
+        ]}
+      />
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button startIcon={<ArrowBack />} onClick={() => router.push('/visitors')}>
           Tutti i Visitatori
         </Button>
         <Stack direction="row" spacing={2}>
+          {visitor.documents && visitor.documents.length > 0 && (
+            <Button
+              variant="contained"
+              startIcon={loadingDocument ? <CircularProgress size={20} color="inherit" /> : <Description />}
+              onClick={handleViewDocument}
+              disabled={loadingDocument}
+              sx={{
+                backgroundColor: 'primary.main',
+                color: 'common.white',
+                '&:hover': { backgroundColor: 'primary.dark' },
+              }}
+            >
+              Vedi Documento
+            </Button>
+          )}
           <Button
             variant="contained"
             startIcon={<Delete />}
@@ -117,9 +194,60 @@ export default function VisitorDetailPage() {
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <Card sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Avatar sx={{ width: 120, height: 120, mb: 2, bgcolor: 'primary.main' }}>
-              <Person sx={{ fontSize: 80 }} />
-            </Avatar>
+            <Box sx={{ position: 'relative', mb: 2 }}>
+              {photoUrl ? (
+                <Avatar
+                  src={photoUrl}
+                  alt={`${visitor.firstName} ${visitor.lastName}`}
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    filter: isThumbnailBlurred ? 'blur(10px)' : 'none',
+                    transition: 'filter 0.3s ease-in-out'
+                  }}
+                />
+              ) : (
+                <Avatar sx={{ width: 120, height: 120, bgcolor: 'primary.main' }}>
+                  <Person sx={{ fontSize: 80 }} />
+                </Avatar>
+              )}
+              {photoUrl && (
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  sx={{
+                    position: 'absolute',
+                    bottom: -10,
+                    right: -10,
+                    bgcolor: 'white',
+                    borderRadius: '20px',
+                    boxShadow: 2,
+                    p: 0.5
+                  }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => setIsThumbnailBlurred(!isThumbnailBlurred)}
+                    sx={{
+                      bgcolor: 'grey.100',
+                      '&:hover': { bgcolor: 'grey.200' },
+                    }}
+                  >
+                    {isThumbnailBlurred ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => setIsPhotoModalOpen(true)}
+                    sx={{
+                      bgcolor: 'grey.100',
+                      '&:hover': { bgcolor: 'grey.200' },
+                    }}
+                  >
+                    <ZoomIn fontSize="small" />
+                  </IconButton>
+                </Stack>
+              )}
+            </Box>
             <Typography variant="h5" fontWeight="bold">
               {visitor.firstName} {visitor.lastName}
             </Typography>
@@ -140,7 +268,7 @@ export default function VisitorDetailPage() {
               <Grid item xs={12} sm={6}><Typography><strong>Telefono:</strong> {visitor.phone || '-'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Azienda:</strong> {visitor.company || '-'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Targa:</strong> {visitor.licensePlate || '-'}</Typography></Grid>
-              <Grid item xs={12} sm={6}><Typography><strong>Documento:</strong> {visitor.documentType ? `${visitor.documentType}: ${visitor.documentNumber}` : '-'}</Typography></Grid>
+              <Grid item xs={12} sm={6}><Typography><strong>Documento:</strong> {visitor.documentType ? `${translateDocumentType(visitor.documentType)}: ${visitor.documentNumber}` : '-'}</Typography></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Registrato il:</strong> {new Date(visitor.createdAt).toLocaleString('it-IT')}</Typography></Grid>
               <Grid item xs={12}><Typography><strong>Note:</strong> {visitor.notes || '-'}</Typography></Grid>
             </Grid>
@@ -168,7 +296,7 @@ export default function VisitorDetailPage() {
                         <TableCell>{new Date(visit.scheduledDate).toLocaleString('it-IT')}</TableCell>
                         <TableCell>{visit.host?.name || '-'}</TableCell>
                         <TableCell>{visit.purpose}</TableCell>
-                        <TableCell><Chip label={visit.status} size="small" /></TableCell>
+                        <TableCell><Chip label={translateVisitStatus(visit.status)} size="small" /></TableCell>
                         <TableCell align="right">
                           <Button size="small" onClick={() => router.push(`/visits/${visit.id}`)}>Vedi</Button>
                         </TableCell>
@@ -185,6 +313,122 @@ export default function VisitorDetailPage() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Modal per foto ingrandita */}
+      <Dialog
+        open={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              Foto di {visitor.firstName} {visitor.lastName}
+            </Box>
+            <IconButton
+              size="small"
+              onClick={() => setIsModalPhotoBlurred(!isModalPhotoBlurred)}
+              sx={{
+                bgcolor: 'grey.100',
+                '&:hover': { bgcolor: 'grey.200' },
+              }}
+            >
+              {isModalPhotoBlurred ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 400,
+            }}
+          >
+            {photoUrl && (
+              <Box
+                component="img"
+                src={photoUrl}
+                alt={`${visitor.firstName} ${visitor.lastName}`}
+                sx={{
+                  maxWidth: '100%',
+                  maxHeight: '70vh',
+                  objectFit: 'contain',
+                  borderRadius: 2,
+                  filter: isModalPhotoBlurred ? 'blur(10px)' : 'none',
+                  transition: 'filter 0.3s ease-in-out'
+                }}
+              />
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsPhotoModalOpen(false)}>Chiudi</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal per documento */}
+      <Dialog
+        open={isDocumentModalOpen}
+        onClose={() => setIsDocumentModalOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          Documento di {visitor.firstName} {visitor.lastName}
+        </DialogTitle>
+        <DialogContent>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 500,
+            }}
+          >
+            {documentUrl && (
+              <>
+                {documentMimeType === 'application/pdf' ? (
+                  <iframe
+                    src={documentUrl}
+                    style={{
+                      width: '100%',
+                      height: '80vh',
+                      border: 'none',
+                      borderRadius: '8px'
+                    }}
+                    title="Documento visitatore"
+                  />
+                ) : (
+                  <Box
+                    component="img"
+                    src={documentUrl}
+                    alt="Documento"
+                    sx={{
+                      maxWidth: '100%',
+                      maxHeight: '80vh',
+                      objectFit: 'contain',
+                      borderRadius: 2,
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            onClick={() => window.open(documentUrl || '', '_blank')}
+            disabled={!documentUrl}
+          >
+            Apri in nuova finestra
+          </Button>
+          <Button onClick={() => setIsDocumentModalOpen(false)}>Chiudi</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

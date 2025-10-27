@@ -5,6 +5,16 @@ export enum DocumentType {
   ALTRO = 'ALTRO',
 }
 
+export interface VisitorDocument {
+  id: string;
+  visitorId: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
+}
+
 export interface Visitor {
   id: string;
   firstName: string;
@@ -14,6 +24,7 @@ export interface Visitor {
   company?: string;
   documentType?: DocumentType;
   documentNumber?: string;
+  documentExpiry?: string;
   documentScanPath?: string;
   licensePlate?: string;
   photoPath?: string;
@@ -23,6 +34,7 @@ export interface Visitor {
   createdAt: string;
   updatedAt: string;
   visits?: Visit[];
+  documents?: VisitorDocument[];
 }
 
 export enum VisitStatus {
@@ -47,33 +59,34 @@ export interface Visit {
   id: string;
   visitorId: string;
   visitor?: Visitor;
-  hostId: string;
-  host?: {
+  departmentId: string;
+  department?: Department;
+  hostUserId?: string;
+  hostUser?: {
     id: string;
-    name: string;
-    email: string;
-    department?: string;
+    firstName: string;
+    lastName: string;
   };
-  purpose: VisitPurpose;
-  purposeNotes?: string;
-  department?: string;
-  area?: string;
+  hostName?: string;
+  visitType: string;
+  purpose: string;
   scheduledDate: string;
-  scheduledEndDate?: string;
-  checkInTime?: string;
-  checkOutTime?: string;
-  status: VisitStatus;
+  scheduledTimeStart: string;
+  scheduledTimeEnd?: string;
+  actualCheckIn?: string;
+  actualCheckOut?: string;
+  status: string;
   badgeNumber?: string;
   badgeQRCode?: string;
   badgeIssued: boolean;
   badgeIssuedAt?: string;
-  notificationSent: boolean;
-  notificationSentAt?: string;
+  qrCode?: string;
   notes?: string;
   createdById: string;
   createdBy?: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
   };
   createdAt: string;
@@ -100,20 +113,21 @@ export interface VisitStats {
 }
 
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  RECEPTIONIST = 'RECEPTIONIST',
-  EMPLOYEE = 'EMPLOYEE',
-  USER = 'USER',
+  ADMIN = 'admin',
+  RECEPTIONIST = 'receptionist',
+  SECURITY = 'security',
+  VISITOR = 'visitor',
 }
 
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
+  firstName: string;
+  lastName: string;
+  role: UserRole | string;
   phone?: string;
   department?: string;
-  active: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

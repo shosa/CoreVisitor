@@ -19,11 +19,14 @@ import {
   Step,
   StepLabel,
   Alert,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
-import { Save, ArrowBack, ArrowForward } from '@mui/icons-material';
+import { Save, ArrowBack, ArrowForward, UploadFile } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { visitorsApi, visitsApi, usersApi, departmentsApi } from '@/lib/api';
-import { Visitor, VisitPurpose, Department } from '@/types/visitor';
+import { visitorsApi, visitsApi, departmentsApi } from '@/lib/api';
+import { Visitor, Department } from '@/types/visitor';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const steps = ['Seleziona/Crea Visitatore', 'Dettagli Visita', 'Conferma'];
 
@@ -32,6 +35,8 @@ export default function NewVisitPage() {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   // State per visitatore
   const [visitors, setVisitors] = useState<Visitor[]>([]);
@@ -44,21 +49,21 @@ export default function NewVisitPage() {
     company: '',
     documentType: 'CARTA_IDENTITA',
     documentNumber: '',
+    documentExpiry: '',
     licensePlate: '',
     privacyConsent: false,
   });
 
   // State per visita
-  const [hosts, setHosts] = useState<any[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [visitData, setVisitData] = useState({
-    hostId: '',
-    purpose: VisitPurpose.RIUNIONE,
-    purposeNotes: '',
-    department: '',
-    area: '',
-    scheduledDate: new Date().toISOString().slice(0, 16),
-    scheduledEndDate: '',
+    hostName: '',
+    visitType: 'business',
+    purpose: '',
+    departmentId: '',
+    scheduledDate: new Date().toISOString().split('T')[0],
+    scheduledTimeStart: new Date().toISOString().slice(0, 16),
+    scheduledTimeEnd: '', // Opzionale
     notes: '',
   });
 
@@ -68,24 +73,67 @@ export default function NewVisitPage() {
 
   const loadData = async () => {
     try {
-      const [visitorsRes, hostsRes, deptsRes] = await Promise.all([
+      const [visitorsRes, deptsRes] = await Promise.all([
         visitorsApi.getAll(),
-        usersApi.getAll(),
         departmentsApi.getAll(),
       ]);
       setVisitors(visitorsRes.data);
-      setHosts(hostsRes.data);
       setDepartments(deptsRes.data);
     } catch (error) {
       console.error('Error loading data:', error);
     }
   };
 
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 0: // Visitor step
+        if (selectedVisitor) {
+          return true; // Visitor esistente selezionato
+        }
+        // Nuovo visitatore: verifica campi obbligatori
+        if (!newVisitor.firstName.trim() || !newVisitor.lastName.trim()) {
+          setError('Nome e Cognome sono obbligatori');
+          return false;
+        }
+        if (!newVisitor.documentType || !newVisitor.documentNumber.trim()) {
+          setError('Tipo e Numero documento sono obbligatori');
+          return false;
+        }
+        return true;
+
+      case 1: // Visit details step
+        if (!visitData.departmentId) {
+          setError('Seleziona un reparto');
+          return false;
+        }
+        if (!visitData.visitType) {
+          setError('Seleziona il tipo di visita');
+          return false;
+        }
+        if (!visitData.purpose.trim()) {
+          setError('Il motivo della visita è obbligatorio');
+          return false;
+        }
+        if (!visitData.scheduledTimeStart) {
+          setError('Data/Ora inizio è obbligatoria');
+          return false;
+        }
+        return true;
+
+      default:
+        return true;
+    }
+  };
+
   const handleNext = () => {
-    setActiveStep((prev) => prev + 1);
+    setError(null); // Reset error
+    if (validateStep(activeStep)) {
+      setActiveStep((prev) => prev + 1);
+    }
   };
 
   const handleBack = () => {
+    setError(null); // Reset error
     setActiveStep((prev) => prev - 1);
   };
 
@@ -100,8 +148,19 @@ export default function NewVisitPage() {
       if (!visitorId && newVisitor.firstName && newVisitor.lastName) {
         const formData = new FormData();
         Object.entries(newVisitor).forEach(([key, value]) => {
-          formData.append(key, value.toString());
+          if (value != null && typeof value !== 'object') {
+            formData.append(key, value.toString());
+          }
         });
+
+        // Aggiungi i file se presenti
+        if (photoFile) {
+          formData.append('photo', photoFile);
+        }
+        if (documentFile) {
+          formData.append('document', documentFile);
+        }
+
         const visitorRes = await visitorsApi.create(formData);
         visitorId = visitorRes.data.id;
       }
@@ -113,10 +172,23 @@ export default function NewVisitPage() {
       }
 
       // Step 2: Crea visita
-      const visitRes = await visitsApi.create({
-        ...visitData,
+      const visitPayload: any = {
         visitorId,
-      });
+        departmentId: visitData.departmentId,
+        visitType: visitData.visitType,
+        purpose: visitData.purpose,
+        hostName: visitData.hostName,
+        scheduledDate: visitData.scheduledDate,
+        scheduledTimeStart: visitData.scheduledTimeStart,
+        notes: visitData.notes,
+      };
+
+      // Aggiungi scheduledTimeEnd solo se fornito
+      if (visitData.scheduledTimeEnd) {
+        visitPayload.scheduledTimeEnd = visitData.scheduledTimeEnd;
+      }
+
+      const visitRes = await visitsApi.create(visitPayload);
 
       // Step 3: Check-in automatico
       await visitsApi.checkIn(visitRes.data.id);
@@ -124,6 +196,7 @@ export default function NewVisitPage() {
       // Redirect alla dashboard
       router.push('/dashboard');
     } catch (error: any) {
+      console.error('Error creating visit:', error);
       setError(error.response?.data?.message || 'Errore durante la creazione');
     } finally {
       setLoading(false);
@@ -169,6 +242,9 @@ export default function NewVisitPage() {
                   setNewVisitor({ ...newVisitor, firstName: e.target.value })
                 }
                 disabled={!!selectedVisitor}
+                required
+                error={!selectedVisitor && !newVisitor.firstName.trim() && activeStep > 0}
+                helperText={!selectedVisitor && !newVisitor.firstName.trim() && activeStep > 0 ? 'Campo obbligatorio' : ''}
               />
             </Grid>
 
@@ -181,6 +257,9 @@ export default function NewVisitPage() {
                   setNewVisitor({ ...newVisitor, lastName: e.target.value })
                 }
                 disabled={!!selectedVisitor}
+                required
+                error={!selectedVisitor && !newVisitor.lastName.trim() && activeStep > 0}
+                helperText={!selectedVisitor && !newVisitor.lastName.trim() && activeStep > 0 ? 'Campo obbligatorio' : ''}
               />
             </Grid>
 
@@ -222,14 +301,49 @@ export default function NewVisitPage() {
             </Grid>
 
             <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required disabled={!!selectedVisitor}>
+                <InputLabel>Tipo Documento *</InputLabel>
+                <Select
+                  value={newVisitor.documentType}
+                  onChange={(e) =>
+                    setNewVisitor({ ...newVisitor, documentType: e.target.value })
+                  }
+                  label="Tipo Documento *"
+                >
+                  <MenuItem value="CARTA_IDENTITA">Carta d'Identità</MenuItem>
+                  <MenuItem value="PASSAPORTO">Passaporto</MenuItem>
+                  <MenuItem value="PATENTE">Patente</MenuItem>
+                  <MenuItem value="ALTRO">Altro</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Numero Documento"
+                label="Numero Documento *"
                 value={newVisitor.documentNumber}
                 onChange={(e) =>
                   setNewVisitor({ ...newVisitor, documentNumber: e.target.value })
                 }
                 disabled={!!selectedVisitor}
+                required
+                error={!selectedVisitor && !newVisitor.documentNumber.trim() && activeStep > 0}
+                helperText={!selectedVisitor && !newVisitor.documentNumber.trim() && activeStep > 0 ? 'Campo obbligatorio' : ''}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Scadenza Documento"
+                type="date"
+                value={newVisitor.documentExpiry}
+                onChange={(e) =>
+                  setNewVisitor({ ...newVisitor, documentExpiry: e.target.value })
+                }
+                disabled={!!selectedVisitor}
+                InputLabelProps={{ shrink: true }}
               />
             </Grid>
 
@@ -244,6 +358,40 @@ export default function NewVisitPage() {
                 disabled={!!selectedVisitor}
               />
             </Grid>
+
+            {/* File Uploads */}
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" gutterBottom>Foto Visitatore</Typography>
+              <Button component="label" variant="outlined" startIcon={<UploadFile />} disabled={!!selectedVisitor}>
+                Carica Foto
+                <input type="file" hidden accept="image/*" onChange={(e) => setPhotoFile(e.target.files ? e.target.files[0] : null)} />
+              </Button>
+              {photoFile && <Typography variant="body2" sx={{ mt: 1 }}>{photoFile.name}</Typography>}
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" gutterBottom>Scansione Documento</Typography>
+              <Button component="label" variant="outlined" startIcon={<UploadFile />} disabled={!!selectedVisitor}>
+                Carica Documento
+                <input type="file" hidden accept=".pdf,image/*" onChange={(e) => setDocumentFile(e.target.files ? e.target.files[0] : null)} />
+              </Button>
+              {documentFile && <Typography variant="body2" sx={{ mt: 1 }}>{documentFile.name}</Typography>}
+            </Grid>
+
+            {/* Privacy Consent */}
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newVisitor.privacyConsent}
+                    onChange={(e) =>
+                      setNewVisitor({ ...newVisitor, privacyConsent: e.target.checked })
+                    }
+                    disabled={!!selectedVisitor}
+                  />
+                }
+                label="Dichiaro di aver letto l'informativa sulla privacy e di prestare il consenso al trattamento dei dati personali."
+              />
+            </Grid>
           </Grid>
         );
 
@@ -251,42 +399,32 @@ export default function NewVisitPage() {
         return (
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Host / Referente</InputLabel>
-                <Select
-                  value={visitData.hostId}
-                  onChange={(e) =>
-                    setVisitData({ ...visitData, hostId: e.target.value })
-                  }
-                >
-                  {hosts.map((host) => (
-                    <MenuItem key={host.id} value={host.id}>
-                      {host.name} - {host.department}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                fullWidth
+                label="Host / Referente"
+                value={visitData.hostName}
+                onChange={(e) =>
+                  setVisitData({ ...visitData, hostName: e.target.value })
+                }
+                helperText="Nome della persona da visitare"
+              />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Motivo Visita</InputLabel>
+                <InputLabel>Tipo Visita</InputLabel>
                 <Select
-                  value={visitData.purpose}
+                  value={visitData.visitType}
                   onChange={(e) =>
-                    setVisitData({
-                      ...visitData,
-                      purpose: e.target.value as VisitPurpose,
-                    })
+                    setVisitData({ ...visitData, visitType: e.target.value })
                   }
                 >
-                  <MenuItem value="RIUNIONE">Riunione</MenuItem>
-                  <MenuItem value="CONSEGNA">Consegna</MenuItem>
-                  <MenuItem value="MANUTENZIONE">Manutenzione</MenuItem>
-                  <MenuItem value="COLLOQUIO">Colloquio</MenuItem>
-                  <MenuItem value="FORMAZIONE">Formazione</MenuItem>
-                  <MenuItem value="AUDIT">Audit</MenuItem>
-                  <MenuItem value="ALTRO">Altro</MenuItem>
+                  <MenuItem value="business">Business</MenuItem>
+                  <MenuItem value="personal">Personale</MenuItem>
+                  <MenuItem value="delivery">Consegna</MenuItem>
+                  <MenuItem value="maintenance">Manutenzione</MenuItem>
+                  <MenuItem value="interview">Colloquio</MenuItem>
+                  <MenuItem value="other">Altro</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -295,18 +433,13 @@ export default function NewVisitPage() {
               <FormControl fullWidth required>
                 <InputLabel>Reparto</InputLabel>
                 <Select
-                  value={visitData.department}
-                  onChange={(e) => {
-                    const dept = departments.find((d) => d.name === e.target.value);
-                    setVisitData({
-                      ...visitData,
-                      department: e.target.value,
-                      area: dept?.area || '',
-                    });
-                  }}
+                  value={visitData.departmentId}
+                  onChange={(e) =>
+                    setVisitData({ ...visitData, departmentId: e.target.value })
+                  }
                 >
                   {departments.map((dept) => (
-                    <MenuItem key={dept.id} value={dept.name}>
+                    <MenuItem key={dept.id} value={dept.id}>
                       {dept.name}
                     </MenuItem>
                   ))}
@@ -317,26 +450,29 @@ export default function NewVisitPage() {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Note Motivo"
+                label="Motivo della Visita *"
+                value={visitData.purpose}
+                onChange={(e) =>
+                  setVisitData({ ...visitData, purpose: e.target.value })
+                }
                 multiline
                 rows={2}
-                value={visitData.purposeNotes}
-                onChange={(e) =>
-                  setVisitData({ ...visitData, purposeNotes: e.target.value })
-                }
+                required
+                helperText="Descrivi brevemente il motivo della visita"
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Data/Ora Inizio"
+                label="Data/Ora Inizio *"
                 type="datetime-local"
-                value={visitData.scheduledDate}
+                value={visitData.scheduledTimeStart}
                 onChange={(e) =>
-                  setVisitData({ ...visitData, scheduledDate: e.target.value })
+                  setVisitData({ ...visitData, scheduledTimeStart: e.target.value })
                 }
                 InputLabelProps={{ shrink: true }}
+                required
               />
             </Grid>
 
@@ -345,9 +481,9 @@ export default function NewVisitPage() {
                 fullWidth
                 label="Data/Ora Fine (opzionale)"
                 type="datetime-local"
-                value={visitData.scheduledEndDate}
+                value={visitData.scheduledTimeEnd}
                 onChange={(e) =>
-                  setVisitData({ ...visitData, scheduledEndDate: e.target.value })
+                  setVisitData({ ...visitData, scheduledTimeEnd: e.target.value })
                 }
                 InputLabelProps={{ shrink: true }}
               />
@@ -402,15 +538,25 @@ export default function NewVisitPage() {
                       Dettagli Visita
                     </Typography>
                     <Typography variant="body1">
-                      Host:{' '}
-                      {hosts.find((h) => h.id === visitData.hostId)?.name || '-'}
+                      Host: {visitData.hostName || '-'}
+                    </Typography>
+                    <Typography variant="body1">
+                      Tipo: {visitData.visitType}
                     </Typography>
                     <Typography variant="body1">
                       Motivo: {visitData.purpose}
                     </Typography>
                     <Typography variant="body1">
-                      Reparto: {visitData.department} - {visitData.area}
+                      Reparto: {departments.find((d) => d.id === visitData.departmentId)?.name || '-'}
                     </Typography>
+                    <Typography variant="body1">
+                      Inizio: {new Date(visitData.scheduledTimeStart).toLocaleString('it-IT')}
+                    </Typography>
+                    {visitData.scheduledTimeEnd && (
+                      <Typography variant="body1">
+                        Fine: {new Date(visitData.scheduledTimeEnd).toLocaleString('it-IT')}
+                      </Typography>
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
@@ -425,6 +571,13 @@ export default function NewVisitPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Visite', href: '/visits' },
+          { label: 'Nuova' }
+        ]}
+      />
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         Nuova Visita / Check-in
       </Typography>
@@ -464,6 +617,11 @@ export default function NewVisitPage() {
                 variant="contained"
                 onClick={handleNext}
                 endIcon={<ArrowForward />}
+                sx={{
+                  backgroundColor: 'common.black',
+                  color: 'common.white',
+                  '&:hover': { backgroundColor: 'grey.800' },
+                }}
               >
                 Avanti
               </Button>

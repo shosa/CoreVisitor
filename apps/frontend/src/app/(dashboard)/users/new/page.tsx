@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useSnackbar } from 'notistack';
 import { usersApi, CreateUserDto } from '@/lib/api';
 import { UserRole } from '@/types/visitor';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const schema = yup.object().shape({
   name: yup.string().required('Il nome è obbligatorio'),
@@ -48,6 +49,13 @@ export default function NewUserPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/dashboard' },
+          { label: 'Utenti', href: '/users' },
+          { label: 'Nuovo' }
+        ]}
+      />
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>Nuovo Utente</Typography>
       <Card sx={{ p: 4 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
