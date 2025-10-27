@@ -60,7 +60,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NODE_ENV: production
     ports:
-      - "3005:3000"
+      - "3007:3000"
     depends_on:
       - backend
     networks:
