@@ -381,8 +381,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           position: 'relative',
         }}
       >
-        <Box sx={{ flexGrow: 1, p: 3 }}>{children}</Box>
-
+        {children}
       </Box>
 
       <Menu
