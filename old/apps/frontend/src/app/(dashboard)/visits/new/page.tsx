@@ -24,7 +24,6 @@ import { Save, ArrowBack, ArrowForward } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { visitorsApi, visitsApi, usersApi, departmentsApi } from '@/lib/api';
 import { Visitor, VisitPurpose, Department } from '@/types/visitor';
-import Breadcrumbs from '@/components/Breadcrumbs';
 
 const steps = ['Seleziona/Crea Visitatore', 'Dettagli Visita', 'Conferma'];
 
@@ -426,13 +425,6 @@ export default function NewVisitPage() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Breadcrumbs
-        items={[
-          { label: 'Home', href: '/dashboard' },
-          { label: 'Visite', href: '/visits' },
-          { label: 'Nuova' }
-        ]}
-      />
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         Nuova Visita / Check-in
       </Typography>
