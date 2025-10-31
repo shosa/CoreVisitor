@@ -145,7 +145,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <Box>
+      <Box sx={{ p: 3 }}>
         <Typography>Caricamento...</Typography>
       </Box>
     );

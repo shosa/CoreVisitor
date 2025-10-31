@@ -32,6 +32,7 @@ import {
   ExpandMore,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  ManageAccounts as ManageAccountsIcon,
 } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
@@ -84,8 +85,8 @@ const navigationItems: NavigationItem[] = [
   {
     label: 'Utenti',
     href: '/users',
-    icon: <GroupIcon />,
-    roles: ['ADMIN'],
+    icon: <ManageAccountsIcon />,
+    roles: ['admin'],
   },
 ];
 
@@ -279,7 +280,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {!sidebarCollapsed && (
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body2" fontWeight={600} noWrap>
-                {user.name}
+                {user.firstName} {user.lastName}
               </Typography>
               <Typography variant="caption" noWrap>
                 {user.role}
