@@ -3,7 +3,7 @@
  * Autenticazione per modalità completa
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   IonContent,
@@ -13,13 +13,11 @@ import {
   IonIcon,
   IonSpinner,
   IonItem,
-  IonLabel,
-  IonSelect,
-  IonSelectOption
+  IonLabel
 } from '@ionic/react';
 import {
   arrowBackOutline,
-  personOutline,
+  mailOutline,
   lockClosedOutline,
   logInOutline
 } from 'ionicons/icons';
@@ -28,54 +26,34 @@ import theme from '../styles/theme';
 import Alert from './Common/Alert';
 
 const Login = ({ onBack, onLoginSuccess }) => {
-  const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingUsers, setLoadingUsers] = useState(true);
   const [alert, setAlert] = useState({ show: false, type: 'info', title: '', message: '' });
 
   const showAlert = (type, title, message) => {
     setAlert({ show: true, type, title, message });
   };
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    try {
-      setLoadingUsers(true);
-      const response = await mobileAPI.getUsers();
-
-      if (response.data.status === 'success') {
-        const usersList = response.data.data || [];
-        // Filtra solo utenti abilitati per visitor kiosk
-        const filteredUsers = usersList.filter(
-          (u) => u.enabled_modules?.includes('visitor-kiosk') || u.role === 'receptionist' || u.role === 'security'
-        );
-        setUsers(filteredUsers);
-      }
-    } catch (error) {
-      console.error('❌ Error loading users:', error);
-      showAlert('error', 'Errore', 'Impossibile caricare gli utenti');
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!selectedUser || !password) {
-      showAlert('warning', 'Attenzione', 'Seleziona un utente e inserisci la password');
+    if (!email || !password) {
+      showAlert('warning', 'Attenzione', 'Inserisci email e password');
+      return;
+    }
+
+    // Validazione email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showAlert('warning', 'Attenzione', 'Inserisci un indirizzo email valido');
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await mobileAPI.login(selectedUser, password);
+      const response = await mobileAPI.login(email, password);
 
       if (response.data.status === 'success') {
         const userData = response.data.data;
@@ -136,22 +114,18 @@ const Login = ({ onBack, onLoginSuccess }) => {
             style={styles.formContainer}
           >
             <form onSubmit={handleLogin} style={styles.form}>
-              {/* User Select */}
+              {/* Email Input */}
               <div style={styles.inputGroup}>
                 <IonItem style={styles.item}>
-                  <IonIcon icon={personOutline} slot="start" />
-                  <IonLabel position="floating">Seleziona Utente</IonLabel>
-                  <IonSelect
-                    value={selectedUser}
-                    onIonChange={(e) => setSelectedUser(e.detail.value)}
-                    disabled={loadingUsers || loading}
-                  >
-                    {users.map((user) => (
-                      <IonSelectOption key={user.id} value={user.username}>
-                        {user.full_name} ({user.role})
-                      </IonSelectOption>
-                    ))}
-                  </IonSelect>
+                  <IonIcon icon={mailOutline} slot="start" />
+                  <IonLabel position="floating">Email</IonLabel>
+                  <IonInput
+                    type="email"
+                    value={email}
+                    onIonInput={(e) => setEmail(e.detail.value)}
+                    disabled={loading}
+                    autocomplete="email"
+                  />
                 </IonItem>
               </div>
 
@@ -165,6 +139,7 @@ const Login = ({ onBack, onLoginSuccess }) => {
                     value={password}
                     onIonInput={(e) => setPassword(e.detail.value)}
                     disabled={loading}
+                    autocomplete="current-password"
                   />
                 </IonItem>
               </div>
@@ -174,7 +149,7 @@ const Login = ({ onBack, onLoginSuccess }) => {
                 expand="block"
                 size="large"
                 type="submit"
-                disabled={loading || loadingUsers || !selectedUser || !password}
+                disabled={loading || !email || !password}
                 style={styles.loginButton}
               >
                 {loading ? (
@@ -191,18 +166,6 @@ const Login = ({ onBack, onLoginSuccess }) => {
               </IonButton>
             </form>
           </motion.div>
-
-          {/* Loading Users */}
-          {loadingUsers && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              style={styles.loadingContainer}
-            >
-              <IonSpinner name="crescent" />
-              <p style={styles.loadingText}>Caricamento utenti...</p>
-            </motion.div>
-          )}
 
           {/* Footer */}
           <motion.div
@@ -301,19 +264,6 @@ const styles = {
     fontSize: theme.fontSize.lg,
     fontWeight: theme.fontWeight.semibold,
     marginTop: '16px'
-  },
-  loadingContainer: {
-    textAlign: 'center',
-    padding: '40px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '16px'
-  },
-  loadingText: {
-    margin: 0,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary
   },
   footer: {
     textAlign: 'center',
