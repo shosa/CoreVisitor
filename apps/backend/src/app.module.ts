@@ -11,6 +11,8 @@ import { MeilisearchModule } from './meilisearch/meilisearch.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { KioskModule } from './kiosk/kiosk.module';
+import { MobileModule } from './mobile/mobile.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     NotificationsModule,
     DepartmentsModule,
     AuditLogsModule,
+    KioskModule,
+    MobileModule,
   ],
 })
 export class AppModule {}

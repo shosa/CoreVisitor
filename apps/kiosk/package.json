@@ -1,0 +1,55 @@
+{
+  "name": "@corevisitor/kiosk",
+  "version": "1.0.0",
+  "description": "CoreVisitor Kiosk App - Tablet Android per gestione visitatori",
+  "author": "Stefano Solidoro",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
+    "build": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:run": "npx cap run android",
+    "android:dev": "npm start",
+    "android:build": "npm run build && npx cap sync android && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^6.1.0",
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/browser": "^6.0.3",
+    "@capacitor/camera": "^6.0.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/filesystem": "^6.0.1",
+    "@capacitor/haptics": "^6.0.1",
+    "@ionic/react": "^8.3.2",
+    "@ionic/react-router": "^8.3.2",
+    "axios": "^1.7.7",
+    "framer-motion": "^11.11.17",
+    "ionicons": "^7.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-scripts": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "ipaddr.js": "^2.0.1",
+    "typescript": "^4.9.5"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
