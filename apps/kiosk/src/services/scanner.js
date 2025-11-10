@@ -4,6 +4,7 @@
  */
 
 import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
+import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 class ScannerService {
@@ -44,6 +45,9 @@ class ScannerService {
    */
   async scan(options = {}) {
     try {
+      // Assicura che il modulo Google Barcode Scanner sia installato su Android
+      await this.ensureGoogleScanner();
+
       // Verifica permessi
       const hasPermission = await this.checkPermissions();
       if (!hasPermission) {
@@ -88,6 +92,8 @@ class ScannerService {
    */
   async scanContinuous(onScan, options = {}) {
     try {
+      await this.ensureGoogleScanner();
+
       const hasPermission = await this.checkPermissions();
       if (!hasPermission) {
         const granted = await this.requestPermissions();
@@ -122,6 +128,24 @@ class ScannerService {
       console.error('❌ Continuous scan error:', error);
       this.isScanning = false;
       throw error;
+    }
+  }
+
+  /**
+   * Assicura l'installazione del modulo Google Barcode Scanner su Android
+   * Alcuni dispositivi richiedono l'installazione via Google Play Services.
+   */
+  async ensureGoogleScanner() {
+    try {
+      if (Capacitor.getPlatform() !== 'android') return;
+      // Il plugin gestisce internamente il caching: le chiamate successive sono veloci
+      if (typeof BarcodeScanner.installGoogleBarcodeScanner === 'function') {
+        await BarcodeScanner.installGoogleBarcodeScannerModule();
+      }
+    } catch (error) {
+      // Se l'installazione fallisce (p.es. Play Services disattivato in kiosk), continuiamo:
+      // lo scan potrebbe comunque funzionare in base al device; altrimenti mostrerà errore specifico.
+      console.warn('Google Barcode Scanner install failed or unavailable:', error);
     }
   }
 
