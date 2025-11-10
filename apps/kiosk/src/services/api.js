@@ -1,7 +1,6 @@
 /**
  * API Service
- * Gestisce tutte le chiamate al backend
- * Utilizza CapacitorHttp in mobile, Axios in web
+ * Gestisce tutte le chiamate al backend con autenticazione JWT
  */
 
 import axios from 'axios';
@@ -26,192 +25,142 @@ if (isCapacitor) {
   });
 }
 
+// Add auth interceptor for Axios (web)
+if (!isCapacitor && api.interceptors) {
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+}
+
+// Wrap capacitorHttp to add auth headers
+const apiWithAuth = {
+  get: async (url, options = {}) => {
+    const token = localStorage.getItem('auth_token');
+    if (token && isCapacitor) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      };
+    }
+    return api.get(url, options);
+  },
+  post: async (url, data, options = {}) => {
+    const token = localStorage.getItem('auth_token');
+    if (token && isCapacitor) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      };
+    }
+    return api.post(url, data, options);
+  },
+  patch: async (url, data, options = {}) => {
+    const token = localStorage.getItem('auth_token');
+    if (token && isCapacitor) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      };
+    }
+    return api.patch(url, data, options);
+  },
+  delete: async (url, options = {}) => {
+    const token = localStorage.getItem('auth_token');
+    if (token && isCapacitor) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      };
+    }
+    return api.delete(url, options);
+  }
+};
+
+const httpClient = isCapacitor ? apiWithAuth : api;
+
 /**
- * Mobile API - Endpoint unificati per app mobile
+ * Mobile API - Autenticazione
  */
 export const mobileAPI = {
   /**
-   * Login unificato per tutte le app mobile
+   * Login utente - USA L'ENDPOINT STANDARD /api/auth/login
+   * Salva il token JWT per le richieste successive
    */
-  login: (username, password) =>
-    api.post('/api/mobile/login', {
-      action: 'login',
-      username,
-      password,
-      app_type: 'visitor-kiosk'
-    }),
+  login: async (email, password) => {
+    const response = await api.post('/api/auth/login', { email, password });
 
-  /**
-   * Ottieni profilo utente corrente
-   */
-  getProfile: (userId) =>
-    api.post('/api/mobile/login', {
-      action: 'profile',
-      user_id: userId,
-      app_type: 'visitor-kiosk'
-    }),
+    // Salva il token JWT
+    if (response.data.access_token) {
+      localStorage.setItem('auth_token', response.data.access_token);
+      console.log('✅ Auth token saved');
+    }
 
-  /**
-   * Ottieni lista utenti (per selezione operatore)
-   */
-  getUsers: () =>
-    api.post('/api/mobile/login', {
-      action: 'get_users',
-      app_type: 'visitor-kiosk'
-    })
+    return response;
+  }
 };
 
 /**
- * Visitor Kiosk API - Endpoint specifici per kiosk visitatori
+ * Visitor Kiosk API - Endpoint specifici per kiosk (NO AUTH REQUIRED)
  */
 export const kioskAPI = {
-  /**
-   * Verifica badge QR code e ottieni info visita
-   */
   verifyBadge: (badgeCode) =>
     api.post('/api/kiosk/verify-badge', { badge_code: badgeCode }),
 
-  /**
-   * Check-out visitatore da QR code
-   */
   checkOut: (visitId, badgeCode) =>
     api.post('/api/kiosk/check-out', {
       visit_id: visitId,
       badge_code: badgeCode
     }),
 
-  /**
-   * Ottieni visitatori attualmente presenti
-   */
   getCurrentVisitors: () =>
     api.get('/api/kiosk/current-visitors'),
 
-  /**
-   * Ottieni statistiche dashboard
-   */
   getStats: () =>
     api.get('/api/kiosk/stats')
 };
 
 /**
- * Visitors API - Endpoint per gestione visitatori (modalità full)
- */
-export const visitorsAPI = {
-  /**
-   * Ottieni lista visitatori
-   */
-  getAll: (params) =>
-    api.get('/api/visitors', { params }),
-
-  /**
-   * Ottieni dettaglio visitatore
-   */
-  getById: (id) =>
-    api.get(`/api/visitors/${id}`),
-
-  /**
-   * Crea nuovo visitatore
-   */
-  create: (data) =>
-    api.post('/api/visitors', data),
-
-  /**
-   * Aggiorna visitatore
-   */
-  update: (id, data) =>
-    api.patch(`/api/visitors/${id}`, data),
-
-  /**
-   * Elimina visitatore
-   */
-  delete: (id) =>
-    api.delete(`/api/visitors/${id}`),
-
-  /**
-   * Cerca visitatori
-   */
-  search: (query) =>
-    api.get('/api/visitors/search', { params: { q: query } })
-};
-
-/**
- * Visits API - Endpoint per gestione visite (modalità full)
+ * Visits API - Endpoint per visite (AUTH REQUIRED)
  */
 export const visitsAPI = {
-  /**
-   * Ottieni lista visite
-   */
   getAll: (params) =>
-    api.get('/api/visits', { params }),
+    httpClient.get('/api/visits', { params }),
 
-  /**
-   * Ottieni dettaglio visita
-   */
   getById: (id) =>
-    api.get(`/api/visits/${id}`),
+    httpClient.get(`/api/visits/${id}`),
 
-  /**
-   * Crea nuova visita
-   */
   create: (data) =>
-    api.post('/api/visits', data),
+    httpClient.post('/api/visits', data),
 
-  /**
-   * Aggiorna visita
-   */
   update: (id, data) =>
-    api.patch(`/api/visits/${id}`, data),
+    httpClient.patch(`/api/visits/${id}`, data),
 
-  /**
-   * Check-in visita
-   */
   checkIn: (id) =>
-    api.post(`/api/visits/${id}/check-in`),
+    httpClient.post(`/api/visits/${id}/check-in`),
 
-  /**
-   * Check-out visita
-   */
   checkOut: (id) =>
-    api.post(`/api/visits/${id}/check-out`),
+    httpClient.post(`/api/visits/${id}/check-out`),
 
-  /**
-   * Annulla visita
-   */
   cancel: (id) =>
-    api.post(`/api/visits/${id}/cancel`),
+    httpClient.post(`/api/visits/${id}/cancel`),
 
-  /**
-   * Ottieni badge visita
-   */
-  getBadge: (id) =>
-    api.get(`/api/visits/${id}/badge`),
-
-  /**
-   * Ottieni visite correnti
-   */
   getCurrent: () =>
-    api.get('/api/visits/current'),
+    httpClient.get('/api/visits/current'),
 
-  /**
-   * Ottieni statistiche
-   */
   getStats: () =>
-    api.get('/api/visits/stats')
+    httpClient.get('/api/visits/stats')
 };
 
 /**
- * Departments API - Endpoint per reparti
+ * Departments API
  */
 export const departmentsAPI = {
-  getAll: () => api.get('/api/departments'),
-  getById: (id) => api.get(`/api/departments/${id}`)
-};
-
-/**
- * Health check - Verifica connessione server
- */
-export const healthCheck = () => {
-  return api.get('/api/health').catch(() => ({ data: { status: 'error' } }));
+  getAll: () => httpClient.get('/api/departments'),
+  getById: (id) => httpClient.get(`/api/departments/${id}`)
 };
 
 export default api;
