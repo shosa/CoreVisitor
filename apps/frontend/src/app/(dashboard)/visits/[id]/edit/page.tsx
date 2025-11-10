@@ -8,13 +8,13 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useSnackbar } from 'notistack';
 import { visitsApi } from '@/lib/api';
-import { Visit, VisitPurpose } from '@/types/visitor';
+import { Visit } from '@/types/visitor';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 const schema = yup.object().shape({
-  purpose: yup.mixed<VisitPurpose>().oneOf(Object.values(VisitPurpose)).required('Lo scopo è obbligatorio'),
+  purpose: yup.string().required('Lo scopo è obbligatorio'),
   purposeNotes: yup.string().optional(),
-  department: yup.string().optional(),
+  departmentId: yup.number().optional(),
   scheduledDate: yup.string().required('La data di inizio è obbligatoria'),
   scheduledEndDate: yup.string().optional(),
   notes: yup.string().optional(),
@@ -29,6 +29,7 @@ export default function EditVisitPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visit, setVisit] = useState<Visit | null>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
 
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
@@ -37,8 +38,19 @@ export default function EditVisitPage() {
   useEffect(() => {
     if (id) {
       loadVisit();
+      loadDepartments();
     }
   }, [id]);
+
+  const loadDepartments = async () => {
+    try {
+      const { departmentsApi } = await import('@/lib/api');
+      const res = await departmentsApi.getAll();
+      setDepartments(res.data);
+    } catch (err) {
+      console.error('Failed to load departments:', err);
+    }
+  };
 
   const loadVisit = async () => {
     setLoading(true);
@@ -47,9 +59,9 @@ export default function EditVisitPage() {
       const visitData = res.data;
       setVisit(visitData);
       reset({
-        purpose: visitData.purpose,
+        purpose: visitData.purpose || '',
         purposeNotes: visitData.purposeNotes || '',
-        department: visitData.department || '',
+        departmentId: visitData.departmentId || '',
         scheduledDate: new Date(visitData.scheduledDate).toISOString().slice(0, 16), // Format for datetime-local input
         scheduledEndDate: visitData.scheduledEndDate ? new Date(visitData.scheduledEndDate).toISOString().slice(0, 16) : '',
         notes: visitData.notes || ''
@@ -104,12 +116,13 @@ export default function EditVisitPage() {
                                 name="purpose"
                                 control={control}
                                 render={({ field }) => (
-                                    <FormControl fullWidth error={!!errors.purpose}>
-                                        <InputLabel>Scopo della visita</InputLabel>
-                                        <Select {...field} label="Scopo della visita">
-                                            {Object.values(VisitPurpose).map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
-                                        </Select>
-                                    </FormControl>
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Scopo della visita"
+                                        error={!!errors.purpose}
+                                        helperText={errors.purpose?.message}
+                                    />
                                 )}
                             />
                         </Grid>
@@ -151,7 +164,23 @@ export default function EditVisitPage() {
                             />
                         </Grid>
                         <Grid item xs={12}>
-                            <Controller name="department" control={control} render={({ field }) => <TextField {...field} fullWidth label="Dipartimento/Area di destinazione" error={!!errors.department} helperText={errors.department?.message} />} />
+                            <Controller
+                                name="departmentId"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormControl fullWidth error={!!errors.departmentId}>
+                                        <InputLabel>Dipartimento/Area di destinazione</InputLabel>
+                                        <Select {...field} label="Dipartimento/Area di destinazione">
+                                            <MenuItem value="">Nessuno</MenuItem>
+                                            {departments.map(dept => (
+                                                <MenuItem key={dept.id} value={dept.id}>
+                                                    {dept.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            />
                         </Grid>
                         <Grid item xs={12}>
                             <Controller name="notes" control={control} render={({ field }) => <TextField {...field} fullWidth label="Note aggiuntive" multiline rows={4} error={!!errors.notes} helperText={errors.notes?.message} />} />
@@ -165,7 +194,11 @@ export default function EditVisitPage() {
                     <Typography variant="subtitle1" fontWeight="bold">Visitatore</Typography>
                     <Typography sx={{ mb: 2 }}>{visit?.visitor?.firstName} {visit?.visitor?.lastName}</Typography>
                     <Typography variant="subtitle1" fontWeight="bold">Ospite</Typography>
-                    <Typography>{visit?.host?.name}</Typography>
+                    <Typography>
+                        {visit?.hostUser
+                            ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+                            : visit?.hostName || 'N/A'}
+                    </Typography>
                 </Card>
             </Grid>
             <Grid item xs={12}>

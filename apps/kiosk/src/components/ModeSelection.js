@@ -1,227 +1,202 @@
 /**
- * ModeSelection Component
- * Schermata iniziale per scegliere tra modalità Kiosk e Full
+ * ModeSelection Component - Stile CoreInWork
+ * Selezione modalità operativa con design pulito
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { IonContent, IonPage, IonIcon } from '@ionic/react';
-import {
-  qrCodeOutline,
-  gridOutline,
-  settingsOutline
-} from 'ionicons/icons';
-import theme from '../styles/theme';
+import { IoQrCode, IoLockClosed, IoArrowForward } from 'react-icons/io5';
 
-const ModeSelection = ({ onSelectMode, onSettings }) => {
+const ModeSelection = ({ onSelectMode }) => {
   const modes = [
     {
       id: 'kiosk',
       title: 'Modalità Kiosk',
       description: 'Scanner QR per check-out rapido visitatori',
-      icon: qrCodeOutline,
-      color: theme.colors.accent,
-      gradient: theme.gradients.accent
+      icon: IoQrCode,
+      color: '#10b981',
+      bgColor: '#f0fdf4'
     },
     {
       id: 'full',
       title: 'Modalità Completa',
-      description: 'Gestione completa visitatori e visite',
-      icon: gridOutline,
-      color: theme.colors.primary,
-      gradient: theme.gradients.primary
+      description: 'Dashboard con autenticazione e gestione visite',
+      icon: IoLockClosed,
+      color: '#3b82f6',
+      bgColor: '#eff6ff'
     }
   ];
 
   return (
-    <IonPage>
-      <IonContent fullscreen>
-        <div style={styles.container}>
-          {/* Logo/Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            style={styles.header}
-          >
-            <h1 style={styles.title}>CoreVisitor</h1>
-            <p style={styles.subtitle}>Gestione Visitatori</p>
-          </motion.div>
+    <div style={styles.container}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
 
-          {/* Mode Cards */}
-          <div style={styles.modesContainer}>
-            {modes.map((mode, index) => (
-              <motion.div
-                key={mode.id}
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onSelectMode(mode.id)}
-                style={{
-                  ...styles.modeCard,
-                  background: mode.gradient
-                }}
-              >
-                <div style={styles.iconContainer}>
-                  <IonIcon icon={mode.icon} style={styles.modeIcon} />
-                </div>
-                <h2 style={styles.modeTitle}>{mode.title}</h2>
-                <p style={styles.modeDescription}>{mode.description}</p>
+        .mode-card {
+          background: white;
+          border: 2px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 28px;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          display: flex;
+          align-items: center;
+          gap: 24px;
+        }
 
-                {/* Arrow indicator */}
-                <motion.div
-                  initial={{ x: 0 }}
-                  whileHover={{ x: 10 }}
-                  style={styles.arrow}
-                >
-                  →
-                </motion.div>
-              </motion.div>
-            ))}
+        .mode-card:hover {
+          border-color: #1a1a1a;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .mode-card:active {
+          transform: translateY(0);
+        }
+
+        .arrow-icon {
+          flex-shrink: 0;
+          color: #999;
+          transition: all 0.25s ease;
+        }
+
+        .mode-card:hover .arrow-icon {
+          color: #1a1a1a;
+          transform: translateX(4px);
+        }
+
+        @media (max-width: 768px) {
+          .mode-card {
+            padding: 20px;
+            gap: 16px;
+          }
+        }
+      `}</style>
+
+      <div style={styles.content}>
+        <div style={styles.header}>
+          <div style={styles.iconContainer}>
+            <IoQrCode size={48} color="white" />
           </div>
-
-          {/* Settings Button */}
-          {onSettings && (
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              onClick={onSettings}
-              style={styles.settingsButton}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <IonIcon icon={settingsOutline} style={styles.settingsIcon} />
-            </motion.button>
-          )}
-
-          {/* Footer */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            style={styles.footer}
-          >
-            <p style={styles.footerText}>CoreSuite © 2025</p>
-          </motion.div>
+          <h1 style={styles.title}>CoreVisitor Kiosk</h1>
+          <p style={styles.subtitle}>Seleziona la modalità operativa</p>
         </div>
-      </IonContent>
-    </IonPage>
+
+        <div style={styles.modesGrid}>
+          {modes.map((mode) => {
+            const Icon = mode.icon;
+            return (
+              <div
+                key={mode.id}
+                className="mode-card"
+                onClick={() => onSelectMode(mode.id)}
+              >
+                <div style={{
+                  width: '70px',
+                  height: '70px',
+                  borderRadius: '12px',
+                  backgroundColor: mode.bgColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Icon size={36} color={mode.color} />
+                </div>
+                <div style={styles.modeContent}>
+                  <h3 style={styles.modeTitle}>{mode.title}</h3>
+                  <p style={styles.modeDescription}>{mode.description}</p>
+                </div>
+                <IoArrowForward size={24} className="arrow-icon" />
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={styles.footerInfo}>
+          <p style={styles.footerText}>CoreSuite - Visitor Management System</p>
+        </div>
+      </div>
+    </div>
   );
 };
 
 const styles = {
   container: {
-    minHeight: '100%',
+    minHeight: '100vh',
+    background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)',
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '40px 20px',
-    background: theme.gradients.background
+    padding: '20px',
+  },
+  content: {
+    maxWidth: '600px',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '40px',
   },
   header: {
     textAlign: 'center',
-    marginBottom: '60px'
-  },
-  title: {
-    fontSize: theme.fontSize['5xl'],
-    fontWeight: theme.fontWeight.extrabold,
-    margin: '0 0 8px 0',
-    background: theme.gradients.primary,
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text'
-  },
-  subtitle: {
-    fontSize: theme.fontSize.xl,
-    color: theme.colors.textSecondary,
-    margin: 0,
-    fontWeight: theme.fontWeight.medium
-  },
-  modesContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px',
-    width: '100%',
-    maxWidth: '500px'
-  },
-  modeCard: {
-    position: 'relative',
-    padding: '40px 32px',
-    borderRadius: theme.radius.xl,
-    boxShadow: theme.shadows.lg,
-    cursor: 'pointer',
-    color: theme.colors.textInverse,
-    overflow: 'hidden',
-    transition: `all ${theme.transitions.base}`
   },
   iconContainer: {
     width: '80px',
     height: '80px',
-    borderRadius: theme.radius.full,
-    background: 'rgba(255, 255, 255, 0.2)',
+    background: '#1a1a1a',
+    borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '20px',
-    backdropFilter: 'blur(10px)'
+    margin: '0 auto 20px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
   },
-  modeIcon: {
-    fontSize: '48px',
-    color: theme.colors.textInverse
+  title: {
+    fontSize: '32px',
+    fontWeight: '700',
+    margin: '0 0 8px 0',
+    color: '#1a1a1a',
+  },
+  subtitle: {
+    color: '#666',
+    fontSize: '16px',
+    margin: 0,
+    fontWeight: '500',
+  },
+  modesGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    animation: 'fadeIn 0.5s ease-out',
+  },
+  modeContent: {
+    flex: 1,
+    minWidth: 0,
   },
   modeTitle: {
-    fontSize: theme.fontSize['2xl'],
-    fontWeight: theme.fontWeight.bold,
-    margin: '0 0 8px 0'
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    margin: '0 0 6px 0',
   },
   modeDescription: {
-    fontSize: theme.fontSize.base,
+    fontSize: '14px',
+    color: '#666',
     margin: 0,
-    opacity: 0.9,
-    lineHeight: '1.5'
+    lineHeight: '1.5',
   },
-  arrow: {
-    position: 'absolute',
-    right: '32px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    fontSize: theme.fontSize['3xl'],
-    fontWeight: theme.fontWeight.bold,
-    opacity: 0.7
-  },
-  settingsButton: {
-    position: 'fixed',
-    top: '24px',
-    right: '24px',
-    width: '56px',
-    height: '56px',
-    borderRadius: theme.radius.full,
-    border: 'none',
-    background: theme.colors.background,
-    boxShadow: theme.shadows.md,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10
-  },
-  settingsIcon: {
-    fontSize: '28px',
-    color: theme.colors.textSecondary
-  },
-  footer: {
-    marginTop: '60px',
-    textAlign: 'center'
+  footerInfo: {
+    textAlign: 'center',
+    paddingTop: '20px',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
   },
   footerText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textLight,
-    margin: 0
-  }
+    color: '#999',
+    fontSize: '13px',
+    margin: 0,
+  },
 };
 
 export default ModeSelection;

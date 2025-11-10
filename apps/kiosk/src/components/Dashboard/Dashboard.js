@@ -1,54 +1,21 @@
 /**
- * Dashboard Component
- * Dashboard principale per modalità completa con visite in corso
+ * Dashboard Component - Stile CoreInWork
+ * Dashboard pulita e minimalista con visite in corso
  */
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import {
-  IonContent,
-  IonPage,
-  IonRefresher,
-  IonRefresherContent,
-  IonFab,
-  IonFabButton,
-  IonIcon,
-  IonBadge,
-  IonButton,
-  IonSpinner
-} from '@ionic/react';
-import {
-  addOutline,
-  personOutline,
-  businessOutline,
-  timeOutline,
-  exitOutline,
-  refreshOutline
-} from 'ionicons/icons';
-import { visitsAPI, kioskAPI } from '../../services/api';
-import TopBar from '../Common/TopBar';
-import Alert from '../Common/Alert';
-import theme from '../../styles/theme';
+import { IoPersonCircle, IoPeople, IoCalendar, IoTrendingUp, IoLogOut, IoRefresh, IoArrowForward, IoAlertCircle, IoCheckmarkCircle } from 'react-icons/io5';
+import { visitsAPI } from '../../services/api';
 
 const Dashboard = ({ user, onLogout }) => {
-  const [stats, setStats] = useState({
-    current: 0,
-    today: 0,
-    scheduled: 0,
-    monthly: 0
-  });
+  const [stats, setStats] = useState({ current: 0, today: 0, scheduled: 0, monthly: 0 });
   const [currentVisits, setCurrentVisits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [alert, setAlert] = useState({ show: false, type: 'info', title: '', message: '' });
-
-  const showAlert = (type, title, message) => {
-    setAlert({ show: true, type, title, message });
-  };
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     loadDashboardData();
-
-    // Auto-refresh ogni 30 secondi
     const interval = setInterval(loadDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -56,359 +23,432 @@ const Dashboard = ({ user, onLogout }) => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError('');
 
-      // Carica statistiche e visite in parallelo
       const [statsResponse, visitsResponse] = await Promise.all([
-        kioskAPI.getStats().catch(() => ({ data: { data: {} } })),
-        visitsAPI.getCurrent().catch(() => ({ data: { data: [] } }))
+        visitsAPI.getStats().catch(() => ({ data: {} })),
+        visitsAPI.getCurrent().catch(() => ({ data: [] }))
       ]);
 
-      if (statsResponse.data.data) {
-        setStats(statsResponse.data.data);
-      }
-
-      if (visitsResponse.data.data) {
-        setCurrentVisits(visitsResponse.data.data);
-      }
-    } catch (error) {
-      console.error('❌ Error loading dashboard:', error);
-      showAlert('error', 'Errore', 'Impossibile caricare i dati');
+      setStats(statsResponse.data || { current: 0, today: 0, scheduled: 0, monthly: 0 });
+      setCurrentVisits(Array.isArray(visitsResponse.data) ? visitsResponse.data : []);
+    } catch (err) {
+      console.error('❌ Error loading dashboard:', err);
+      setError('Errore nel caricamento dei dati');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRefresh = async (event) => {
-    await loadDashboardData();
-    event?.detail?.complete();
-  };
-
   const handleCheckOut = async (visitId) => {
     try {
-      const response = await visitsAPI.checkOut(visitId);
-
-      if (response.data.status === 'success') {
-        showAlert('success', 'Check-out Effettuato', 'Visitatore uscito con successo');
-        await loadDashboardData();
-      }
-    } catch (error) {
-      console.error('❌ Check-out error:', error);
-      showAlert('error', 'Errore', 'Impossibile effettuare il check-out');
+      await visitsAPI.checkOut(visitId);
+      setSuccess('Check-out effettuato con successo');
+      setTimeout(() => setSuccess(''), 3000);
+      await loadDashboardData();
+    } catch (err) {
+      console.error('❌ Check-out error:', err);
+      setError('Errore durante il check-out');
     }
   };
 
+  const kpiCards = [
+    { label: 'Presenti Ora', value: stats.current, icon: IoPeople, color: '#10b981', bgColor: '#f0fdf4' },
+    { label: 'Visite Oggi', value: stats.today, icon: IoCalendar, color: '#3b82f6', bgColor: '#eff6ff' },
+    { label: 'Programmate', value: stats.scheduled, icon: IoCalendar, color: '#f59e0b', bgColor: '#fffbeb' },
+    { label: 'Totale Mese', value: stats.monthly, icon: IoTrendingUp, color: '#8b5cf6', bgColor: '#f5f3ff' }
+  ];
+
   return (
-    <IonPage>
-      <TopBar
-        title="Dashboard"
-        user={user}
-        showProfile={true}
-        onLogout={onLogout}
-      />
+    <div style={styles.container}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
 
-      <IonContent fullscreen>
-        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
-          <IonRefresherContent />
-        </IonRefresher>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
 
-        <div style={styles.container}>
-          {/* Stats Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={styles.statsGrid}
+        .visit-card {
+          background: white;
+          border: 2px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 20px;
+          transition: all 0.25s ease;
+          display: flex;
+          gap: 16px;
+          align-items: center;
+        }
+
+        .visit-card:hover {
+          border-color: #1a1a1a;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .checkout-button {
+          background: #10b981;
+          color: white;
+          border: none;
+          padding: 10px 16px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .checkout-button:hover {
+          background: #059669;
+          transform: translateY(-2px);
+        }
+      `}</style>
+
+      {/* Top Bar */}
+      <div style={styles.topBar}>
+        <div style={styles.topBarLeft}>
+          <h1 style={styles.title}>CoreVisitor</h1>
+          <span style={styles.subtitle}>Dashboard</span>
+        </div>
+        <div style={styles.topBarRight}>
+          <div style={styles.userInfo}>
+            <IoPersonCircle size={20} />
+            <span style={styles.userName}>{user.full_name}</span>
+          </div>
+          <button
+            onClick={loadDashboardData}
+            style={styles.refreshButton}
+            title="Aggiorna"
           >
-            <StatCard
-              title="Presenti Ora"
-              value={stats.current || 0}
-              icon={personOutline}
-              color={theme.colors.accent}
-            />
-            <StatCard
-              title="Visite Oggi"
-              value={stats.today || 0}
-              icon={timeOutline}
-              color={theme.colors.success}
-            />
-            <StatCard
-              title="Programmate"
-              value={stats.scheduled || 0}
-              icon={businessOutline}
-              color={theme.colors.warning}
-            />
-            <StatCard
-              title="Totale Mese"
-              value={stats.monthly || 0}
-              icon={businessOutline}
-              color={theme.colors.info}
-            />
-          </motion.div>
-
-          {/* Current Visits */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            style={styles.section}
+            <IoRefresh size={18} />
+          </button>
+          <button
+            onClick={onLogout}
+            style={styles.logoutButton}
+            title="Logout"
           >
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>
-                Visitatori Presenti
-                {currentVisits.length > 0 && (
-                  <IonBadge color="primary" style={styles.badge}>
-                    {currentVisits.length}
-                  </IonBadge>
-                )}
-              </h2>
-              <IonButton size="small" fill="clear" onClick={loadDashboardData}>
-                <IonIcon icon={refreshOutline} />
-              </IonButton>
+            <IoLogOut size={18} />
+            Esci
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={styles.content}>
+        {/* Alerts */}
+        {error && (
+          <div style={styles.errorCard}>
+            <IoAlertCircle size={20} color="#f44336" />
+            <span style={styles.errorText}>{error}</span>
+            <button onClick={() => setError('')} style={styles.closeButton}>×</button>
+          </div>
+        )}
+
+        {success && (
+          <div style={styles.successCard}>
+            <IoCheckmarkCircle size={20} color="#10b981" />
+            <span style={styles.successText}>{success}</span>
+          </div>
+        )}
+
+        {loading && (
+          <div style={styles.loadingCard}>
+            <div style={styles.spinner}></div>
+            <p>Caricamento dati...</p>
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            {/* KPI Cards */}
+            <div style={styles.kpiGrid}>
+              {kpiCards.map((kpi) => {
+                const Icon = kpi.icon;
+                return (
+                  <div key={kpi.label} style={styles.kpiCard}>
+                    <div style={{ ...styles.kpiIcon, backgroundColor: kpi.bgColor }}>
+                      <Icon size={24} color={kpi.color} />
+                    </div>
+                    <div style={styles.kpiContent}>
+                      <p style={styles.kpiLabel}>{kpi.label}</p>
+                      <h3 style={styles.kpiValue}>{kpi.value}</h3>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {loading ? (
-              <div style={styles.loadingContainer}>
-                <IonSpinner />
-                <p style={styles.loadingText}>Caricamento...</p>
-              </div>
-            ) : currentVisits.length === 0 ? (
-              <div style={styles.emptyState}>
-                <IonIcon icon={personOutline} style={styles.emptyIcon} />
-                <p style={styles.emptyText}>Nessun visitatore presente</p>
-              </div>
-            ) : (
-              <div style={styles.visitsList}>
-                {currentVisits.map((visit, index) => (
-                  <VisitCard
-                    key={visit.id}
-                    visit={visit}
-                    index={index}
-                    onCheckOut={handleCheckOut}
-                  />
-                ))}
-              </div>
-            )}
-          </motion.div>
-        </div>
+            {/* Current Visits */}
+            <div style={styles.section}>
+              <h2 style={styles.sectionTitle}>Visite in Corso</h2>
 
-        {/* FAB per nuova visita */}
-        <IonFab vertical="bottom" horizontal="end" slot="fixed">
-          <IonFabButton color="primary">
-            <IonIcon icon={addOutline} />
-          </IonFabButton>
-        </IonFab>
-
-        {/* Alert */}
-        <Alert
-          show={alert.show}
-          type={alert.type}
-          title={alert.title}
-          message={alert.message}
-          duration={4000}
-          onClose={() => setAlert({ ...alert, show: false })}
-        />
-      </IonContent>
-    </IonPage>
+              {currentVisits.length === 0 ? (
+                <div style={styles.emptyCard}>
+                  <IoPeople size={48} color="#999" />
+                  <p style={styles.emptyText}>Nessuna visita in corso</p>
+                </div>
+              ) : (
+                <div style={styles.visitsGrid}>
+                  {currentVisits.map((visit) => (
+                    <div key={visit.id} className="visit-card">
+                      <div style={styles.visitInfo}>
+                        <h4 style={styles.visitName}>
+                          {visit.visitor?.firstName} {visit.visitor?.lastName}
+                        </h4>
+                        <p style={styles.visitDetail}>
+                          {visit.visitor?.company || 'Nessuna azienda'}
+                        </p>
+                        <p style={styles.visitDetail}>
+                          Host: {visit.hostUser?.firstName} {visit.hostUser?.lastName}
+                        </p>
+                      </div>
+                      <button
+                        className="checkout-button"
+                        onClick={() => handleCheckOut(visit.id)}
+                      >
+                        <IoArrowForward size={16} />
+                        Check-out
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
-// StatCard Component
-const StatCard = ({ title, value, icon, color }) => (
-  <motion.div
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    style={{ ...styles.statCard, borderLeft: `4px solid ${color}` }}
-  >
-    <div style={styles.statIcon}>
-      <IonIcon icon={icon} style={{ color, fontSize: '32px' }} />
-    </div>
-    <div style={styles.statContent}>
-      <div style={styles.statValue}>{value}</div>
-      <div style={styles.statTitle}>{title}</div>
-    </div>
-  </motion.div>
-);
-
-// VisitCard Component
-const VisitCard = ({ visit, index, onCheckOut }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -20 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ delay: index * 0.05 }}
-    style={styles.visitCard}
-  >
-    <div style={styles.visitHeader}>
-      <div style={styles.visitorAvatar}>
-        <IonIcon icon={personOutline} />
-      </div>
-      <div style={styles.visitInfo}>
-        <h3 style={styles.visitorName}>
-          {visit.visitor?.full_name || 'N/A'}
-        </h3>
-        <p style={styles.visitDetail}>
-          <IonIcon icon={businessOutline} style={styles.detailIcon} />
-          {visit.visitor?.company || 'N/A'}
-        </p>
-        <p style={styles.visitDetail}>
-          <IonIcon icon={timeOutline} style={styles.detailIcon} />
-          Check-in: {new Date(visit.check_in_time).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-        </p>
-      </div>
-    </div>
-
-    <IonButton
-      size="small"
-      color="danger"
-      fill="outline"
-      onClick={() => onCheckOut(visit.id)}
-    >
-      <IonIcon icon={exitOutline} slot="start" />
-      Check-out
-    </IonButton>
-  </motion.div>
-);
-
 const styles = {
   container: {
-    padding: '20px',
-    paddingBottom: '80px'
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: '16px',
-    marginBottom: '32px'
-  },
-  statCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '20px',
-    background: theme.colors.background,
-    borderRadius: theme.radius.lg,
-    boxShadow: theme.shadows.sm
-  },
-  statIcon: {
-    width: '60px',
-    height: '60px',
-    borderRadius: theme.radius.md,
-    background: theme.colors.backgroundGray,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  statContent: {
-    flex: 1
-  },
-  statValue: {
-    fontSize: theme.fontSize['3xl'],
-    fontWeight: theme.fontWeight.bold,
-    color: theme.colors.text,
-    lineHeight: 1
-  },
-  statTitle: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginTop: '4px'
-  },
-  section: {
-    marginBottom: '24px'
-  },
-  sectionHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '16px'
-  },
-  sectionTitle: {
-    margin: 0,
-    fontSize: theme.fontSize.xl,
-    fontWeight: theme.fontWeight.semibold,
-    color: theme.colors.text,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  badge: {
-    fontSize: theme.fontSize.sm
-  },
-  visitsList: {
+    minHeight: '100vh',
+    background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px'
   },
-  visitCard: {
+  topBar: {
+    background: 'white',
+    borderBottom: '1px solid #e5e5e5',
+    padding: '16px 24px',
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '16px',
-    background: theme.colors.background,
-    borderRadius: theme.radius.lg,
-    boxShadow: theme.shadows.sm,
-    gap: '16px'
+    alignItems: 'center',
+    gap: '20px',
   },
-  visitHeader: {
+  topBarLeft: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    flex: 1
   },
-  visitorAvatar: {
-    width: '48px',
-    height: '48px',
-    borderRadius: theme.radius.full,
-    background: theme.gradients.accent,
-    color: theme.colors.textInverse,
+  title: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    margin: 0,
+  },
+  subtitle: {
+    fontSize: '14px',
+    color: '#666',
+    fontWeight: '500',
+  },
+  topBarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  userInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    background: '#f5f5f5',
+    borderRadius: '8px',
+  },
+  userName: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  refreshButton: {
+    background: 'transparent',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    padding: '10px',
+    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '24px',
-    flexShrink: 0
+    transition: 'all 0.2s ease',
   },
-  visitInfo: {
-    flex: 1
-  },
-  visitorName: {
-    margin: '0 0 4px 0',
-    fontSize: theme.fontSize.base,
-    fontWeight: theme.fontWeight.semibold,
-    color: theme.colors.text
-  },
-  visitDetail: {
-    margin: '2px 0',
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+  logoutButton: {
+    background: '#ef4444',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '10px 16px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    gap: '4px'
+    gap: '6px',
+    transition: 'all 0.2s ease',
   },
-  detailIcon: {
-    fontSize: '14px'
+  content: {
+    flex: 1,
+    padding: '24px',
+    maxWidth: '1400px',
+    width: '100%',
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
   },
-  loadingContainer: {
-    textAlign: 'center',
-    padding: '40px'
+  errorCard: {
+    backgroundColor: 'rgba(244, 67, 54, 0.08)',
+    border: '2px solid rgba(244, 67, 54, 0.2)',
+    padding: '16px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
   },
-  loadingText: {
-    marginTop: '12px',
-    color: theme.colors.textSecondary
+  errorText: {
+    color: '#f44336',
+    fontSize: '14px',
+    fontWeight: '500',
+    flex: 1,
   },
-  emptyState: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    background: theme.colors.background,
-    borderRadius: theme.radius.lg,
-    border: `2px dashed ${theme.colors.border}`
+  successCard: {
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    border: '2px solid rgba(16, 185, 129, 0.2)',
+    padding: '16px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
   },
-  emptyIcon: {
-    fontSize: '64px',
-    color: theme.colors.textLight,
-    marginBottom: '16px'
+  successText: {
+    color: '#10b981',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  closeButton: {
+    background: 'transparent',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: '#f44336',
+  },
+  loadingCard: {
+    background: 'white',
+    border: '2px solid #e5e5e5',
+    borderRadius: '12px',
+    padding: '40px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  spinner: {
+    border: '3px solid #f3f3f3',
+    borderTop: '3px solid #1a1a1a',
+    borderRadius: '50%',
+    width: '40px',
+    height: '40px',
+    animation: 'spin 1s linear infinite',
+  },
+  kpiGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '16px',
+    animation: 'fadeIn 0.5s ease-out',
+  },
+  kpiCard: {
+    background: 'white',
+    border: '2px solid #e5e5e5',
+    borderRadius: '12px',
+    padding: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  kpiIcon: {
+    width: '56px',
+    height: '56px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  kpiContent: {
+    flex: 1,
+  },
+  kpiLabel: {
+    fontSize: '13px',
+    color: '#666',
+    margin: '0 0 4px 0',
+    fontWeight: '500',
+  },
+  kpiValue: {
+    fontSize: '28px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    margin: 0,
+  },
+  section: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  sectionTitle: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    margin: 0,
+  },
+  emptyCard: {
+    background: 'white',
+    border: '2px solid #e5e5e5',
+    borderRadius: '12px',
+    padding: '60px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '16px',
   },
   emptyText: {
+    fontSize: '16px',
+    color: '#999',
     margin: 0,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary
-  }
+  },
+  visitsGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  visitInfo: {
+    flex: 1,
+  },
+  visitName: {
+    fontSize: '16px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    margin: '0 0 6px 0',
+  },
+  visitDetail: {
+    fontSize: '14px',
+    color: '#666',
+    margin: '0 0 4px 0',
+  },
 };
 
 export default Dashboard;

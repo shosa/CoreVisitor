@@ -14,7 +14,7 @@ import '@ionic/react/css/typography.css';
 import ModeSelection from './components/ModeSelection';
 import ScanQR from './components/Kiosk/ScanQR';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard/Dashboard';
+import FullDashboard from './components/Dashboard/FullDashboard';
 import PageTransition from './components/Common/PageTransition';
 
 // Setup Ionic
@@ -129,7 +129,7 @@ const App = () => {
         );
 
       case 'dashboard':
-        return <Dashboard user={user} onLogout={handleLogout} />;
+        return <FullDashboard user={user} onLogout={handleLogout} />;
 
       default:
         return (

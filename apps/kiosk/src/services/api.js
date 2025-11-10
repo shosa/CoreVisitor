@@ -133,6 +133,12 @@ export const visitsAPI = {
   getById: (id) =>
     httpClient.get(`/api/visits/${id}`),
 
+  getCurrent: () =>
+    httpClient.get('/api/visits/current'),
+
+  getStats: () =>
+    httpClient.get('/api/visits/stats'),
+
   create: (data) =>
     httpClient.post('/api/visits', data),
 
@@ -146,13 +152,37 @@ export const visitsAPI = {
     httpClient.post(`/api/visits/${id}/check-out`),
 
   cancel: (id) =>
-    httpClient.post(`/api/visits/${id}/cancel`),
+    httpClient.post(`/api/visits/${id}/cancel`)
+};
 
-  getCurrent: () =>
-    httpClient.get('/api/visits/current'),
+/**
+ * Visitors API - Gestione visitatori (AUTH REQUIRED)
+ */
+export const visitorsAPI = {
+  getAll: (params) =>
+    httpClient.get('/api/visitors', { params }),
 
-  getStats: () =>
-    httpClient.get('/api/visits/stats')
+  getById: (id) =>
+    httpClient.get(`/api/visitors/${id}`),
+
+  create: (formData) =>
+    httpClient.post('/api/visitors', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }),
+
+  update: (id, data) =>
+    httpClient.patch(`/api/visitors/${id}`, data),
+
+  delete: (id) =>
+    httpClient.delete(`/api/visitors/${id}`),
+
+  getPhotoUrl: (id) =>
+    httpClient.get(`/api/visitors/${id}/photo-url`),
+
+  getDocumentUrl: (id) =>
+    httpClient.get(`/api/visitors/${id}/document-url`)
 };
 
 /**
@@ -161,6 +191,14 @@ export const visitsAPI = {
 export const departmentsAPI = {
   getAll: () => httpClient.get('/api/departments'),
   getById: (id) => httpClient.get(`/api/departments/${id}`)
+};
+
+/**
+ * Users API - Per lista host
+ */
+export const usersAPI = {
+  getAll: () => httpClient.get('/api/users'),
+  getById: (id) => httpClient.get(`/api/users/${id}`)
 };
 
 export default api;
