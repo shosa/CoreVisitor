@@ -111,7 +111,7 @@ export class PrinterService {
       this.printer.alignCenter();
       this.printer.setTextSize(1, 1);
       this.printer.bold(true);
-      this.printer.println('VISITOR BADGE');
+      this.printer.println('BADGE VISITATORE');
       this.printer.bold(false);
       this.printer.drawLine();
 
@@ -127,13 +127,13 @@ export class PrinterService {
       this.printer.setTextNormal();
 
       if (data.company) {
-        this.printer.println(`Company: ${data.company}`);
+        this.printer.println(`${data.company}`);
       }
 
       this.printer.println('');
       this.printer.println(`Badge: ${data.badgeNumber}`);
-      this.printer.println(`Date: ${data.visitDate}`);
-      this.printer.println(`Department: ${data.department}`);
+      this.printer.println(`Data: ${data.visitDate}`);
+      this.printer.println(`Dipartimento: ${data.department}`);
 
       if (data.host) {
         this.printer.println(`Host: ${data.host}`);
@@ -179,8 +179,8 @@ export class PrinterService {
       this.printer.alignCenter();
       this.printer.drawLine();
       this.printer.setTextSize(0, 0);
-      this.printer.println('Please wear this badge');
-      this.printer.println('at all times');
+      this.printer.println('Per favore indossare il badge');
+      this.printer.println('per la durata della visita.');
 
       // Cut paper
       this.printer.cut();
