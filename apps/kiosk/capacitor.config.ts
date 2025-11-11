@@ -27,7 +27,7 @@ const config: CapacitorConfig = {
       splashImmersive: true
     },
     BarcodeScanner: {
-      cameraDirection: 'back'
+      cameraDirection: 'front'
     }
   },
   android: {
