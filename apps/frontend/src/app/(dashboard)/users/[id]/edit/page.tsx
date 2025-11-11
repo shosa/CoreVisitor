@@ -12,13 +12,14 @@ import { UserRole, User } from '@/types/visitor';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 const schema = yup.object().shape({
-  name: yup.string().required('Il nome è obbligatorio'),
+  firstName: yup.string().required('Il nome è obbligatorio'),
+  lastName: yup.string().required('Il cognome è obbligatorio'),
   email: yup.string().email('Email non valida').required('L\'email è obbligatoria'),
   password: yup.string().optional().min(6, 'La password deve essere di almeno 6 caratteri'),
   role: yup.mixed<UserRole>().oneOf(Object.values(UserRole)).required('Il ruolo è obbligatorio'),
   phone: yup.string().optional(),
   department: yup.string().optional(),
-  active: yup.boolean().default(true),
+  isActive: yup.boolean().default(true),
 });
 
 export default function EditUserPage() {
@@ -48,12 +49,13 @@ export default function EditUserPage() {
       const userData = res.data;
       setUser(userData);
       reset({
-        name: userData.name,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
         email: userData.email,
         role: userData.role,
         phone: userData.phone || '',
         department: userData.department || '',
-        active: userData.active,
+        isActive: userData.isActive,
       });
     } catch (err) {
       setError('Impossibile caricare i dati dell\'utente.');
@@ -101,7 +103,8 @@ export default function EditUserPage() {
       <Card sx={{ p: 4 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}><Controller name="name" control={control} render={({ field }) => <TextField {...field} fullWidth label="Nome Completo" error={!!errors.name} helperText={errors.name?.message} />} /></Grid>
+            <Grid item xs={12} sm={6}><Controller name="firstName" control={control} render={({ field }) => <TextField {...field} fullWidth label="Nome" error={!!errors.firstName} helperText={errors.firstName?.message} />} /></Grid>
+            <Grid item xs={12} sm={6}><Controller name="lastName" control={control} render={({ field }) => <TextField {...field} fullWidth label="Cognome" error={!!errors.lastName} helperText={errors.lastName?.message} />} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="email" control={control} render={({ field }) => <TextField {...field} fullWidth label="Email" type="email" error={!!errors.email} helperText={errors.email?.message} />} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="password" control={control} render={({ field }) => <TextField {...field} fullWidth label="Nuova Password (opzionale)" type="password" error={!!errors.password} helperText={errors.password?.message} />} /></Grid>
             <Grid item xs={12} sm={6}>
@@ -111,7 +114,7 @@ export default function EditUserPage() {
             </Grid>
             <Grid item xs={12} sm={6}><Controller name="phone" control={control} render={({ field }) => <TextField {...field} fullWidth label="Telefono (Opzionale)" error={!!errors.phone} helperText={errors.phone?.message} />} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="department" control={control} render={({ field }) => <TextField {...field} fullWidth label="Dipartimento (Opzionale)" error={!!errors.department} helperText={errors.department?.message} />} /></Grid>
-            <Grid item xs={12}><Controller name="active" control={control} render={({ field }) => <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Utente Attivo" />} /></Grid>
+            <Grid item xs={12}><Controller name="isActive" control={control} render={({ field }) => <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Utente Attivo" />} /></Grid>
             <Grid item xs={12}>
               <Stack direction="row" spacing={2} justifyContent="flex-end">
                 <Button onClick={() => router.back()} color="inherit">Annulla</Button>

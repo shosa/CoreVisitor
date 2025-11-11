@@ -66,9 +66,17 @@ export class PrinterService {
         },
       });
 
-      const isConnected = await this.printer.isPrinterConnected();
-      if (!isConnected) {
-        throw new Error('Printer not connected');
+      // For file mode, don't check connection
+      if (connection.type !== 'file') {
+        try {
+          const isConnected = await this.printer.isPrinterConnected();
+          if (!isConnected) {
+            this.logger.warn('Printer not physically connected, but initialized for future use');
+          }
+        } catch (error) {
+          this.logger.warn(`Could not verify printer connection: ${error.message}`);
+          // Don't throw - allow initialization anyway
+        }
       }
 
       this.logger.log(`Printer initialized successfully: ${connection.type}`);

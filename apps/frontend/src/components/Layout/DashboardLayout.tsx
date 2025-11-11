@@ -33,6 +33,8 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   ManageAccounts as ManageAccountsIcon,
+  Print as PrintIcon,
+  PrintOutlined as PrintQueueIcon,
 } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
@@ -86,6 +88,18 @@ const navigationItems: NavigationItem[] = [
     label: 'Utenti',
     href: '/users',
     icon: <ManageAccountsIcon />,
+    roles: ['admin'],
+  },
+  {
+    label: 'Stampanti',
+    href: '/printers',
+    icon: <PrintIcon />,
+    roles: ['admin'],
+  },
+  {
+    label: 'Lavori di Stampa',
+    href: '/print-jobs',
+    icon: <PrintQueueIcon />,
     roles: ['admin'],
   },
 ];

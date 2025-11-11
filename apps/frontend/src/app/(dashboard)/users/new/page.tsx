@@ -11,13 +11,14 @@ import { UserRole } from '@/types/visitor';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 const schema = yup.object().shape({
-  name: yup.string().required('Il nome è obbligatorio'),
+  firstName: yup.string().required('Il nome è obbligatorio'),
+  lastName: yup.string().required('Il cognome è obbligatorio'),
   email: yup.string().email('Email non valida').required('L\'email è obbligatoria'),
   password: yup.string().min(6, 'La password deve essere di almeno 6 caratteri').required('La password è obbligatoria'),
   role: yup.mixed<UserRole>().oneOf(Object.values(UserRole)).required('Il ruolo è obbligatorio'),
   phone: yup.string().optional(),
   department: yup.string().optional(),
-  active: yup.boolean().default(true),
+  isActive: yup.boolean().default(true),
 });
 
 export default function NewUserPage() {
@@ -26,13 +27,14 @@ export default function NewUserPage() {
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<CreateUserDto>({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       password: '',
-      role: UserRole.USER,
+      role: UserRole.RECEPTIONIST,
       phone: '',
       department: '',
-      active: true,
+      isActive: true,
     }
   });
 
@@ -60,7 +62,8 @@ export default function NewUserPage() {
       <Card sx={{ p: 4 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}><Controller name="name" control={control} render={({ field }) => <TextField {...field} fullWidth label="Nome Completo" error={!!errors.name} helperText={errors.name?.message} />} /></Grid>
+            <Grid item xs={12} sm={6}><Controller name="firstName" control={control} render={({ field }) => <TextField {...field} fullWidth label="Nome" error={!!errors.firstName} helperText={errors.firstName?.message} />} /></Grid>
+            <Grid item xs={12} sm={6}><Controller name="lastName" control={control} render={({ field }) => <TextField {...field} fullWidth label="Cognome" error={!!errors.lastName} helperText={errors.lastName?.message} />} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="email" control={control} render={({ field }) => <TextField {...field} fullWidth label="Email" type="email" error={!!errors.email} helperText={errors.email?.message} />} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="password" control={control} render={({ field }) => <TextField {...field} fullWidth label="Password" type="password" error={!!errors.password} helperText={errors.password?.message} />} /></Grid>
             <Grid item xs={12} sm={6}>
@@ -80,7 +83,7 @@ export default function NewUserPage() {
             <Grid item xs={12} sm={6}><Controller name="phone" control={control} render={({ field }) => <TextField {...field} fullWidth label="Telefono (Opzionale)" error={!!errors.phone} helperText={errors.phone?.message} />} /></Grid>
             <Grid item xs={12} sm={6}><Controller name="department" control={control} render={({ field }) => <TextField {...field} fullWidth label="Dipartimento (Opzionale)" error={!!errors.department} helperText={errors.department?.message} />} /></Grid>
             <Grid item xs={12}>
-              <Controller name="active" control={control} render={({ field }) => <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Utente Attivo" />} />
+              <Controller name="isActive" control={control} render={({ field }) => <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Utente Attivo" />} />
             </Grid>
             <Grid item xs={12}>
               <Stack direction="row" spacing={2} justifyContent="flex-end">
