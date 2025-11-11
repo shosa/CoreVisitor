@@ -153,7 +153,7 @@ export class VisitsService {
 
     // Genera badge
     const badgeNumber = this.badge.generateBadgeNumber();
-    const qrCode = await this.badge.generateBadgeQRCode(visit.badgeNumber);
+    const qrCode = await this.badge.generateBadgeQRCode(visit.id);
 
     // Aggiorna visita
     const updatedVisit = await this.prisma.visit.update({
