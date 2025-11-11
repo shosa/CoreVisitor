@@ -129,7 +129,8 @@ export class PrinterService {
         try {
           // Convert base64 to buffer
           const qrBuffer = Buffer.from(data.qrCode.replace(/^data:image\/png;base64,/, ''), 'base64');
-          await this.printer.printImage(qrBuffer);
+          // printImage expects buffer as any to work with different formats
+          await this.printer.printImage(qrBuffer as any);
         } catch (error) {
           this.logger.warn(`Failed to print QR code: ${error.message}`);
           // Continue without QR code
