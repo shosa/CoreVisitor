@@ -12,9 +12,10 @@ import {
   IoCloseCircle,
   IoTimeOutline,
   IoPersonOutline,
-  IoBusinessOutline
+  IoBusinessOutline,
+  IoPrint
 } from 'react-icons/io5';
-import { visitsAPI } from '../../../services/api';
+import { visitsAPI, printerAPI } from '../../../services/api';
 
 const VisitsSection = ({ user, onNewVisit }) => {
   const [visits, setVisits] = useState([]);
@@ -89,6 +90,16 @@ const VisitsSection = ({ user, onNewVisit }) => {
       loadVisits();
     } catch (error) {
       showMessage('error', 'Errore durante il check-out');
+    }
+  };
+
+  const handlePrintBadge = async (visitId) => {
+    try {
+      await printerAPI.printBadge(visitId, { copies: 1 });
+      showMessage('success', 'Badge aggiunto alla coda di stampa');
+    } catch (error) {
+      console.error('Error printing badge:', error);
+      showMessage('error', 'Errore nella stampa del badge');
     }
   };
 

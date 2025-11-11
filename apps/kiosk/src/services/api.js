@@ -201,4 +201,22 @@ export const usersAPI = {
   getById: (id) => httpClient.get(`/api/users/${id}`)
 };
 
+/**
+ * Printer API - Gestione stampa badge (AUTH REQUIRED)
+ */
+export const printerAPI = {
+  printBadge: (visitId, options = {}) =>
+    httpClient.post(`/api/printer/badge/${visitId}`, {
+      copies: options.copies || 1,
+      priority: options.priority || 0,
+      printerName: options.printerName
+    }),
+
+  getQueueStatus: () =>
+    httpClient.get('/api/printer/queue/status'),
+
+  getJobs: (params) =>
+    httpClient.get('/api/printer/jobs', { params })
+};
+
 export default api;
