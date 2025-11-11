@@ -15,12 +15,40 @@ export class PrintQueueService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Try to auto-initialize default printer
+    await this.initializeDefaultPrinter();
+
     // Start queue processor every 5 seconds
     this.processingInterval = setInterval(() => {
       this.processQueue();
     }, 5000);
 
     this.logger.log('Print queue service initialized');
+  }
+
+  /**
+   * Auto-initialize default printer configuration
+   */
+  private async initializeDefaultPrinter() {
+    try {
+      const defaultConfig = await this.prisma.printerConfig.findFirst({
+        where: { isDefault: true, isActive: true },
+      });
+
+      if (defaultConfig) {
+        this.logger.log(`Auto-initializing default printer: ${defaultConfig.name}`);
+        await this.printerService.initPrinter({
+          type: defaultConfig.connection as 'usb' | 'network' | 'file',
+          address: defaultConfig.address || undefined,
+          port: defaultConfig.port || undefined,
+        });
+        this.logger.log('Default printer initialized successfully');
+      } else {
+        this.logger.warn('No default printer configured. Printer must be initialized manually.');
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to auto-initialize printer: ${error.message}. Printer must be initialized manually.`);
+    }
   }
 
   /**

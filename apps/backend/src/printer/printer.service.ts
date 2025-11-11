@@ -95,7 +95,7 @@ export class PrinterService {
   async printBadge(data: BadgePrintData): Promise<void> {
     try {
       if (!this.printer) {
-        throw new Error('Printer not initialized');
+        throw new Error('Printer not initialized. Please configure and initialize a printer first.');
       }
 
       this.printer.clear();
@@ -178,8 +178,9 @@ export class PrinterService {
       await this.printer.execute();
       this.logger.log(`Badge printed successfully for: ${data.visitorName}`);
     } catch (error) {
-      this.logger.error(`Failed to print badge: ${error.message}`);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to print badge: ${errorMessage}`, error?.stack);
+      throw new Error(`Print failed: ${errorMessage}`);
     }
   }
 
