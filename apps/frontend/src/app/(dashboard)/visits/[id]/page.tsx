@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business, Close, QrCode2 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
-import { visitsApi } from '@/lib/api';
+import { visitsApi, printerApi } from '@/lib/api';
 import { Visit } from '@/types/visitor';
 import { translateVisitStatus, getVisitStatusColor, translateVisitType } from '@/lib/translations';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -81,6 +81,16 @@ export default function VisitDetailPage() {
 
   const handlePrintBadge = () => {
     window.print();
+  };
+
+  const handlePrintBadgeToQueue = async () => {
+    try {
+      await printerApi.printBadge(id, { copies: 1 });
+      enqueueSnackbar('Badge aggiunto alla coda di stampa', { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar('Errore nella stampa del badge', { variant: 'error' });
+      console.error(err);
+    }
   };
 
   if (loading) {
@@ -156,18 +166,32 @@ export default function VisitDetailPage() {
             </Button>
           )}
           {visit.badgeIssued && (
-            <Button
-              variant="contained"
-              startIcon={<QrCode2 />}
-              onClick={handleOpenBadge}
-              sx={{
-                backgroundColor: 'common.black',
-                color: 'common.white',
-                '&:hover': { backgroundColor: 'grey.800' },
-              }}
-            >
-              Visualizza Badge
-            </Button>
+            <>
+              <Button
+                variant="contained"
+                startIcon={<QrCode2 />}
+                onClick={handleOpenBadge}
+                sx={{
+                  backgroundColor: 'common.black',
+                  color: 'common.white',
+                  '&:hover': { backgroundColor: 'grey.800' },
+                }}
+              >
+                Visualizza Badge
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Print />}
+                onClick={handlePrintBadgeToQueue}
+                sx={{
+                  backgroundColor: 'primary.main',
+                  color: 'common.white',
+                  '&:hover': { backgroundColor: 'primary.dark' },
+                }}
+              >
+                Stampa Badge
+              </Button>
+            </>
           )}
           <Button
             variant="contained"

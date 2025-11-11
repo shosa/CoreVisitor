@@ -95,3 +95,77 @@ export const auditLogsApi = {
   getByEntity: (entityType: string, entityId: string, limit?: number) =>
     api.get<AuditLog[]>(`/audit-logs/entity/${entityType}/${entityId}`, { params: { limit } }),
 };
+
+// Printer Types
+export interface PrinterConfig {
+  id: string;
+  name: string;
+  type: string;
+  connection: string;
+  address: string | null;
+  port: number | null;
+  isDefault: boolean;
+  isActive: boolean;
+  settings: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PrintJob {
+  id: string;
+  type: string;
+  status: string;
+  visitId: string | null;
+  printerName: string | null;
+  data: string;
+  template: string | null;
+  copies: number;
+  priority: number;
+  error: string | null;
+  printedAt: string | null;
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PrinterStatus {
+  connected: boolean;
+  name?: string;
+  type?: string;
+}
+
+export interface QueueStatus {
+  pending: number;
+  printing: number;
+  completed: number;
+  failed: number;
+}
+
+export type CreatePrinterConfigDto = Omit<PrinterConfig, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdatePrinterConfigDto = Partial<CreatePrinterConfigDto>;
+
+// Printer API
+export const printerApi = {
+  // Printer initialization and control
+  init: (data: { type: 'usb' | 'network' | 'file'; address?: string; port?: number }) =>
+    api.post('/printer/init', data),
+  test: () => api.post('/printer/test'),
+  getStatus: () => api.get<PrinterStatus>('/printer/status'),
+
+  // Print jobs
+  printBadge: (visitId: string, data?: { copies?: number; priority?: number; printerName?: string }) =>
+    api.post(`/printer/badge/${visitId}`, data),
+  getQueueStatus: () => api.get<QueueStatus>('/printer/queue/status'),
+  getJobs: (params?: { status?: string; visitId?: string; limit?: number }) =>
+    api.get<PrintJob[]>('/printer/jobs', { params }),
+  retryJob: (jobId: string) => api.patch(`/printer/jobs/${jobId}/retry`),
+  cancelJob: (jobId: string) => api.delete(`/printer/jobs/${jobId}`),
+  cleanup: () => api.post('/printer/cleanup'),
+
+  // Printer configurations
+  getConfigs: () => api.get<PrinterConfig[]>('/printer/configs'),
+  createConfig: (data: CreatePrinterConfigDto) => api.post<PrinterConfig>('/printer/configs', data),
+  updateConfig: (id: string, data: UpdatePrinterConfigDto) =>
+    api.patch<PrinterConfig>(`/printer/configs/${id}`, data),
+  deleteConfig: (id: string) => api.delete(`/printer/configs/${id}`),
+};
