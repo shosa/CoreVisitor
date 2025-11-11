@@ -186,3 +186,55 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+enum PrintJobStatus {
+  pending
+  printing
+  completed
+  failed
+  cancelled
+}
+
+enum PrintJobType {
+  badge
+  report
+  label
+}
+
+model PrintJob {
+  id          String         @id @default(uuid())
+  type        PrintJobType   @default(badge)
+  status      PrintJobStatus @default(pending)
+  visitId     String?        @map("visit_id")
+  printerName String?        @map("printer_name")
+  data        String         @db.Text // JSON data for printing
+  template    String?        // Template name to use
+  copies      Int            @default(1)
+  priority    Int            @default(0)
+  error       String?        @db.Text
+  printedAt   DateTime?      @map("printed_at")
+  createdById String?        @map("created_by_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([visitId])
+  @@index([createdAt])
+  @@map("print_jobs")
+}
+
+model PrinterConfig {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  type        String   @default("escpos") // escpos, pdf, etc
+  connection  String   @default("usb") // usb, network, bluetooth
+  address     String?  // IP address for network, device path for USB
+  port        Int?     // Port for network printers
+  isDefault   Boolean  @default(false) @map("is_default")
+  isActive    Boolean  @default(true) @map("is_active")
+  settings    String?  @db.Text // JSON settings (baud rate, paper width, etc)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("printer_configs")
+}
