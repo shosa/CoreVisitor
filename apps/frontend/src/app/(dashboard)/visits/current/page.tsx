@@ -25,13 +25,15 @@ import {
   DialogActions,
 } from '@mui/material';
 import { LogoutOutlined, QrCode2, Refresh, AddCircle, Close, Print } from '@mui/icons-material';
-import { visitsApi } from '@/lib/api';
+import { visitsApi, printerApi } from '@/lib/api';
 import { Visit } from '@/types/visitor';
 import { useRouter } from 'next/navigation';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { useSnackbar } from 'notistack';
 
 export default function CurrentVisitsPage() {
   const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
@@ -76,38 +78,18 @@ export default function CurrentVisitsPage() {
 
   const handlePrint = async () => {
     if (!selectedBadge?.visitId) {
-      // Fallback to browser print
-      window.print();
+      enqueueSnackbar('Informazioni visita non disponibili', { variant: 'error' });
       return;
     }
 
     try {
-      // Get PDF from backend
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/${selectedBadge.visitId}/badge/pdf`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `badge-${selectedBadge.badgeNumber}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      // Add badge to print queue
+      await printerApi.printBadge(selectedBadge.visitId, { copies: 1 });
+      enqueueSnackbar('Badge aggiunto alla coda di stampa', { variant: 'success' });
+      setBadgeModalOpen(false);
     } catch (error) {
       console.error('Error printing badge:', error);
-      alert('Errore nella generazione del PDF. Usa la stampa del browser.');
-      window.print();
+      enqueueSnackbar('Errore nella stampa del badge', { variant: 'error' });
     }
   };
 

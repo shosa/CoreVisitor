@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ThermalPrinter, PrinterTypes, CharacterSet, BreakLine } from 'node-thermal-printer';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 export interface BadgePrintData {
   visitorName: string;
@@ -134,14 +137,29 @@ export class PrinterService {
         this.printer.println('');
         this.printer.alignCenter();
 
+        let tempFilePath: string | null = null;
         try {
           // Convert base64 to buffer
           const qrBuffer = Buffer.from(data.qrCode.replace(/^data:image\/png;base64,/, ''), 'base64');
-          // printImage expects buffer as any to work with different formats
-          await this.printer.printImage(qrBuffer as any);
+
+          // Save to temporary file (printImage requires a file path)
+          tempFilePath = path.join(os.tmpdir(), `qr-${Date.now()}.png`);
+          fs.writeFileSync(tempFilePath, qrBuffer);
+
+          // Print image from file
+          await this.printer.printImage(tempFilePath);
         } catch (error) {
           this.logger.warn(`Failed to print QR code: ${error.message}`);
           // Continue without QR code
+        } finally {
+          // Clean up temporary file
+          if (tempFilePath && fs.existsSync(tempFilePath)) {
+            try {
+              fs.unlinkSync(tempFilePath);
+            } catch (err) {
+              this.logger.warn(`Failed to delete temp QR file: ${err.message}`);
+            }
+          }
         }
       }
 

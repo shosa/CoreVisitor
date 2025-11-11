@@ -79,8 +79,15 @@ export default function VisitDetailPage() {
     }
   };
 
-  const handlePrintBadge = () => {
-    window.print();
+  const handlePrintBadge = async () => {
+    try {
+      await printerApi.printBadge(id, { copies: 1 });
+      enqueueSnackbar('Badge aggiunto alla coda di stampa', { variant: 'success' });
+      setBadgeModalOpen(false);
+    } catch (err) {
+      enqueueSnackbar('Errore nella stampa del badge', { variant: 'error' });
+      console.error(err);
+    }
   };
 
   const handlePrintBadgeToQueue = async () => {
