@@ -1,0 +1,8 @@
+{
+  "apps": [
+    {
+      "appId": "com.stefanosolidoro.corevisitor.kiosk",
+      "root": "apps/kiosk"
+    }
+  ]
+}
