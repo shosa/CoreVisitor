@@ -53,7 +53,15 @@ export class PrinterService {
 
         case 'file':
           // For testing - prints to file
-          printerInterface = connection.address || './print-output.txt';
+          // Convert relative paths to absolute paths in /tmp for Docker compatibility
+          let filePath = connection.address || './print-output.txt';
+          if (filePath.startsWith('./')) {
+            filePath = `/tmp/${filePath.substring(2)}`;
+          } else if (!filePath.startsWith('/')) {
+            filePath = `/tmp/${filePath}`;
+          }
+          printerInterface = filePath;
+          this.logger.log(`File mode printer path: ${filePath}`);
           break;
       }
 
@@ -94,6 +102,8 @@ export class PrinterService {
    */
   async printBadge(data: BadgePrintData): Promise<void> {
     try {
+      this.logger.log(`Starting badge print for: ${data.visitorName}`);
+
       if (!this.printer) {
         throw new Error('Printer not initialized. Please configure and initialize a printer first.');
       }
@@ -139,17 +149,21 @@ export class PrinterService {
 
         let tempFilePath: string | null = null;
         try {
+          this.logger.log('Processing QR code for printing...');
           // Convert base64 to buffer
           const qrBuffer = Buffer.from(data.qrCode.replace(/^data:image\/png;base64,/, ''), 'base64');
 
           // Save to temporary file (printImage requires a file path)
           tempFilePath = path.join(os.tmpdir(), `qr-${Date.now()}.png`);
           fs.writeFileSync(tempFilePath, qrBuffer);
+          this.logger.log(`QR code saved to temp file: ${tempFilePath}`);
 
           // Print image from file
           await this.printer.printImage(tempFilePath);
+          this.logger.log('QR code printed successfully');
         } catch (error) {
-          this.logger.warn(`Failed to print QR code: ${error.message}`);
+          const errMsg = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`Failed to print QR code: ${errMsg}`);
           // Continue without QR code
         } finally {
           // Clean up temporary file
@@ -157,7 +171,7 @@ export class PrinterService {
             try {
               fs.unlinkSync(tempFilePath);
             } catch (err) {
-              this.logger.warn(`Failed to delete temp QR file: ${err.message}`);
+              this.logger.warn(`Failed to delete temp QR file: ${err instanceof Error ? err.message : String(err)}`);
             }
           }
         }
@@ -175,11 +189,16 @@ export class PrinterService {
       this.printer.cut();
 
       // Execute print
+      this.logger.log('Executing print command...');
       await this.printer.execute();
       this.logger.log(`Badge printed successfully for: ${data.visitorName}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to print badge: ${errorMessage}`, error?.stack);
+      this.logger.error(`Failed to print badge: ${errorMessage}`);
+      console.error('Full error object:', error);
+      if (error instanceof Error && error.stack) {
+        console.error('Stack trace:', error.stack);
+      }
       throw new Error(`Print failed: ${errorMessage}`);
     }
   }
