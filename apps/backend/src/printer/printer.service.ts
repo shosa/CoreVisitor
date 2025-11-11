@@ -43,12 +43,9 @@ export class PrinterService {
           break;
 
         case 'network':
-          // For network connection
-          printerInterface = {
-            type: 'tcp',
-            address: connection.address,
-            port: connection.port || 9100,
-          };
+          // For network connection - use string format "tcp://ip:port"
+          printerInterface = `tcp://${connection.address}:${connection.port || 9100}`;
+          this.logger.log(`Network printer: ${printerInterface}`);
           break;
 
         case 'file':
