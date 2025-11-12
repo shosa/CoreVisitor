@@ -1,12 +1,14 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadgeService } from '../badge/badge.service';
+import { PrintQueueService } from '../printer/print-queue.service';
 
 @Injectable()
 export class KioskService {
   constructor(
     private prisma: PrismaService,
     private badge: BadgeService,
+    private printQueue: PrintQueueService,
   ) {}
 
   /**
@@ -95,8 +97,8 @@ export class KioskService {
     // Genera badge number univoco (6 caratteri alfanumerici)
     const badgeNumber = await this.generateBadgeNumber();
 
-    // Genera QR code del badge
-    const badgeQRCode = `BADGE:${visit.id}:${badgeNumber}`;
+    // Genera QR code del badge (base64 PNG)
+    const badgeQRCode = await this.badge.generateBadgeQRCode(badgeNumber);
 
     // Effettua check-in
     const updatedVisit = await this.prisma.visit.update({
@@ -118,7 +120,20 @@ export class KioskService {
 
     // Invia lavoro di stampa badge
     try {
-      await this.badge.printBadge(visit.id, {
+      const badgeData = {
+        visitorName: `${updatedVisit.visitor.firstName} ${updatedVisit.visitor.lastName}`,
+        company: updatedVisit.visitor.company,
+        badgeNumber: updatedVisit.badgeNumber,
+        visitDate: new Date(updatedVisit.scheduledDate).toLocaleDateString('it-IT'),
+        department: updatedVisit.department.name,
+        host: updatedVisit.hostUser
+          ? `${updatedVisit.hostUser.firstName} ${updatedVisit.hostUser.lastName}`
+          : updatedVisit.hostName,
+        qrCode: updatedVisit.badgeQRCode,
+      };
+      await this.printQueue.addBadgePrintJob({
+        visitId: visit.id,
+        badgeData,
         copies: 1,
         priority: 1, // Alta priorità per self check-in
       });
