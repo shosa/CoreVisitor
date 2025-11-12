@@ -23,7 +23,13 @@ const ScanQR = ({ onBack }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ show: false, type: 'info', text: '' });
-  const videoRef = useRef(null);
+  const [cameraSupported, setCameraSupported] = useState(true);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    // Check if camera is supported
+    setCameraSupported(scanner.isCameraSupported());
+  }, []);
 
   const showMessage = (type, text) => {
     setMessage({ show: true, type, text });
@@ -35,19 +41,27 @@ const ScanQR = ({ onBack }) => {
       setIsScanning(true);
       setResult(null);
 
-      // Scansiona QR code con video preview
-      const stopScan = await scanner.scanContinuous(async (code) => {
+      console.log('🚀 Starting scan...');
+
+      // Wait for DOM to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Scansiona QR code
+      await scanner.scanContinuous(async (code) => {
         console.log('📷 QR Code scanned:', code);
 
-        // Stop scanning
-        if (stopScan) await stopScan();
+        // Stop scanning immediately
+        await scanner.stopScan();
         setIsScanning(false);
 
         // Process checkout
         await processCheckOut(code);
       }, {
-        videoElement: videoRef.current
+        videoId: 'qr-video',
+        canvasId: 'qr-canvas'
       });
+
+      console.log('✅ Scanner started');
 
     } catch (error) {
       console.error('❌ Scan error:', error);
@@ -56,20 +70,81 @@ const ScanQR = ({ onBack }) => {
     }
   };
 
+  // iOS PWA fallback - scan from image
+  const handleFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      console.log('📸 Scanning from image...');
+
+      const code = await scanner.scanFromFile(file);
+
+      console.log('✅ QR Code found in image:', code);
+
+      // Process checkout
+      await processCheckOut(code);
+
+    } catch (error) {
+      console.error('❌ Image scan error:', error);
+      showMessage('error', error.message || 'Nessun QR code trovato nell\'immagine');
+    } finally {
+      setLoading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleUploadImage = () => {
+    fileInputRef.current?.click();
+  };
+
   const processCheckOut = async (badgeCode) => {
     setLoading(true);
     try {
+      console.log('🔍 Verifying badge:', badgeCode);
+
       // Verifica badge
       const verifyResponse = await kioskAPI.verifyBadge(badgeCode);
+      console.log('📋 Full verify response:', JSON.stringify(verifyResponse.data, null, 2));
+
+      // Gestisci diversi formati di risposta
+      let visit = null;
+      let visitId = null;
 
       if (verifyResponse.data.status === 'error') {
         throw new Error(verifyResponse.data.message || 'Badge non valido');
       }
 
-      const visit = verifyResponse.data.data;
+      // Prova diversi formati di risposta
+      if (verifyResponse.data.data) {
+        visit = verifyResponse.data.data;
+        visitId = visit.id || visit.visit_id;
+      } else if (verifyResponse.data.visit) {
+        visit = verifyResponse.data.visit;
+        visitId = visit.id || visit.visit_id;
+      } else if (verifyResponse.data.id) {
+        // La risposta è direttamente la visita
+        visit = verifyResponse.data;
+        visitId = visit.id || visit.visit_id;
+      }
+
+      // Validazione: assicurati che visitId esista
+      if (!visitId) {
+        console.error('❌ Invalid visit data:', verifyResponse.data);
+        console.error('❌ Parsed visit:', visit);
+        throw new Error('Nessuna visita trovata per questo badge. Verifica che la visita sia in stato checked-in.');
+      }
+
+      console.log('✅ Visit found:', visit);
+      console.log('✅ Visit ID:', visitId);
 
       // Check-out
-      const checkOutResponse = await kioskAPI.checkOut(visit.id, badgeCode);
+      const checkOutResponse = await kioskAPI.checkOut(visitId, badgeCode);
+      console.log('📤 Check-out response:', checkOutResponse.data);
 
       if (checkOutResponse.data.status === 'success') {
         setResult({
@@ -185,65 +260,88 @@ const ScanQR = ({ onBack }) => {
         </div>
       )}
 
+      {/* Hidden file input for iOS fallback */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={handleFileSelect}
+      />
+
+      {/* Hidden canvas for QR detection */}
+      <canvas id="qr-canvas" hidden></canvas>
+
       {/* Scanner Area */}
       {!result && (
         <div style={styles.scannerArea}>
-          <div style={styles.scanFrame}>
-            {isScanning ? (
-              <div style={styles.videoContainer}>
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  style={styles.video}
-                />
-                <div style={styles.scannerOverlay}>
-                  <div style={styles.scannerBox}></div>
-                </div>
+          {isScanning ? (
+            <video
+              id="qr-video"
+              style={styles.qrVideo}
+              playsInline
+              autoPlay
+            ></video>
+          ) : (
+            <div style={styles.scanFrame}>
+              <div style={styles.scanIconContainer}>
+                <IoQrCode size={120} color="#3b82f6" />
               </div>
-            ) : (
-              <>
-                <div style={styles.scanIconContainer}>
-                  <IoQrCode size={120} color="#3b82f6" />
-                </div>
-                <p style={styles.scanText}>
-                  Premi il pulsante per scansionare
-                </p>
-              </>
-            )}
-          </div>
+              <p style={styles.scanText}>
+                Premi il pulsante per scansionare
+              </p>
+            </div>
+          )}
         </div>
       )}
 
       {/* Scan Button */}
       {!result && (
         <div style={styles.buttonContainer}>
-          <button
-            onClick={handleScan}
-            disabled={isScanning || loading}
-            style={{
-              ...styles.scanButton,
-              ...(isScanning || loading ? styles.scanButtonDisabled : {})
-            }}
-          >
-            {loading ? (
-              <>
-                <div style={styles.spinner}></div>
-                <span>Elaborazione...</span>
-              </>
-            ) : isScanning ? (
-              <>
-                <div style={styles.spinner}></div>
-                <span>Scanner Attivo</span>
-              </>
-            ) : (
-              <>
-                <IoQrCode size={24} style={{ marginRight: '12px' }} />
-                <span>Scansiona QR Code</span>
-              </>
-            )}
-          </button>
+          {/* Live Scanner - Only if camera is supported */}
+          {cameraSupported && (
+            <button
+              onClick={handleScan}
+              disabled={isScanning || loading}
+              style={{
+                ...styles.scanButton,
+                ...(isScanning || loading ? styles.scanButtonDisabled : {})
+              }}
+            >
+              {loading ? (
+                <>
+                  <div style={styles.spinner}></div>
+                  <span>Elaborazione...</span>
+                </>
+              ) : isScanning ? (
+                <>
+                  <div style={styles.spinner}></div>
+                  <span>Scanner Attivo</span>
+                </>
+              ) : (
+                <>
+                  <IoQrCode size={24} style={{ marginRight: '12px' }} />
+                  <span>Scansiona QR Code</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Upload Image Button - Always available as fallback */}
+          {!isScanning && (
+            <button
+              onClick={handleUploadImage}
+              disabled={loading}
+              style={{
+                ...(!cameraSupported ? styles.scanButton : styles.uploadButton),
+                ...(loading ? styles.scanButtonDisabled : {})
+              }}
+            >
+              <IoPrint size={20} style={{ marginRight: cameraSupported ? '8px' : '12px' }} />
+              <span>{cameraSupported ? 'Carica Immagine' : 'Scansiona da Foto'}</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -252,15 +350,28 @@ const ScanQR = ({ onBack }) => {
         <div style={styles.instructions}>
           <div style={styles.instructionsHeader}>
             <div style={styles.instructionsIcon}>
-              <IoInformationCircle size={24} color="#3b82f6" />
+              <IoInformationCircle size={24} color={!cameraSupported ? "#f59e0b" : "#3b82f6"} />
             </div>
             <h3 style={styles.instructionsTitle}>Come funziona</h3>
           </div>
-          <ol style={styles.instructionsList}>
-            <li>Premi il pulsante "Scansiona QR Code"</li>
-            <li>Inquadra il badge del visitatore</li>
-            <li>Il check-out verrà registrato automaticamente</li>
-          </ol>
+          {!cameraSupported ? (
+            <div style={styles.warningBox}>
+              <p style={styles.warningText}>
+                ⚠️ Scanner live non disponibile in questa modalità (iOS PWA standalone).
+              </p>
+              <ol style={styles.instructionsList}>
+                <li>Premi il pulsante "Scansiona da Foto"</li>
+                <li>Scatta una foto del badge QR o carica un'immagine</li>
+                <li>Il check-out verrà registrato automaticamente</li>
+              </ol>
+            </div>
+          ) : (
+            <ol style={styles.instructionsList}>
+              <li>Premi il pulsante "Scansiona QR Code"</li>
+              <li>Inquadra il badge del visitatore</li>
+              <li>Il check-out verrà registrato automaticamente</li>
+            </ol>
+          )}
         </div>
       )}
     </div>
@@ -377,6 +488,16 @@ const styles = {
   scannerArea: {
     marginBottom: '24px'
   },
+  qrVideo: {
+    width: '100%',
+    maxWidth: '500px',
+    height: 'auto',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    border: '3px solid #3b82f6',
+    display: 'block',
+    margin: '0 auto'
+  },
   scanFrame: {
     padding: '60px 40px',
     borderRadius: '16px',
@@ -450,6 +571,26 @@ const styles = {
     opacity: 0.6,
     cursor: 'not-allowed'
   },
+  uploadButton: {
+    width: '100%',
+    height: '56px',
+    borderRadius: '12px',
+    border: '2px solid #e5e5e5',
+    background: '#fff',
+    color: '#666',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    marginTop: '12px'
+  },
+  uploadButtonDisabled: {
+    opacity: 0.6,
+    cursor: 'not-allowed'
+  },
   spinner: {
     width: '20px',
     height: '20px',
@@ -492,6 +633,20 @@ const styles = {
     color: '#666',
     fontSize: '15px',
     lineHeight: '1.8'
+  },
+  warningBox: {
+    marginTop: '12px'
+  },
+  warningText: {
+    margin: '0 0 12px 0',
+    padding: '12px',
+    background: '#fffbeb',
+    border: '2px solid #f59e0b',
+    borderRadius: '8px',
+    color: '#92400e',
+    fontSize: '14px',
+    fontWeight: '500',
+    lineHeight: '1.6'
   }
 };
 

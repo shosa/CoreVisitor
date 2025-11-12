@@ -15,7 +15,44 @@ export class VisitsService {
   ) {}
 
 
+  /**
+   * Generate a unique 4-digit PIN for self check-in
+   */
+  private async generateUniquePin(): Promise<string> {
+    let pin: string;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (!isUnique && attempts < maxAttempts) {
+      // Generate random 4-digit PIN (1000-9999)
+      pin = Math.floor(1000 + Math.random() * 9000).toString();
+
+      // Check if PIN is already in use for active visits (not checked_out or cancelled)
+      const existingVisit = await this.prisma.visit.findFirst({
+        where: {
+          checkInPin: pin,
+          status: {
+            in: [VisitStatus.pending, VisitStatus.approved, VisitStatus.checked_in],
+          },
+        },
+      });
+
+      isUnique = !existingVisit;
+      attempts++;
+    }
+
+    if (!isUnique) {
+      throw new BadRequestException('Unable to generate unique PIN. Please try again.');
+    }
+
+    return pin;
+  }
+
   async create(createVisitDto: CreateVisitDto, createdById: string) {
+    // Generate unique 4-digit PIN for self check-in
+    const checkInPin = await this.generateUniquePin();
+
     const visit = await this.prisma.visit.create({
       data: {
         ...createVisitDto,
@@ -25,6 +62,7 @@ export class VisitsService {
           ? new Date(createVisitDto.scheduledTimeEnd)
           : undefined,
         status: VisitStatus.pending,
+        checkInPin,
         createdById,
       },
       include: {

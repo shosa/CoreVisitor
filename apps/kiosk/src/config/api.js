@@ -12,15 +12,11 @@ const getBaseURL = () => {
     return savedServer;
   }
 
-  // Fallback per sviluppo web (usa proxy in package.json)
-  if (process.env.NODE_ENV === 'development' && !window.Capacitor) {
-    console.log('🌐 Development mode - using proxy');
-    return 'http://localhost:3006';
-  }
-
-  // Fallback default per produzione
-  const defaultUrl = 'http://192.168.3.131:3006';
-  console.log('⚠️ Using default server:', defaultUrl);
+  // Auto-detect: usa lo stesso protocollo della pagina corrente
+  // Se il frontend è HTTPS, usa HTTPS anche per il backend (e viceversa)
+  const protocol = window.location.protocol; // 'http:' o 'https:'
+  const defaultUrl = `${protocol}//192.168.3.131:3006`;
+  console.log('📡 Using production server:', defaultUrl);
   return defaultUrl;
 };
 

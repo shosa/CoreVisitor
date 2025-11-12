@@ -20,3 +20,16 @@ code {
   width: 100%;
   height: 100vh;
 }
+
+/* Capacitor Barcode Scanner - make background transparent for camera preview */
+body.barcode-scanner-active {
+  background: transparent !important;
+}
+
+body.barcode-scanner-active #root {
+  background: transparent !important;
+}
+
+body.barcode-scanner-active * {
+  background: transparent !important;
+}

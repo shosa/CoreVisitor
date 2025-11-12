@@ -321,7 +321,7 @@ export default function VisitsPage() {
                 <TableCell>Host</TableCell>
                 <TableCell>Reparto</TableCell>
                 <TableCell>Motivo</TableCell>
-                <TableCell>Badge</TableCell>
+                <TableCell>Badge/PIN</TableCell>
                 <TableCell>Stato</TableCell>
                 <TableCell align="right">Azioni</TableCell>
               </TableRow>
@@ -367,8 +367,17 @@ export default function VisitsPage() {
                       <Chip label={visit.purpose} size="small" />
                     </TableCell>
                     <TableCell>
-                      {visit.badgeNumber && (
-                        <Chip label={visit.badgeNumber} size="small" color="success" />
+                      {visit.badgeNumber ? (
+                        <Chip label={`Badge: ${visit.badgeNumber}`} size="small" color="success" />
+                      ) : visit.checkInPin ? (
+                        <Chip
+                          label={`PIN: ${visit.checkInPin}`}
+                          size="small"
+                          color="primary"
+                          sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}
+                        />
+                      ) : (
+                        '-'
                       )}
                     </TableCell>
                     <TableCell>

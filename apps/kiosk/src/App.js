@@ -12,6 +12,8 @@ import '@ionic/react/css/typography.css';
 
 // Components
 import ModeSelection from './components/ModeSelection';
+import KioskHome from './components/Kiosk/KioskHome';
+import PinEntry from './components/Kiosk/PinEntry';
 import ScanQR from './components/Kiosk/ScanQR';
 import Login from './components/Login';
 import FullDashboard from './components/Dashboard/FullDashboard';
@@ -79,10 +81,22 @@ const App = () => {
    */
   const handleSelectMode = (mode) => {
     if (mode === 'kiosk') {
-      transitionToScreen('scan-qr');
+      transitionToScreen('kiosk-home');
     } else if (mode === 'full') {
       transitionToScreen('login');
     }
+  };
+
+  const handleKioskOption = (option) => {
+    if (option === 'pin') {
+      transitionToScreen('pin-entry');
+    } else if (option === 'qr') {
+      transitionToScreen('scan-qr');
+    }
+  };
+
+  const handleBackToKioskHome = () => {
+    transitionToScreen('kiosk-home');
   };
 
   const handleBackToModeSelection = () => {
@@ -117,8 +131,19 @@ const App = () => {
           />
         );
 
+      case 'kiosk-home':
+        return (
+          <KioskHome
+            onSelectOption={handleKioskOption}
+            onBack={handleBackToModeSelection}
+          />
+        );
+
+      case 'pin-entry':
+        return <PinEntry onBack={handleBackToKioskHome} />;
+
       case 'scan-qr':
-        return <ScanQR onBack={handleBackToModeSelection} />;
+        return <ScanQR onBack={handleBackToKioskHome} />;
 
       case 'login':
         return (

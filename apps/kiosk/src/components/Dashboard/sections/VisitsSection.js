@@ -22,7 +22,7 @@ const VisitsSection = ({ user, onNewVisit }) => {
   const [filteredVisits, setFilteredVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active'); // Default: visite attive (non terminate)
   const [message, setMessage] = useState({ show: false, type: 'info', text: '' });
 
   useEffect(() => {
@@ -50,7 +50,14 @@ const VisitsSection = ({ user, onNewVisit }) => {
     let filtered = visits;
 
     // Filter by status
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'active') {
+      // Visite attive: pending, approved, checked_in (escludi checked_out, cancelled, rejected)
+      filtered = filtered.filter(v =>
+        v.status === 'pending' ||
+        v.status === 'approved' ||
+        v.status === 'checked_in'
+      );
+    } else if (statusFilter !== 'all') {
       filtered = filtered.filter(v => v.status === statusFilter);
     }
 
@@ -197,16 +204,23 @@ const VisitsSection = ({ user, onNewVisit }) => {
 
         {/* Status Filter */}
         <div style={styles.statusFilters}>
-          {['all', 'pending', 'approved', 'checked_in', 'checked_out'].map(status => (
+          {[
+            { value: 'active', label: 'Attive' },
+            { value: 'all', label: 'Tutte' },
+            { value: 'pending', label: 'In Attesa' },
+            { value: 'approved', label: 'Approvate' },
+            { value: 'checked_in', label: 'Presenti' },
+            { value: 'checked_out', label: 'Completate' }
+          ].map(({ value, label }) => (
             <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
+              key={value}
+              onClick={() => setStatusFilter(value)}
               style={{
                 ...styles.filterButton,
-                ...(statusFilter === status ? styles.filterButtonActive : {})
+                ...(statusFilter === value ? styles.filterButtonActive : {})
               }}
             >
-              {status === 'all' ? 'Tutte' : getStatusLabel(status)}
+              {label}
             </button>
           ))}
         </div>
@@ -227,20 +241,22 @@ const VisitsSection = ({ user, onNewVisit }) => {
                 {/* Visit Info */}
                 <div style={styles.visitInfo}>
                   <div style={styles.visitHeader}>
-                    <h3 style={styles.visitName}>
-                      <IoPersonOutline size={20} style={{ marginRight: '8px' }} />
-                      {visit.visitor?.firstName} {visit.visitor?.lastName}
-                    </h3>
-                    {/* Status Badge */}
-                    <div
-                      style={{
-                        ...styles.statusBadge,
-                        background: statusStyle.bg,
-                        color: statusStyle.color,
-                        border: `2px solid ${statusStyle.border}`
-                      }}
-                    >
-                      {getStatusLabel(visit.status)}
+                    <div style={styles.visitTitleRow}>
+                      <IoPersonOutline size={20} style={{ marginRight: '8px', flexShrink: 0 }} />
+                      <h3 style={styles.visitName}>
+                        {visit.visitor?.firstName} {visit.visitor?.lastName}
+                      </h3>
+                      {/* Status Badge */}
+                      <div
+                        style={{
+                          ...styles.statusBadge,
+                          background: statusStyle.bg,
+                          color: statusStyle.color,
+                          border: `2px solid ${statusStyle.border}`
+                        }}
+                      >
+                        {getStatusLabel(visit.status)}
+                      </div>
                     </div>
                   </div>
 
@@ -422,15 +438,14 @@ const styles = {
     minWidth: 0
   },
   visitHeader: {
+    marginBottom: '8px'
+  },
+  visitTitleRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '8px',
-    gap: '12px'
+    gap: '16px'
   },
   visitName: {
-    display: 'flex',
-    alignItems: 'center',
     margin: 0,
     fontSize: '18px',
     fontWeight: '600',
@@ -440,9 +455,9 @@ const styles = {
   },
   statusBadge: {
     flexShrink: 0,
-    padding: '6px 12px',
-    borderRadius: '8px',
-    fontSize: '13px',
+    padding: '4px 10px',
+    borderRadius: '6px',
+    fontSize: '11px',
     fontWeight: '600',
     whiteSpace: 'nowrap'
   },

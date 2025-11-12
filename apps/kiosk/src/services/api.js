@@ -107,6 +107,12 @@ export const mobileAPI = {
  * Visitor Kiosk API - Endpoint specifici per kiosk (NO AUTH REQUIRED)
  */
 export const kioskAPI = {
+  verifyPin: (pin) =>
+    api.post('/api/kiosk/verify-pin', { pin }),
+
+  checkIn: (pin) =>
+    api.post('/api/kiosk/check-in', { pin }),
+
   verifyBadge: (badgeCode) =>
     api.post('/api/kiosk/verify-badge', { badge_code: badgeCode }),
 

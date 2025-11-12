@@ -125,6 +125,7 @@ model Visit {
   badgeIssued       Boolean     @default(false) @map("badge_issued")
   badgeIssuedAt     DateTime?   @map("badge_issued_at")
   qrCode            String?     @map("qr_code") @db.Text
+  checkInPin        String?     @map("check_in_pin") @db.VarChar(4)
   createdById       String      @map("created_by_id")
   updatedById       String?     @map("updated_by_id")
   createdAt         DateTime    @default(now()) @map("created_at")

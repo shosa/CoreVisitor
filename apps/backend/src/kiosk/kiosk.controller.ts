@@ -6,6 +6,51 @@ export class KioskController {
   constructor(private readonly kioskService: KioskService) {}
 
   /**
+   * Verifica PIN per self check-in
+   * POST /api/kiosk/verify-pin
+   */
+  @Post('verify-pin')
+  async verifyPin(@Body() body: { pin: string }) {
+    try {
+      const { pin } = body;
+
+      if (!pin) {
+        throw new HttpException(
+          'PIN is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Validate PIN format (4 digits)
+      if (!/^\d{4}$/.test(pin)) {
+        throw new HttpException(
+          'PIN must be 4 digits',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const visit = await this.kioskService.verifyPin(pin);
+
+      if (!visit) {
+        return {
+          status: 'error',
+          message: 'PIN non valido o visita non trovata',
+        };
+      }
+
+      return {
+        status: 'success',
+        data: visit,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error verifying PIN',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Verifica validità badge QR code
    * POST /api/kiosk/verify-badge
    */
@@ -37,6 +82,37 @@ export class KioskController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Error verifying badge',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Self check-in con PIN
+   * POST /api/kiosk/check-in
+   */
+  @Post('check-in')
+  async checkIn(@Body() body: { pin: string }) {
+    try {
+      const { pin } = body;
+
+      if (!pin) {
+        throw new HttpException(
+          'PIN is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const result = await this.kioskService.checkInWithPin(pin);
+
+      return {
+        status: 'success',
+        message: 'Check-in effettuato con successo',
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error during check-in',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -81,6 +81,7 @@ export interface Visit {
   badgeIssued: boolean;
   badgeIssuedAt?: string;
   qrCode?: string;
+  checkInPin?: string;
   notes?: string;
   createdById: string;
   createdBy?: {

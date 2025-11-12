@@ -1,9 +1,190 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BadgeService } from '../badge/badge.service';
 
 @Injectable()
 export class KioskService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private badge: BadgeService,
+  ) {}
+
+  /**
+   * Verifica PIN e ottieni informazioni visita
+   */
+  async verifyPin(pin: string) {
+    const visit = await this.prisma.visit.findFirst({
+      where: {
+        checkInPin: pin,
+        status: {
+          in: ['approved'], // Solo visite approvate possono fare check-in
+        },
+        scheduledDate: {
+          // Solo visite programmate per oggi
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          lte: new Date(new Date().setHours(23, 59, 59, 999)),
+        },
+      },
+      include: {
+        visitor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            company: true,
+            photoPath: true,
+          },
+        },
+        department: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        hostUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!visit) {
+      return null;
+    }
+
+    // Aggiungi full_name al visitor
+    const visitorWithFullName = {
+      ...visit.visitor,
+      full_name: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
+    };
+
+    return {
+      ...visit,
+      visitor: visitorWithFullName,
+    };
+  }
+
+  /**
+   * Effettua check-in con PIN e stampa badge
+   */
+  async checkInWithPin(pin: string) {
+    // Trova la visita con il PIN
+    const visit = await this.verifyPin(pin);
+
+    if (!visit) {
+      throw new HttpException(
+        'PIN non valido o visita non trovata per oggi',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (visit.status !== 'approved') {
+      throw new HttpException(
+        `Impossibile effettuare check-in. Stato attuale: ${visit.status}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Genera badge number univoco (6 caratteri alfanumerici)
+    const badgeNumber = await this.generateBadgeNumber();
+
+    // Genera QR code del badge
+    const badgeQRCode = `BADGE:${visit.id}:${badgeNumber}`;
+
+    // Effettua check-in
+    const updatedVisit = await this.prisma.visit.update({
+      where: { id: visit.id },
+      data: {
+        status: 'checked_in',
+        actualCheckIn: new Date(),
+        badgeNumber,
+        badgeQRCode,
+        badgeIssued: true,
+        badgeIssuedAt: new Date(),
+      },
+      include: {
+        visitor: true,
+        department: true,
+        hostUser: true,
+      },
+    });
+
+    // Invia lavoro di stampa badge
+    try {
+      await this.badge.printBadge(visit.id, {
+        copies: 1,
+        priority: 1, // Alta priorità per self check-in
+      });
+    } catch (error) {
+      console.error('Badge print error:', error.message);
+      // Non blocchiamo il check-in se la stampa fallisce
+    }
+
+    // Log audit
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'check_in',
+          entityType: 'visit',
+          entityId: visit.id,
+          details: `Self check-in from kiosk with PIN for ${visit.visitor.firstName} ${visit.visitor.lastName}`,
+          userId: null, // Kiosk mode senza user
+          ipAddress: null,
+        },
+      });
+    } catch (error) {
+      console.log('Audit log error:', error.message);
+    }
+
+    return {
+      ...updatedVisit,
+      visitor: {
+        ...updatedVisit.visitor,
+        full_name: `${updatedVisit.visitor.firstName} ${updatedVisit.visitor.lastName}`,
+      },
+    };
+  }
+
+  /**
+   * Genera badge number univoco
+   */
+  private async generateBadgeNumber(): Promise<string> {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Esclusi caratteri ambigui
+    let badgeNumber: string;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    while (!isUnique && attempts < maxAttempts) {
+      badgeNumber = '';
+      for (let i = 0; i < 6; i++) {
+        badgeNumber += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+
+      const existingBadge = await this.prisma.visit.findFirst({
+        where: { badgeNumber },
+      });
+
+      isUnique = !existingBadge;
+      attempts++;
+    }
+
+    if (!isUnique) {
+      throw new HttpException(
+        'Unable to generate unique badge number',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return badgeNumber;
+  }
 
   /**
    * Verifica validità badge e ottieni informazioni visita

@@ -277,6 +277,30 @@ export default function VisitDetailPage() {
               <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-Out:</strong> {visit.actualCheckOut ? new Date(visit.actualCheckOut).toLocaleString('it-IT') : '-'}</Typography></Grid>
               <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
               <Grid item xs={12} sm={6}><Typography><strong>Badge:</strong> {visit.badgeIssued ? `Sì, #${visit.badgeNumber}` : 'No'}</Typography></Grid>
+              {visit.checkInPin && !visit.badgeIssued && (
+                <Grid item xs={12} sm={6}>
+                  <Typography>
+                    <strong>PIN Check-In:</strong>{' '}
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-block',
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        px: 2,
+                        py: 0.5,
+                        borderRadius: 1,
+                        fontWeight: 'bold',
+                        fontSize: '1.2rem',
+                        letterSpacing: '0.2em',
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      {visit.checkInPin}
+                    </Box>
+                  </Typography>
+                </Grid>
+              )}
               <Grid item xs={12} sm={6}><Typography><strong>Notifica Inviata:</strong> {visit.notificationSent ? 'Sì' : 'No'}</Typography></Grid>
               <Grid item xs={12}><Typography><strong>Note:</strong> {visit.notes || '-'}</Typography></Grid>
             </Grid>
