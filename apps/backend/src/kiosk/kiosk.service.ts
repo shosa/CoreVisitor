@@ -19,7 +19,7 @@ export class KioskService {
       where: {
         checkInPin: pin,
         status: {
-          in: ['approved'], // Solo visite approvate possono fare check-in
+          in: ['pending', 'approved'], // Visite in attesa o approvate possono fare check-in
         },
         scheduledDate: {
           // Solo visite programmate per oggi
@@ -87,9 +87,17 @@ export class KioskService {
       );
     }
 
-    if (visit.status !== 'approved') {
+    // Verifica che la visita non sia già checked-in o completata
+    if (visit.status === 'checked_in') {
       throw new HttpException(
-        `Impossibile effettuare check-in. Stato attuale: ${visit.status}`,
+        'Visita già in stato checked-in',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (visit.status === 'checked_out') {
+      throw new HttpException(
+        'Visita già completata (checked-out)',
         HttpStatus.BAD_REQUEST,
       );
     }

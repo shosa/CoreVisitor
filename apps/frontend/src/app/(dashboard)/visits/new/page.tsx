@@ -190,11 +190,8 @@ export default function NewVisitPage() {
 
       const visitRes = await visitsApi.create(visitPayload);
 
-      // Step 3: Check-in automatico
-      await visitsApi.checkIn(visitRes.data.id);
-
-      // Redirect alla dashboard
-      router.push('/dashboard');
+      // Redirect alla lista visite (check-in verrà fatto con PIN al kiosk)
+      router.push('/visits');
     } catch (error: any) {
       console.error('Error creating visit:', error);
       setError(error.response?.data?.message || 'Errore durante la creazione');
@@ -579,7 +576,7 @@ export default function NewVisitPage() {
         ]}
       />
       <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Nuova Visita / Check-in
+        Registra Nuova Visita
       </Typography>
 
       <Card sx={{ mt: 3 }}>
@@ -633,7 +630,7 @@ export default function NewVisitPage() {
                 disabled={loading}
                 startIcon={<Save />}
               >
-                {loading ? 'Creazione...' : 'Conferma e Check-in'}
+                {loading ? 'Creazione...' : 'Crea Visita'}
               </Button>
             )}
           </Stack>
