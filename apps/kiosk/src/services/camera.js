@@ -1,172 +1,221 @@
 /**
- * Camera Service
- * Gestisce l'accesso alla fotocamera tramite Capacitor Camera API
+ * Camera Service (PWA - Browser only)
+ * Uses getUserMedia API for photo capture
  */
-
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Filesystem } from '@capacitor/filesystem';
-import { Capacitor } from '@capacitor/core';
 
 class CameraService {
   /**
-   * Scatta una foto o seleziona da galleria
+   * Take picture with browser
    */
-  async takePicture(source = CameraSource.Camera) {
-    try {
-      // Assicura i permessi necessari prima di procedere
-      await this.ensurePermissionsFor(source);
+  async takePicture(source = 'camera') {
+    if (source === 'gallery') {
+      return await this._pickFromGallery();
+    }
 
-      const photo = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.Base64,
-        source: source,
-        width: 800,
-        height: 800,
-        correctOrientation: true
+    return await this._takePhoto();
+  }
+
+  /**
+   * Take photo with camera
+   */
+  async _takePhoto() {
+    try {
+      // Create modal elements
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const captureButton = document.createElement('button');
+      const modal = document.createElement('div');
+
+      // Modal styles
+      Object.assign(modal.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0, 0, 0, 0.9)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: '10000'
       });
 
-      // Ritorna l'immagine in formato base64
-      return {
-        base64: photo.base64String,
-        format: photo.format,
-        dataUrl: `data:image/${photo.format};base64,${photo.base64String}`
-      };
+      // Video styles
+      Object.assign(video.style, {
+        maxWidth: '90%',
+        maxHeight: '70%',
+        borderRadius: '12px'
+      });
+
+      // Button styles
+      Object.assign(captureButton.style, {
+        marginTop: '20px',
+        padding: '15px 30px',
+        fontSize: '18px',
+        background: '#3b82f6',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer'
+      });
+      captureButton.textContent = 'Scatta Foto';
+
+      modal.appendChild(video);
+      modal.appendChild(captureButton);
+      document.body.appendChild(modal);
+
+      // Get camera stream
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 800 },
+          height: { ideal: 800 }
+        }
+      });
+
+      video.srcObject = stream;
+      video.setAttribute('playsinline', 'true');
+      await video.play();
+
+      return new Promise((resolve, reject) => {
+        captureButton.onclick = () => {
+          // Capture frame
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0);
+
+          // Convert to base64
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          const base64 = dataUrl.split(',')[1];
+
+          // Cleanup
+          stream.getTracks().forEach(track => track.stop());
+          document.body.removeChild(modal);
+
+          resolve({
+            base64: base64,
+            format: 'jpeg',
+            dataUrl: dataUrl
+          });
+        };
+
+        // Add close button
+        const closeButton = document.createElement('button');
+        Object.assign(closeButton.style, {
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          padding: '10px 20px',
+          background: '#ef4444',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer'
+        });
+        closeButton.textContent = 'Annulla';
+        closeButton.onclick = () => {
+          stream.getTracks().forEach(track => track.stop());
+          document.body.removeChild(modal);
+          reject(new Error('Cattura annullata'));
+        };
+        modal.appendChild(closeButton);
+      });
+
     } catch (error) {
-      console.error('Camera error:', error);
+      console.error('Browser camera error:', error);
       throw new Error('Impossibile accedere alla fotocamera');
     }
   }
 
   /**
-   * Scatta foto dal dispositivo
+   * Pick from gallery
+   */
+  async _pickFromGallery() {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+          reject(new Error('Nessun file selezionato'));
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target.result;
+          const base64 = dataUrl.split(',')[1];
+          const format = file.type.split('/')[1] || 'jpeg';
+
+          resolve({
+            base64: base64,
+            format: format,
+            dataUrl: dataUrl
+          });
+        };
+        reader.onerror = () => reject(new Error('Errore lettura file'));
+        reader.readAsDataURL(file);
+      };
+
+      input.click();
+    });
+  }
+
+  /**
+   * Take photo (wrapper)
    */
   async takePhoto() {
-    return this.takePicture(CameraSource.Camera);
+    return this.takePicture('camera');
   }
 
   /**
-   * Seleziona foto dalla galleria
+   * Pick from gallery (wrapper)
    */
   async pickFromGallery() {
-    return this.takePicture(CameraSource.Photos);
+    return this.takePicture('gallery');
   }
 
   /**
-   * Controlla i permessi della fotocamera
+   * Check permissions (browser)
    */
   async checkPermissions() {
     try {
-      const permissions = await Camera.checkPermissions();
-      return permissions.camera === 'granted' && permissions.photos === 'granted';
+      if (!navigator.permissions) return true;
+      const permission = await navigator.permissions.query({ name: 'camera' });
+      return permission.state === 'granted';
     } catch (error) {
-      console.error('Permission check error:', error);
-      return false;
+      return true; // Assume granted
     }
   }
 
   /**
-   * Richiede i permessi della fotocamera
+   * Request permissions (browser handles automatically)
    */
   async requestPermissions() {
-    try {
-      const permissions = await Camera.requestPermissions({
-        permissions: ['camera', 'photos']
-      });
-      return permissions.camera === 'granted' && permissions.photos === 'granted';
-    } catch (error) {
-      console.error('Permission request error:', error);
-      return false;
-    }
+    return true;
   }
 
   /**
-   * Controlla i permessi di Storage (Filesystem)
+   * Storage permissions (not needed for browser)
    */
   async checkStoragePermissions() {
-    try {
-      // Su iOS non è richiesto, ritorna granted
-      const status = await Filesystem.checkPermissions();
-      // Android usa la chiave publicStorage
-      return (status.publicStorage ?? status.state) === 'granted';
-    } catch (error) {
-      console.error('Storage permission check error:', error);
-      return false;
-    }
+    return true;
   }
 
-  /**
-   * Richiede i permessi di Storage (Filesystem)
-   */
   async requestStoragePermissions() {
-    try {
-      const status = await Filesystem.requestPermissions();
-      return (status.publicStorage ?? status.state) === 'granted';
-    } catch (error) {
-      console.error('Storage permission request error:', error);
-      return false;
-    }
+    return true;
+  }
+
+  async ensurePermissionsFor() {
+    return true;
   }
 
   /**
-   * Assicura i permessi necessari in base alla sorgente
-   */
-  async ensurePermissionsFor(source) {
-    // Web: nessun prompt OS, il browser gestisce
-    const platform = Capacitor.getPlatform();
-    if (platform === 'web') return;
-
-    const camPerms = await Camera.checkPermissions();
-    const toRequest = [];
-
-    // Camera
-    if (source === CameraSource.Camera && camPerms.camera !== 'granted') {
-      toRequest.push('camera');
-    }
-
-    // Photos: considera iOS "limited" come sufficiente per la galleria
-    const photosGrantedOrLimited = camPerms.photos === 'granted' || camPerms.photos === 'limited';
-    if (source === CameraSource.Photos && !photosGrantedOrLimited) {
-      toRequest.push('photos');
-    }
-
-    if (toRequest.length > 0) {
-      await Camera.requestPermissions({ permissions: toRequest });
-    }
-
-    // Ricontrolla: se ancora negato, suggerisci apertura impostazioni
-    const after = await Camera.checkPermissions();
-    const cameraOk = after.camera === 'granted' || source !== CameraSource.Camera;
-    const photosOk = (after.photos === 'granted' || after.photos === 'limited' || source !== CameraSource.Photos);
-    if (!cameraOk || !photosOk) {
-      throw new Error('Permessi non concessi. Abilita dalle impostazioni dell\'app.');
-    }
-
-    // Storage (solo Android, per accesso/salvataggio pubblico)
-    if (platform === 'android') {
-      const ok = await this.checkStoragePermissions();
-      if (!ok) {
-        const reqOk = await this.requestStoragePermissions();
-        if (!reqOk) {
-          throw new Error('Permessi di archiviazione negati. Abilita dalle impostazioni.');
-        }
-      }
-    }
-  }
-
-  /**
-   * Apre le impostazioni dell'app (utile quando l'utente ha selezionato "Non chiedere più")
-   */
-  async openAppSettings() {
-    try {
-      await App.openSettings();
-    } catch (_) {
-      // Ignora
-    }
-  }
-
-  /**
-   * Converte base64 in Blob per l'upload
+   * Convert base64 to Blob for upload
    */
   base64ToBlob(base64, mimeType = 'image/jpeg') {
     const byteCharacters = atob(base64);

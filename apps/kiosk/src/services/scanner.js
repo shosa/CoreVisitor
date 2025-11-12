@@ -1,99 +1,129 @@
 /**
- * Scanner Service
- * Gestisce lo scanner QR/Barcode usando Capacitor ML Kit
+ * Browser-based QR Code Scanner Service (PWA)
+ * Uses getUserMedia API + jsQR library for cross-platform scanning
  */
 
-import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
-import { Capacitor } from '@capacitor/core';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import jsQR from 'jsqr';
 
-class ScannerService {
+class BrowserQRScanner {
   constructor() {
-    this.isScanning = false;
+    this.stream = null;
+    this.videoElement = null;
+    this.canvasElement = null;
+    this.canvasContext = null;
+    this.scanning = false;
+    this.animationFrameId = null;
+    this.onScanCallback = null;
+    this.torchEnabled = false;
   }
 
   /**
-   * Richiedi permessi camera
+   * Request camera permissions
    */
   async requestPermissions() {
     try {
-      const { camera } = await BarcodeScanner.requestPermissions();
-      return camera === 'granted' || camera === 'limited';
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      stream.getTracks().forEach(track => track.stop());
+      return true;
     } catch (error) {
-      console.error('❌ Error requesting camera permissions:', error);
+      console.error('❌ Camera permission denied:', error);
       return false;
     }
   }
 
   /**
-   * Verifica se i permessi sono stati concessi
+   * Check current camera permissions
    */
   async checkPermissions() {
     try {
-      const { camera } = await BarcodeScanner.checkPermissions();
-      return camera === 'granted' || camera === 'limited';
+      if (!navigator.permissions) {
+        return await this.requestPermissions();
+      }
+      const permission = await navigator.permissions.query({ name: 'camera' });
+      return permission.state === 'granted';
     } catch (error) {
-      console.error('❌ Error checking permissions:', error);
-      return false;
+      console.warn('Permissions API not available, requesting access');
+      return await this.requestPermissions();
     }
   }
 
   /**
-   * Scansiona un QR/Barcode
-   * @param {Object} options - Opzioni scanner
-   * @returns {Promise<string|null>} - Codice scansionato o null
+   * Single scan - opens camera, scans once, returns result
    */
   async scan(options = {}) {
-    try {
-      // Assicura che il modulo Google Barcode Scanner sia installato su Android
-      await this.ensureGoogleScanner();
-
-      // Verifica permessi
-      const hasPermission = await this.checkPermissions();
-      if (!hasPermission) {
-        const granted = await this.requestPermissions();
-        if (!granted) {
-          throw new Error('Camera permission denied');
+    return new Promise(async (resolve, reject) => {
+      try {
+        const hasPermission = await this.checkPermissions();
+        if (!hasPermission) {
+          const granted = await this.requestPermissions();
+          if (!granted) {
+            reject(new Error('Camera permission denied'));
+            return;
+          }
         }
+
+        const video = document.createElement('video');
+        video.setAttribute('playsinline', 'true');
+        video.style.display = 'none';
+        document.body.appendChild(video);
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+
+        video.srcObject = stream;
+        await video.play();
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const scanFrame = () => {
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'dontInvert',
+            });
+
+            if (code) {
+              this.vibrate('success');
+              stream.getTracks().forEach(track => track.stop());
+              document.body.removeChild(video);
+              resolve(code.data);
+              return;
+            }
+          }
+
+          requestAnimationFrame(scanFrame);
+        };
+
+        scanFrame();
+
+      } catch (error) {
+        console.error('Browser scan error:', error);
+        this.vibrate('error');
+        reject(error);
       }
-
-      this.isScanning = true;
-
-      // Configurazione scanner
-      const scanOptions = {
-        formats: options.formats || [], // [] = tutti i formati
-        lensFacing: options.lensFacing || 'back',
-        ...options
-      };
-
-      // Avvia scanner
-      const result = await BarcodeScanner.scan(scanOptions);
-
-      // Feedback tattile al successo
-      if (result.barcodes && result.barcodes.length > 0) {
-        await this.vibrate('success');
-        return result.barcodes[0].rawValue;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('❌ Scan error:', error);
-      await this.vibrate('error');
-      throw error;
-    } finally {
-      this.isScanning = false;
-    }
+    });
   }
 
   /**
-   * Scansiona continuamente fino a trovare un codice
-   * @param {Function} onScan - Callback quando trova un codice
-   * @param {Object} options - Opzioni scanner
+   * Continuous scanning - for live video preview
    */
   async scanContinuous(onScan, options = {}) {
     try {
-      await this.ensureGoogleScanner();
-
       const hasPermission = await this.checkPermissions();
       if (!hasPermission) {
         const granted = await this.requestPermissions();
@@ -102,105 +132,157 @@ class ScannerService {
         }
       }
 
-      this.isScanning = true;
+      this.videoElement = options.videoElement;
+      this.onScanCallback = onScan;
+      this.scanning = true;
 
-      // Listener per codici scansionati
-      const listener = await BarcodeScanner.addListener(
-        'barcodeScanned',
-        async (result) => {
-          if (result.barcode) {
-            await this.vibrate('success');
-            onScan(result.barcode.rawValue);
-          }
+      if (!this.canvasElement) {
+        this.canvasElement = document.createElement('canvas');
+        this.canvasContext = this.canvasElement.getContext('2d');
+      }
+
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
-      );
+      });
 
-      // Avvia scanner continuo
-      await BarcodeScanner.startScan(options);
+      if (this.videoElement) {
+        this.videoElement.srcObject = this.stream;
+        await this.videoElement.play();
+      }
 
-      // Ritorna funzione per fermare lo scan
-      return async () => {
-        await BarcodeScanner.stopScan();
-        await listener.remove();
-        this.isScanning = false;
-      };
+      this._scanLoop();
+
+      return () => this.stopScan();
+
     } catch (error) {
-      console.error('❌ Continuous scan error:', error);
-      this.isScanning = false;
+      console.error('Browser continuous scan error:', error);
+      this.scanning = false;
       throw error;
     }
   }
 
   /**
-   * Assicura l'installazione del modulo Google Barcode Scanner su Android
-   * Alcuni dispositivi richiedono l'installazione via Google Play Services.
+   * Internal scan loop for continuous scanning
    */
-  async ensureGoogleScanner() {
-    try {
-      if (Capacitor.getPlatform() !== 'android') return;
-      // Il plugin gestisce internamente il caching: le chiamate successive sono veloci
-      if (typeof BarcodeScanner.installGoogleBarcodeScanner === 'function') {
-        await BarcodeScanner.installGoogleBarcodeScannerModule();
+  _scanLoop() {
+    if (!this.scanning) return;
+
+    if (this.videoElement && this.videoElement.readyState === this.videoElement.HAVE_ENOUGH_DATA) {
+      this.canvasElement.width = this.videoElement.videoWidth;
+      this.canvasElement.height = this.videoElement.videoHeight;
+
+      this.canvasContext.drawImage(
+        this.videoElement,
+        0, 0,
+        this.canvasElement.width,
+        this.canvasElement.height
+      );
+
+      const imageData = this.canvasContext.getImageData(
+        0, 0,
+        this.canvasElement.width,
+        this.canvasElement.height
+      );
+
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert',
+      });
+
+      if (code && this.onScanCallback) {
+        this.vibrate('success');
+        this.onScanCallback(code.data);
       }
-    } catch (error) {
-      // Se l'installazione fallisce (p.es. Play Services disattivato in kiosk), continuiamo:
-      // lo scan potrebbe comunque funzionare in base al device; altrimenti mostrerà errore specifico.
-      console.warn('Google Barcode Scanner install failed or unavailable:', error);
     }
+
+    this.animationFrameId = requestAnimationFrame(() => this._scanLoop());
   }
 
   /**
-   * Ferma lo scanner
+   * Stop scanning
    */
-  async stopScan() {
-    try {
-      await BarcodeScanner.stopScan();
-      this.isScanning = false;
-    } catch (error) {
-      console.error('❌ Error stopping scan:', error);
+  stopScan() {
+    this.scanning = false;
+
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
     }
+
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+
+    if (this.videoElement) {
+      this.videoElement.srcObject = null;
+    }
+
+    this.onScanCallback = null;
   }
 
   /**
-   * Verifica se lo scanner è supportato
+   * Check if browser supports camera and QR scanning
    */
   async isSupported() {
+    return !!(
+      navigator.mediaDevices &&
+      navigator.mediaDevices.getUserMedia &&
+      typeof jsQR === 'function'
+    );
+  }
+
+  /**
+   * Toggle camera torch/flashlight (if supported)
+   */
+  async toggleTorch(enable) {
     try {
-      const result = await BarcodeScanner.isSupported();
-      return result.supported;
+      if (!this.stream) {
+        console.warn('No active stream to toggle torch');
+        return false;
+      }
+
+      const track = this.stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+
+      if (!capabilities.torch) {
+        console.warn('Torch not supported on this device');
+        return false;
+      }
+
+      await track.applyConstraints({
+        advanced: [{ torch: enable }]
+      });
+
+      this.torchEnabled = enable;
+      return true;
+
     } catch (error) {
-      console.error('❌ Error checking scanner support:', error);
+      console.error('Torch toggle error:', error);
       return false;
     }
   }
 
   /**
-   * Abilita/Disabilita torcia
+   * Vibrate device for feedback
    */
-  async toggleTorch(enable) {
-    try {
-      await BarcodeScanner.toggleTorch({ enabled: enable });
-    } catch (error) {
-      console.error('❌ Error toggling torch:', error);
-    }
-  }
+  vibrate(type = 'success') {
+    if (!navigator.vibrate) return;
 
-  /**
-   * Feedback tattile
-   */
-  async vibrate(type = 'success') {
-    try {
-      if (type === 'success') {
-        await Haptics.impact({ style: ImpactStyle.Medium });
-      } else if (type === 'error') {
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-      } else if (type === 'light') {
-        await Haptics.impact({ style: ImpactStyle.Light });
-      }
-    } catch (error) {
-      // Haptics non disponibile, ignora
-    }
+    const patterns = {
+      light: 50,
+      success: [50, 100, 50],
+      error: [100, 50, 100, 50, 100],
+      heavy: 200
+    };
+
+    navigator.vibrate(patterns[type] || patterns.success);
   }
 }
 
-export default new ScannerService();
+// Export singleton instance
+const scanner = new BrowserQRScanner();
+export default scanner;

@@ -4,17 +4,18 @@
  * CoreInWork Style - Clean, minimal, white design
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   IoQrCode,
   IoFlashlight,
   IoArrowBack,
   IoCheckmarkCircle,
   IoCloseCircle,
-  IoInformationCircle
+  IoInformationCircle,
+  IoPrint
 } from 'react-icons/io5';
 import scanner from '../../services/scanner';
-import { kioskAPI } from '../../services/api';
+import { kioskAPI, printerAPI } from '../../services/api';
 
 const ScanQR = ({ onBack }) => {
   const [isScanning, setIsScanning] = useState(false);
@@ -22,6 +23,7 @@ const ScanQR = ({ onBack }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ show: false, type: 'info', text: '' });
+  const videoRef = useRef(null);
 
   const showMessage = (type, text) => {
     setMessage({ show: true, type, text });
@@ -33,17 +35,23 @@ const ScanQR = ({ onBack }) => {
       setIsScanning(true);
       setResult(null);
 
-      // Scansiona QR code
-      const code = await scanner.scan();
-
-      if (code) {
+      // Scansiona QR code con video preview
+      const stopScan = await scanner.scanContinuous(async (code) => {
         console.log('📷 QR Code scanned:', code);
+
+        // Stop scanning
+        if (stopScan) await stopScan();
+        setIsScanning(false);
+
+        // Process checkout
         await processCheckOut(code);
-      }
+      }, {
+        videoElement: videoRef.current
+      });
+
     } catch (error) {
       console.error('❌ Scan error:', error);
       showMessage('error', error.message || 'Impossibile avviare lo scanner');
-    } finally {
       setIsScanning(false);
     }
   };
@@ -67,6 +75,7 @@ const ScanQR = ({ onBack }) => {
         setResult({
           success: true,
           visitor: visit.visitor,
+          visitId: visit.id,
           checkOutTime: new Date().toLocaleTimeString('it-IT')
         });
 
@@ -180,12 +189,29 @@ const ScanQR = ({ onBack }) => {
       {!result && (
         <div style={styles.scannerArea}>
           <div style={styles.scanFrame}>
-            <div style={styles.scanIconContainer}>
-              <IoQrCode size={120} color="#3b82f6" />
-            </div>
-            <p style={styles.scanText}>
-              {isScanning ? 'Scanner attivo...' : 'Premi il pulsante per scansionare'}
-            </p>
+            {isScanning ? (
+              <div style={styles.videoContainer}>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={styles.video}
+                />
+                <div style={styles.scannerOverlay}>
+                  <div style={styles.scannerBox}></div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={styles.scanIconContainer}>
+                  <IoQrCode size={120} color="#3b82f6" />
+                </div>
+                <p style={styles.scanText}>
+                  Premi il pulsante per scansionare
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -356,7 +382,42 @@ const styles = {
     borderRadius: '16px',
     border: '3px dashed #e5e5e5',
     textAlign: 'center',
-    background: '#fff'
+    background: '#fff',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+  videoContainer: {
+    position: 'relative',
+    width: '100%',
+    maxWidth: '500px',
+    margin: '0 auto',
+    borderRadius: '12px',
+    overflow: 'hidden'
+  },
+  video: {
+    width: '100%',
+    height: 'auto',
+    display: 'block',
+    borderRadius: '12px'
+  },
+  scannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none'
+  },
+  scannerBox: {
+    width: '250px',
+    height: '250px',
+    border: '3px solid #3b82f6',
+    borderRadius: '12px',
+    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+    animation: 'pulse 2s ease-in-out infinite'
   },
   scanIconContainer: {
     marginBottom: '16px'
@@ -434,7 +495,7 @@ const styles = {
   }
 };
 
-// Add spinner animation to document head
+// Add animations to document head
 if (typeof document !== 'undefined') {
   const styleSheet = document.createElement('style');
   styleSheet.textContent = `
@@ -442,9 +503,19 @@ if (typeof document !== 'undefined') {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    @keyframes pulse {
+      0%, 100% {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.5);
+      }
+      50% {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.8);
+      }
+    }
   `;
-  if (!document.head.querySelector('style[data-spin-animation]')) {
-    styleSheet.setAttribute('data-spin-animation', 'true');
+  if (!document.head.querySelector('style[data-scan-animation]')) {
+    styleSheet.setAttribute('data-scan-animation', 'true');
     document.head.appendChild(styleSheet);
   }
 }

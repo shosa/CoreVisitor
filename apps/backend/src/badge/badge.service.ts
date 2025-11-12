@@ -18,11 +18,11 @@ export class BadgeService {
 
   /**
    * Genera QR code per badge
-   * Contiene solo l'ID della visita per compatibilità con lettori esterni
+   * Contiene il badge number per identificazione univoca
    */
-  async generateBadgeQRCode(visitId: string): Promise<string> {
-    // QR code contiene solo l'ID visita (semplice stringa)
-    return await QRCode.toDataURL(visitId, {
+  async generateBadgeQRCode(badgeNumber: string): Promise<string> {
+    // QR code contiene il badge number
+    return await QRCode.toDataURL(badgeNumber, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
       width: 300,
@@ -32,22 +32,22 @@ export class BadgeService {
 
   /**
    * Verifica validità badge
-   * Ritorna l'ID visita se valido
+   * Ritorna il badge number se valido
    */
   verifyBadge(qrData: string): {
     valid: boolean;
-    visitId?: string;
+    badgeNumber?: string;
     reason?: string;
   } {
-    // Il QR code contiene solo l'ID visita (UUID)
-    // Verifica che sia un UUID valido
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    // Il QR code contiene il badge number (formato VIS-{timestamp}-{random})
+    // Verifica che sia nel formato corretto
+    const badgeRegex = /^VIS-[0-9A-Z]+-[0-9A-F]{6}$/i;
 
-    if (!uuidRegex.test(qrData)) {
-      return { valid: false, reason: 'Invalid visit ID format' };
+    if (!badgeRegex.test(qrData)) {
+      return { valid: false, reason: 'Invalid badge number format' };
     }
 
-    return { valid: true, visitId: qrData };
+    return { valid: true, badgeNumber: qrData };
   }
 
   /**

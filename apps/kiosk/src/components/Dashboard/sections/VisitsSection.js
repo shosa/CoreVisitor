@@ -105,23 +105,31 @@ const VisitsSection = ({ user, onNewVisit }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'scheduled':
-        return { bg: '#fffbeb', color: '#f59e0b', border: '#f59e0b' };
+      case 'pending':
+        return { bg: '#fef3c7', color: '#d97706', border: '#d97706' };
+      case 'approved':
+        return { bg: '#dbeafe', color: '#2563eb', border: '#2563eb' };
+      case 'rejected':
+        return { bg: '#fee2e2', color: '#dc2626', border: '#dc2626' };
       case 'checked_in':
-        return { bg: '#f0fdf4', color: '#10b981', border: '#10b981' };
+        return { bg: '#d1fae5', color: '#059669', border: '#059669' };
       case 'checked_out':
-        return { bg: '#f5f5f5', color: '#666', border: '#e5e5e5' };
+        return { bg: '#f3f4f6', color: '#6b7280', border: '#d1d5db' };
       case 'cancelled':
-        return { bg: '#fef2f2', color: '#ef4444', border: '#ef4444' };
+        return { bg: '#fecaca', color: '#b91c1c', border: '#b91c1c' };
       default:
-        return { bg: '#f5f5f5', color: '#666', border: '#e5e5e5' };
+        return { bg: '#f3f4f6', color: '#6b7280', border: '#d1d5db' };
     }
   };
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'scheduled':
-        return 'Programmata';
+      case 'pending':
+        return 'In Attesa';
+      case 'approved':
+        return 'Approvata';
+      case 'rejected':
+        return 'Rifiutata';
       case 'checked_in':
         return 'Presente';
       case 'checked_out':
@@ -189,7 +197,7 @@ const VisitsSection = ({ user, onNewVisit }) => {
 
         {/* Status Filter */}
         <div style={styles.statusFilters}>
-          {['all', 'scheduled', 'checked_in', 'checked_out'].map(status => (
+          {['all', 'pending', 'approved', 'checked_in', 'checked_out'].map(status => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -216,24 +224,25 @@ const VisitsSection = ({ user, onNewVisit }) => {
             const statusStyle = getStatusColor(visit.status);
             return (
               <div key={visit.id} style={styles.visitCard}>
-                {/* Status Badge */}
-                <div
-                  style={{
-                    ...styles.statusBadge,
-                    background: statusStyle.bg,
-                    color: statusStyle.color,
-                    border: `2px solid ${statusStyle.border}`
-                  }}
-                >
-                  {getStatusLabel(visit.status)}
-                </div>
-
                 {/* Visit Info */}
                 <div style={styles.visitInfo}>
-                  <h3 style={styles.visitName}>
-                    <IoPersonOutline size={20} style={{ marginRight: '8px' }} />
-                    {visit.visitor?.firstName} {visit.visitor?.lastName}
-                  </h3>
+                  <div style={styles.visitHeader}>
+                    <h3 style={styles.visitName}>
+                      <IoPersonOutline size={20} style={{ marginRight: '8px' }} />
+                      {visit.visitor?.firstName} {visit.visitor?.lastName}
+                    </h3>
+                    {/* Status Badge */}
+                    <div
+                      style={{
+                        ...styles.statusBadge,
+                        background: statusStyle.bg,
+                        color: statusStyle.color,
+                        border: `2px solid ${statusStyle.border}`
+                      }}
+                    >
+                      {getStatusLabel(visit.status)}
+                    </div>
+                  </div>
 
                   {visit.visitor?.company && (
                     <p style={styles.visitDetail}>
@@ -260,7 +269,7 @@ const VisitsSection = ({ user, onNewVisit }) => {
 
                 {/* Actions */}
                 <div style={styles.visitActions}>
-                  {visit.status === 'scheduled' && (
+                  {(visit.status === 'pending' || visit.status === 'approved') && (
                     <button
                       onClick={() => handleCheckIn(visit.id)}
                       style={{ ...styles.actionButton, ...styles.actionButtonGreen }}
@@ -269,12 +278,21 @@ const VisitsSection = ({ user, onNewVisit }) => {
                     </button>
                   )}
                   {visit.status === 'checked_in' && (
-                    <button
-                      onClick={() => handleCheckOut(visit.id)}
-                      style={{ ...styles.actionButton, ...styles.actionButtonBlue }}
-                    >
-                      Check-out
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handlePrintBadge(visit.id)}
+                        style={{ ...styles.actionButton, ...styles.actionButtonPrint }}
+                      >
+                        <IoPrint size={16} style={{ marginRight: '6px' }} />
+                        Stampa Badge
+                      </button>
+                      <button
+                        onClick={() => handleCheckOut(visit.id)}
+                        style={{ ...styles.actionButton, ...styles.actionButtonBlue }}
+                      >
+                        Check-out
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -391,7 +409,6 @@ const styles = {
     gap: '12px'
   },
   visitCard: {
-    position: 'relative',
     display: 'flex',
     alignItems: 'center',
     padding: '20px',
@@ -400,26 +417,34 @@ const styles = {
     borderRadius: '12px',
     transition: 'all 0.2s ease'
   },
-  statusBadge: {
-    position: 'absolute',
-    top: '16px',
-    right: '16px',
-    padding: '6px 12px',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: '600'
-  },
   visitInfo: {
     flex: 1,
-    paddingRight: '120px'
+    minWidth: 0
+  },
+  visitHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '8px',
+    gap: '12px'
   },
   visitName: {
     display: 'flex',
     alignItems: 'center',
-    margin: '0 0 8px 0',
+    margin: 0,
     fontSize: '18px',
     fontWeight: '600',
-    color: '#1a1a1a'
+    color: '#1a1a1a',
+    flex: 1,
+    minWidth: 0
+  },
+  statusBadge: {
+    flexShrink: 0,
+    padding: '6px 12px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '600',
+    whiteSpace: 'nowrap'
   },
   visitDetail: {
     display: 'flex',
@@ -433,6 +458,8 @@ const styles = {
     gap: '8px'
   },
   actionButton: {
+    display: 'flex',
+    alignItems: 'center',
     padding: '10px 20px',
     border: '2px solid',
     borderRadius: '10px',
@@ -450,6 +477,11 @@ const styles = {
     background: '#3b82f6',
     borderColor: '#3b82f6',
     color: '#fff'
+  },
+  actionButtonPrint: {
+    background: '#fff',
+    borderColor: '#e5e5e5',
+    color: '#1a1a1a'
   },
   emptyState: {
     padding: '80px 20px',
