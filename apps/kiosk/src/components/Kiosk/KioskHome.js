@@ -1,28 +1,25 @@
 import React from 'react';
 import {
   IoKeypad,
-  IoQrCode,
-  IoArrowBack,
-  IoSettingsOutline
+  IoQrCode
 } from 'react-icons/io5';
 
-const KioskHome = ({ onSelectOption, onBack }) => {
+const KioskHome = ({ onSelectOption }) => {
   return (
     <div style={styles.container}>
-      {/* Header */}
+      {/* Logo / Header */}
       <div style={styles.header}>
-        <button onClick={onBack} style={styles.backButton}>
-          <IoArrowBack size={24} />
-        </button>
-        <h1 style={styles.title}>CoreVisitor Kiosk</h1>
-        <div style={{ width: 40 }}></div>
+        <div style={styles.logo}>
+          <h1 style={styles.logoText}>CoreVisitor</h1>
+          <p style={styles.logoSubtext}>Self-Service Kiosk</p>
+        </div>
       </div>
 
       {/* Welcome Message */}
       <div style={styles.welcomeContainer}>
-        <h2 style={styles.welcomeTitle}>Benvenuto!</h2>
+        <h2 style={styles.welcomeTitle}>Benvenuto</h2>
         <p style={styles.welcomeSubtitle}>
-          Seleziona un'opzione per effettuare il check-in
+          Calzaturificio Emmegiemme Shoes
         </p>
       </div>
 
@@ -33,7 +30,7 @@ const KioskHome = ({ onSelectOption, onBack }) => {
           onClick={() => onSelectOption('pin')}
           style={styles.optionButton}
         >
-          <div style={styles.optionIcon}>
+          <div style={styles.optionIconBlue}>
             <IoKeypad size={64} color="#3b82f6" />
           </div>
           <h3 style={styles.optionTitle}>Check-In con PIN</h3>
@@ -47,7 +44,7 @@ const KioskHome = ({ onSelectOption, onBack }) => {
           onClick={() => onSelectOption('qr')}
           style={styles.optionButton}
         >
-          <div style={styles.optionIcon}>
+          <div style={styles.optionIconGreen}>
             <IoQrCode size={64} color="#10b981" />
           </div>
           <h3 style={styles.optionTitle}>Check-Out con QR</h3>
@@ -70,37 +67,31 @@ const KioskHome = ({ onSelectOption, onBack }) => {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)',
     display: 'flex',
     flexDirection: 'column',
-    padding: '20px'
+    padding: '40px 20px'
   },
   header: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '40px',
-    padding: '0 20px'
-  },
-  backButton: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    border: 'none',
-    background: 'rgba(255, 255, 255, 0.2)',
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease'
+    marginBottom: '40px'
   },
-  title: {
-    fontSize: '28px',
-    fontWeight: '700',
-    color: '#fff',
-    margin: 0,
+  logo: {
     textAlign: 'center'
+  },
+  logoText: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    margin: 0,
+    marginBottom: '8px'
+  },
+  logoSubtext: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#999',
+    margin: 0
   },
   welcomeContainer: {
     textAlign: 'center',
@@ -110,20 +101,20 @@ const styles = {
   welcomeTitle: {
     fontSize: '48px',
     fontWeight: '800',
-    color: '#fff',
-    marginBottom: '16px',
-    textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
+    color: '#1a1a1a',
+    marginBottom: '12px',
+    letterSpacing: '-1px'
   },
   welcomeSubtitle: {
-    fontSize: '20px',
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: '18px',
+    color: '#666',
     fontWeight: '500'
   },
   optionsContainer: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '30px',
-    maxWidth: '900px',
+    gap: '20px',
+    maxWidth: '800px',
     margin: '0 auto',
     width: '100%',
     padding: '0 20px'
@@ -131,39 +122,51 @@ const styles = {
   optionButton: {
     background: '#fff',
     border: 'none',
-    borderRadius: '20px',
-    padding: '40px 30px',
+    borderRadius: '16px',
+    padding: '40px 32px',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+    transition: 'all 0.25s ease',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     textAlign: 'center',
-    minHeight: '320px'
+    minHeight: '300px'
   },
-  optionIcon: {
-    width: '120px',
-    height: '120px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+  optionIconBlue: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '12px',
+    background: '#eff6ff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: '24px',
-    transition: 'all 0.3s ease'
+    transition: 'all 0.25s ease'
+  },
+  optionIconGreen: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '12px',
+    background: '#f0fdf4',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '24px',
+    transition: 'all 0.25s ease'
   },
   optionTitle: {
-    fontSize: '24px',
+    fontSize: '22px',
     fontWeight: '700',
     color: '#1a1a1a',
     marginBottom: '12px'
   },
   optionDescription: {
-    fontSize: '16px',
+    fontSize: '15px',
     color: '#666',
-    lineHeight: '1.6',
-    maxWidth: '280px'
+    lineHeight: '1.5',
+    maxWidth: '260px',
+    fontWeight: '500'
   },
   footer: {
     marginTop: 'auto',
@@ -171,8 +174,8 @@ const styles = {
     textAlign: 'center'
   },
   footerText: {
-    fontSize: '16px',
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: '13px',
+    color: '#999',
     fontWeight: '500'
   }
 };

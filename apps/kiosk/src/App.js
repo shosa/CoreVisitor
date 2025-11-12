@@ -11,12 +11,9 @@ import '@ionic/react/css/structure.css';
 import '@ionic/react/css/typography.css';
 
 // Components
-import ModeSelection from './components/ModeSelection';
 import KioskHome from './components/Kiosk/KioskHome';
 import PinEntry from './components/Kiosk/PinEntry';
 import ScanQR from './components/Kiosk/ScanQR';
-import Login from './components/Login';
-import FullDashboard from './components/Dashboard/FullDashboard';
 import PageTransition from './components/Common/PageTransition';
 
 // Setup Ionic
@@ -25,29 +22,13 @@ setupIonicReact({
 });
 
 const App = () => {
-  const [currentScreen, setCurrentScreen] = useState('mode-selection');
-  const [user, setUser] = useState(null);
+  const [currentScreen, setCurrentScreen] = useState('kiosk-home');
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Ripristina stato da localStorage al mount
   useEffect(() => {
     const savedScreen = localStorage.getItem('corevisitor_current_screen');
-    const savedUser = localStorage.getItem('user');
-
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-
-        // Se c'è un utente salvato, vai alla dashboard
-        if (savedScreen === 'dashboard') {
-          setCurrentScreen('dashboard');
-        }
-      } catch (error) {
-        console.error('❌ Error parsing saved user:', error);
-        localStorage.removeItem('user');
-      }
-    } else if (savedScreen && savedScreen !== 'mode-selection') {
+    if (savedScreen && ['kiosk-home', 'pin-entry', 'scan-qr'].includes(savedScreen)) {
       setCurrentScreen(savedScreen);
     }
   }, []);
@@ -56,14 +37,6 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('corevisitor_current_screen', currentScreen);
   }, [currentScreen]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
-  }, [user]);
 
   /**
    * Transizione tra schermate con animazione
@@ -79,14 +52,6 @@ const App = () => {
   /**
    * Handlers per navigation
    */
-  const handleSelectMode = (mode) => {
-    if (mode === 'kiosk') {
-      transitionToScreen('kiosk-home');
-    } else if (mode === 'full') {
-      transitionToScreen('login');
-    }
-  };
-
   const handleKioskOption = (option) => {
     if (option === 'pin') {
       transitionToScreen('pin-entry');
@@ -99,43 +64,15 @@ const App = () => {
     transitionToScreen('kiosk-home');
   };
 
-  const handleBackToModeSelection = () => {
-    setUser(null);
-    transitionToScreen('mode-selection');
-  };
-
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
-    transitionToScreen('dashboard');
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    transitionToScreen('mode-selection');
-  };
-
   /**
    * Render schermata corrente
    */
   const renderScreen = () => {
     switch (currentScreen) {
-      case 'mode-selection':
-        return (
-          <ModeSelection
-            onSelectMode={handleSelectMode}
-            onSettings={() => {
-              // TODO: Implementare schermata impostazioni server
-              console.log('Settings clicked');
-            }}
-          />
-        );
-
       case 'kiosk-home':
         return (
           <KioskHome
             onSelectOption={handleKioskOption}
-            onBack={handleBackToModeSelection}
           />
         );
 
@@ -145,22 +82,10 @@ const App = () => {
       case 'scan-qr':
         return <ScanQR onBack={handleBackToKioskHome} />;
 
-      case 'login':
-        return (
-          <Login
-            onBack={handleBackToModeSelection}
-            onLoginSuccess={handleLoginSuccess}
-          />
-        );
-
-      case 'dashboard':
-        return <FullDashboard user={user} onLogout={handleLogout} />;
-
       default:
         return (
-          <ModeSelection
-            onSelectMode={handleSelectMode}
-            onSettings={() => console.log('Settings clicked')}
+          <KioskHome
+            onSelectOption={handleKioskOption}
           />
         );
     }

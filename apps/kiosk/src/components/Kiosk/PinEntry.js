@@ -4,7 +4,8 @@ import {
   IoCloseCircle,
   IoBackspace,
   IoArrowBack,
-  IoPersonCircle
+  IoKeypad,
+  IoQrCode
 } from 'react-icons/io5';
 import { kioskAPI } from '../../services/api';
 
@@ -102,6 +103,35 @@ const PinEntry = ({ onBack }) => {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        @keyframes btnPress {
+          0% {
+            background: #9ab3e7ff;
+            transform: scale(1);
+          }
+          50% {
+            background: #dbeafe;
+            transform: scale(0.95);
+          }
+          100% {
+            background: #f3f4f6;
+            transform: scale(1);
+          }
+        }
+
+        .keypad-btn:active:not(:disabled) {
+          animation: btnPress 0.5s ease !important;
+        }
+
+        @media (max-width: 1024px) {
+          .main-content-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+            padding: 0 20px !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <div style={styles.header}>
         <button onClick={onBack} style={styles.backButton}>
@@ -112,67 +142,86 @@ const PinEntry = ({ onBack }) => {
       </div>
 
       {!visitData && !success && (
-        <>
-          {/* PIN Display */}
-          <div style={styles.pinDisplay}>
-            <p style={styles.pinLabel}>Inserisci il tuo PIN</p>
-            <div style={styles.pinDots}>
-              {[0, 1, 2, 3].map((index) => (
-                <div
-                  key={index}
-                  style={{
-                    ...styles.pinDot,
-                    ...(pin.length > index ? styles.pinDotFilled : {})
-                  }}
-                >
-                  {pin.length > index && (
-                    <span style={styles.pinNumber}>{pin[index]}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-            {error && (
-              <div style={styles.errorMessage}>
-                <IoCloseCircle size={20} />
-                <span>{error}</span>
+        <div style={styles.mainContent} className="main-content-grid">
+          {/* Left Column - Info Area */}
+          <div style={styles.leftColumn}>
+            <div style={styles.infoCard}>
+              <div style={styles.iconContainer}>
+                <IoKeypad size={80} color="#3b82f6" />
               </div>
-            )}
+              <h2 style={styles.infoTitle}>Check-In con PIN</h2>
+              <p style={styles.infoDescription}>
+                Inserisca il codice PIN a 4 cifre che le è stato comunicato
+              </p>
+
+              {/* PIN Display */}
+              <div style={styles.pinDisplay}>
+                <p style={styles.pinLabel}>Il tuo PIN</p>
+                <div style={styles.pinDots}>
+                  {[0, 1, 2, 3].map((index) => (
+                    <div
+                      key={index}
+                      style={{
+                        ...styles.pinDot,
+                        ...(pin.length > index ? styles.pinDotFilled : {})
+                      }}
+                    >
+                      {pin.length > index && (
+                        <span style={styles.pinNumber}>{pin[index]}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {error && (
+                  <div style={styles.errorMessage}>
+                    <IoCloseCircle size={20} />
+                    <span>{error}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Numeric Keypad */}
-          <div style={styles.keypad}>
-            <div style={styles.keypadGrid}>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+          {/* Right Column - Numeric Keypad */}
+          <div style={styles.rightColumn}>
+            <div style={styles.keypad}>
+              <div style={styles.keypadGrid}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => handleNumberClick(num.toString())}
+                    style={styles.keypadButton}
+                    className="keypad-btn"
+                    disabled={loading}
+                  >
+                    {num}
+                  </button>
+                ))}
                 <button
-                  key={num}
-                  onClick={() => handleNumberClick(num.toString())}
-                  style={styles.keypadButton}
+                  onClick={handleClear}
+                  style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
+                  className="keypad-btn"
                   disabled={loading}
                 >
-                  {num}
+                  C
                 </button>
-              ))}
-              <button
-                onClick={handleClear}
-                style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
-                disabled={loading}
-              >
-                C
-              </button>
-              <button
-                onClick={() => handleNumberClick('0')}
-                style={styles.keypadButton}
-                disabled={loading}
-              >
-                0
-              </button>
-              <button
-                onClick={handleBackspace}
-                style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
-                disabled={loading}
-              >
-                <IoBackspace size={24} />
-              </button>
+                <button
+                  onClick={() => handleNumberClick('0')}
+                  style={styles.keypadButton}
+                  className="keypad-btn"
+                  disabled={loading}
+                >
+                  0
+                </button>
+                <button
+                  onClick={handleBackspace}
+                  style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
+                  className="keypad-btn"
+                  disabled={loading}
+                >
+                  <IoBackspace size={24} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -182,48 +231,76 @@ const PinEntry = ({ onBack }) => {
               <p style={styles.loadingText}>Verifica in corso...</p>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {visitData && !success && (
         <div style={styles.confirmationContainer}>
-          {/* Visitor Photo */}
-          <div style={styles.visitorPhotoContainer}>
-            {visitData.visitor.photoPath ? (
-              <img
-                src={`${process.env.REACT_APP_API_URL || 'http://192.168.3.131:3006'}/uploads/visitors/${visitData.visitor.photoPath}`}
-                alt={visitData.visitor.full_name}
-                style={styles.visitorPhoto}
-              />
-            ) : (
-              <IoPersonCircle size={120} color="#3b82f6" />
-            )}
+          {/* Header */}
+          <div style={styles.confirmationHeader}>
+            <h2 style={styles.confirmationTitle}>Conferma i tuoi dati</h2>
+            <p style={styles.confirmationSubtitle}>Verifica che le informazioni siano corrette prima di procedere</p>
           </div>
 
-          {/* Visit Details */}
-          <div style={styles.visitDetails}>
-            <h2 style={styles.visitorName}>{visitData.visitor.full_name}</h2>
-            {visitData.visitor.company && (
-              <p style={styles.visitorCompany}>{visitData.visitor.company}</p>
-            )}
+          {/* Main Card */}
+          <div style={styles.mainCard}>
+            {/* Left Side - QR Code Badge */}
+            <div style={styles.qrCodeSection}>
+              <div style={styles.qrCodeContainer}>
+                <div style={styles.qrPlaceholder}>
+                  <IoQrCode size={180} color="#1a1a1a" />
+                </div>
+              </div>
+              <p style={styles.qrCodeLabel}>Badge Visitatore</p>
+              {visitData.badgeNumber && (
+                <p style={styles.badgeNumber}>{visitData.badgeNumber}</p>
+              )}
+            </div>
 
-            <div style={styles.detailsGrid}>
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>Dipartimento</span>
-                <span style={styles.detailValue}>{visitData.department.name}</span>
+            {/* Right Side - Details */}
+            <div style={styles.detailsSection}>
+              {/* Visitor Info */}
+              <div style={styles.visitorInfo}>
+                <h3 style={styles.visitorName}>{visitData.visitor.full_name}</h3>
+                {visitData.visitor.company && (
+                  <p style={styles.companySubtitle}>{visitData.visitor.company}</p>
+                )}
               </div>
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>Motivo</span>
-                <span style={styles.detailValue}>{visitData.purpose}</span>
-              </div>
-              {visitData.hostUser && (
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Referente</span>
+
+              {/* Details Grid */}
+              <div style={styles.detailsGrid}>
+                <div style={styles.detailRow}>
+                  <span style={styles.detailLabel}>Data</span>
                   <span style={styles.detailValue}>
-                    {visitData.hostUser.firstName} {visitData.hostUser.lastName}
+                    {new Date(visitData.scheduledDate).toLocaleDateString('it-IT', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
                   </span>
                 </div>
-              )}
+                <div style={styles.detailRow}>
+                  <span style={styles.detailLabel}>Dipartimento</span>
+                  <span style={styles.detailValue}>{visitData.department.name}</span>
+                </div>
+                <div style={styles.detailRow}>
+                  <span style={styles.detailLabel}>Motivo</span>
+                  <span style={styles.detailValue}>{visitData.purpose}</span>
+                </div>
+                {visitData.hostUser && (
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>Referente</span>
+                    <span style={styles.detailValue}>
+                      {visitData.hostUser.firstName} {visitData.hostUser.lastName}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Company Footer */}
+              <div style={styles.companyFooter}>
+                <p style={styles.companyFooterText}>Calzaturificio Emmegiemme Shoes Srl</p>
+              </div>
             </div>
           </div>
 
@@ -287,7 +364,7 @@ const PinEntry = ({ onBack }) => {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)',
     display: 'flex',
     flexDirection: 'column',
     padding: '20px',
@@ -304,9 +381,9 @@ const styles = {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    border: 'none',
-    background: 'rgba(255, 255, 255, 0.2)',
-    color: '#fff',
+    border: '2px solid #e5e5e5',
+    background: '#fff',
+    color: '#1a1a1a',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -314,25 +391,77 @@ const styles = {
     transition: 'all 0.2s ease'
   },
   title: {
-    fontSize: '28px',
+    fontSize: '24px',
     fontWeight: '700',
-    color: '#fff',
+    color: '#1a1a1a',
     margin: 0,
     textAlign: 'center'
   },
-  pinDisplay: {
+  mainContent: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 400px',
+    gap: '40px',
+    alignItems: 'center',
+    minHeight: 'calc(100vh - 200px)',
+    padding: '0 40px'
+  },
+  leftColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  rightColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  infoCard: {
+    width: '100%',
+    maxWidth: '500px',
     background: '#fff',
-    borderRadius: '20px',
-    padding: '40px 30px',
-    marginBottom: '30px',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+    borderRadius: '24px',
+    padding: '48px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    textAlign: 'center'
+  },
+  iconContainer: {
+    width: '140px',
+    height: '140px',
+    borderRadius: '16px',
+    background: '#eff6ff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 32px'
+  },
+  infoTitle: {
+    fontSize: '28px',
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: '16px',
+    letterSpacing: '-0.5px'
+  },
+  infoDescription: {
+    fontSize: '16px',
+    color: '#666',
+    lineHeight: '1.6',
+    marginBottom: '40px',
+    fontWeight: '500'
+  },
+  pinDisplay: {
+    padding: '32px 0 0',
+    borderTop: '2px solid #f3f4f6',
     textAlign: 'center'
   },
   pinLabel: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: '20px'
+    fontSize: '14px',
+    fontWeight: '700',
+    color: '#6b7280',
+    marginBottom: '20px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   },
   pinDots: {
     display: 'flex',
@@ -378,33 +507,35 @@ const styles = {
     fontWeight: '600'
   },
   keypad: {
-    background: '#fff',
-    borderRadius: '20px',
-    padding: '30px',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)'
+    width: '100%',
+    maxWidth: '400px'
   },
   keypadGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '15px'
+    gap: '16px'
   },
   keypadButton: {
-    height: '80px',
-    fontSize: '28px',
+    height: '90px',
+    fontSize: '32px',
     fontWeight: '700',
-    border: 'none',
-    borderRadius: '12px',
-    background: '#f3f4f6',
-    color: '#1a1a1a',
+    border: '2px solid #e5e7eb',
+    borderRadius: '16px',
+    background: '#ffffffff',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
+    transition: 'none',
+    color: '#1a1a1a',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    letterSpacing: '0.5px',
+    position: 'relative'
   },
   keypadButtonSecondary: {
     background: '#e5e7eb',
-    color: '#666'
+    borderColor: '#d1d5db',
+    color: '#6b7280'
   },
   loadingOverlay: {
     position: 'absolute',
@@ -434,59 +565,118 @@ const styles = {
     fontWeight: '600'
   },
   confirmationContainer: {
+    maxWidth: '900px',
+    margin: '0 auto',
+    width: '100%',
+    padding: '0 20px'
+  },
+  confirmationHeader: {
+    textAlign: 'center',
+    marginBottom: '32px'
+  },
+  confirmationTitle: {
+    fontSize: '32px',
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: '8px',
+    letterSpacing: '-0.5px'
+  },
+  confirmationSubtitle: {
+    fontSize: '16px',
+    color: '#666',
+    fontWeight: '500'
+  },
+  mainCard: {
     background: '#fff',
     borderRadius: '20px',
-    padding: '40px',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
-    maxWidth: '600px',
-    margin: '0 auto',
-    width: '100%'
+    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.15)',
+    overflow: 'hidden',
+    display: 'grid',
+    gridTemplateColumns: '280px 1fr',
+    marginBottom: '24px',
+    minHeight: '380px'
   },
-  visitorPhotoContainer: {
+  qrCodeSection: {
+    background: '#f9fafb',
     display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '30px'
+    padding: '32px 24px',
+    borderRight: '2px solid #e5e7eb'
   },
-  visitorPhoto: {
-    width: '120px',
-    height: '120px',
-    borderRadius: '50%',
-    objectFit: 'cover',
-    border: '4px solid #3b82f6'
+  qrCodeContainer: {
+    background: '#fff',
+    borderRadius: '16px',
+    padding: '20px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    marginBottom: '16px'
   },
-  visitDetails: {
-    marginBottom: '30px'
+  qrPlaceholder: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px'
+  },
+  qrCodeLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    margin: '0 0 8px 0'
+  },
+  badgeNumber: {
+    fontSize: '20px',
+    fontWeight: '800',
+    color: '#1a1a1a',
+    margin: 0,
+    letterSpacing: '2px',
+    fontFamily: 'monospace'
+  },
+  detailsSection: {
+    padding: '32px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+    position: 'relative'
+  },
+  visitorInfo: {
+    borderBottom: '2px solid #f3f4f6',
+    paddingBottom: '16px'
   },
   visitorName: {
     fontSize: '28px',
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1a1a1a',
-    textAlign: 'center',
-    marginBottom: '8px'
+    margin: '0 0 8px 0',
+    letterSpacing: '-0.5px'
   },
-  visitorCompany: {
+  companySubtitle: {
     fontSize: '16px',
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: '30px'
+    fontWeight: '600',
+    color: '#6b7280',
+    margin: 0,
+    letterSpacing: '0.2px'
   },
   detailsGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px'
+    gap: '16px'
   },
-  detailItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    padding: '16px',
-    background: '#f9fafb',
-    borderRadius: '8px'
+  detailRow: {
+    display: 'grid',
+    gridTemplateColumns: '120px 1fr',
+    gap: '12px',
+    alignItems: 'center',
+    padding: '10px 0',
+    borderBottom: '1px solid #f3f4f6'
   },
   detailLabel: {
     fontSize: '12px',
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '700',
+    color: '#6b7280',
     textTransform: 'uppercase',
     letterSpacing: '0.5px'
   },
@@ -495,38 +685,67 @@ const styles = {
     fontWeight: '600',
     color: '#1a1a1a'
   },
+  companyFooter: {
+    marginTop: 'auto',
+    paddingTop: '20px',
+    borderTop: '2px solid #f3f4f6',
+    textAlign: 'center'
+  },
+  companyFooterText: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#999',
+    margin: 0,
+    letterSpacing: '0.3px'
+  },
+  qrSection: {
+    marginTop: 'auto',
+    padding: '20px',
+    background: '#f9fafb',
+    borderRadius: '12px',
+    textAlign: 'center'
+  },
+  qrLabel: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#6b7280'
+  },
   buttonContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    maxWidth: '900px',
+    margin: '0 auto',
+    padding: '0 20px'
   },
   confirmButton: {
-    width: '100%',
-    height: '60px',
-    borderRadius: '12px',
+    height: '64px',
+    borderRadius: '16px',
     border: 'none',
-    background: '#3b82f6',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     color: '#fff',
     fontSize: '18px',
-    fontWeight: '600',
+    fontWeight: '700',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '12px',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)',
+    letterSpacing: '0.5px'
   },
   cancelButton: {
-    width: '100%',
-    height: '50px',
-    borderRadius: '12px',
-    border: '2px solid #e5e5e5',
+    height: '64px',
+    borderRadius: '16px',
+    border: '3px solid #e5e7eb',
     background: '#fff',
-    color: '#666',
-    fontSize: '16px',
-    fontWeight: '600',
+    color: '#6b7280',
+    fontSize: '18px',
+    fontWeight: '700',
     cursor: 'pointer',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    letterSpacing: '0.5px'
   },
   buttonDisabled: {
     opacity: 0.6,

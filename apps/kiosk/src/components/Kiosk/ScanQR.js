@@ -7,11 +7,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   IoQrCode,
-  IoFlashlight,
   IoArrowBack,
   IoCheckmarkCircle,
   IoCloseCircle,
-  IoInformationCircle,
   IoPrint
 } from 'react-icons/io5';
 import scanner from '../../services/scanner';
@@ -19,7 +17,6 @@ import { kioskAPI, printerAPI } from '../../services/api';
 
 const ScanQR = ({ onBack }) => {
   const [isScanning, setIsScanning] = useState(false);
-  const [torchEnabled, setTorchEnabled] = useState(false);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ show: false, type: 'info', text: '' });
@@ -181,16 +178,6 @@ const ScanQR = ({ onBack }) => {
     }
   };
 
-  const toggleTorch = async () => {
-    try {
-      const newState = !torchEnabled;
-      await scanner.toggleTorch(newState);
-      setTorchEnabled(newState);
-    } catch (error) {
-      console.error('❌ Torch error:', error);
-    }
-  };
-
   useEffect(() => {
     return () => {
       // Cleanup: ferma scanner quando componente viene smontato
@@ -200,21 +187,23 @@ const ScanQR = ({ onBack }) => {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        @media (max-width: 1024px) {
+          .scan-content-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+            padding: 0 20px !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <div style={styles.header}>
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
-        <h1 style={styles.title}>Scanner QR</h1>
-        <button
-          onClick={toggleTorch}
-          style={{
-            ...styles.torchButton,
-            ...(torchEnabled ? styles.torchButtonActive : {})
-          }}
-        >
-          <IoFlashlight size={24} />
-        </button>
+        <h1 style={styles.title}>Scanner QR Check-Out</h1>
+        <div style={{ width: '40px' }}></div>
       </div>
 
       {/* Message */}
@@ -273,107 +262,79 @@ const ScanQR = ({ onBack }) => {
       {/* Hidden canvas for QR detection */}
       <canvas id="qr-canvas" hidden></canvas>
 
-      {/* Scanner Area */}
+      {/* Main Content - 2 Column Layout */}
       {!result && (
-        <div style={styles.scannerArea}>
-          {isScanning ? (
-            <video
-              id="qr-video"
-              style={styles.qrVideo}
-              playsInline
-              autoPlay
-            ></video>
-          ) : (
-            <div style={styles.scanFrame}>
-              <div style={styles.scanIconContainer}>
-                <IoQrCode size={120} color="#3b82f6" />
+        <div style={styles.mainContent} className="scan-content-grid">
+          {/* Left Column - Scanner Area */}
+          <div style={styles.leftColumn}>
+            {isScanning ? (
+              <video
+                id="qr-video"
+                style={styles.qrVideo}
+                playsInline
+                autoPlay
+              ></video>
+            ) : (
+              <div style={styles.scanFrame}>
+                <div style={styles.scanIconContainer}>
+                  <IoQrCode size={120} color="#10b981" />
+                </div>
+                <p style={styles.scanText}>
+                  Premi il pulsante per scansionare
+                </p>
               </div>
-              <p style={styles.scanText}>
-                Premi il pulsante per scansionare
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Scan Button */}
-      {!result && (
-        <div style={styles.buttonContainer}>
-          {/* Live Scanner - Only if camera is supported */}
-          {cameraSupported && (
-            <button
-              onClick={handleScan}
-              disabled={isScanning || loading}
-              style={{
-                ...styles.scanButton,
-                ...(isScanning || loading ? styles.scanButtonDisabled : {})
-              }}
-            >
-              {loading ? (
-                <>
-                  <div style={styles.spinner}></div>
-                  <span>Elaborazione...</span>
-                </>
-              ) : isScanning ? (
-                <>
-                  <div style={styles.spinner}></div>
-                  <span>Scanner Attivo</span>
-                </>
-              ) : (
-                <>
-                  <IoQrCode size={24} style={{ marginRight: '12px' }} />
-                  <span>Scansiona QR Code</span>
-                </>
-              )}
-            </button>
-          )}
-
-          {/* Upload Image Button - Always available as fallback */}
-          {!isScanning && (
-            <button
-              onClick={handleUploadImage}
-              disabled={loading}
-              style={{
-                ...(!cameraSupported ? styles.scanButton : styles.uploadButton),
-                ...(loading ? styles.scanButtonDisabled : {})
-              }}
-            >
-              <IoPrint size={20} style={{ marginRight: cameraSupported ? '8px' : '12px' }} />
-              <span>{cameraSupported ? 'Carica Immagine' : 'Scansiona da Foto'}</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Instructions */}
-      {!result && !isScanning && (
-        <div style={styles.instructions}>
-          <div style={styles.instructionsHeader}>
-            <div style={styles.instructionsIcon}>
-              <IoInformationCircle size={24} color={!cameraSupported ? "#f59e0b" : "#3b82f6"} />
-            </div>
-            <h3 style={styles.instructionsTitle}>Come funziona</h3>
+            )}
           </div>
-          {!cameraSupported ? (
-            <div style={styles.warningBox}>
-              <p style={styles.warningText}>
-                ⚠️ Scanner live non disponibile in questa modalità (iOS PWA standalone).
-              </p>
-              <ol style={styles.instructionsList}>
-                <li>Premi il pulsante "Scansiona da Foto"</li>
-                <li>Scatta una foto del badge QR o carica un'immagine</li>
-                <li>Il check-out verrà registrato automaticamente</li>
-              </ol>
-            </div>
-          ) : (
-            <ol style={styles.instructionsList}>
-              <li>Premi il pulsante "Scansiona QR Code"</li>
-              <li>Inquadra il badge del visitatore</li>
-              <li>Il check-out verrà registrato automaticamente</li>
-            </ol>
-          )}
+
+          {/* Right Column - Actions */}
+          <div style={styles.rightColumn}>
+            {/* Live Scanner - Only if camera is supported */}
+            {cameraSupported && (
+              <button
+                onClick={handleScan}
+                disabled={isScanning || loading}
+                style={{
+                  ...styles.scanButton,
+                  ...(isScanning || loading ? styles.scanButtonDisabled : {})
+                }}
+              >
+                {loading ? (
+                  <>
+                    <div style={styles.spinner}></div>
+                    <span>Elaborazione...</span>
+                  </>
+                ) : isScanning ? (
+                  <>
+                    <div style={styles.spinner}></div>
+                    <span>Scanner Attivo</span>
+                  </>
+                ) : (
+                  <>
+                    <IoQrCode size={24} style={{ marginRight: '12px' }} />
+                    <span>Scansiona QR Code</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Upload Image Button - Always available as fallback */}
+            {!isScanning && (
+              <button
+                onClick={handleUploadImage}
+                disabled={loading}
+                style={{
+                  ...(!cameraSupported ? styles.scanButton : styles.uploadButton),
+                  ...(loading ? styles.scanButtonDisabled : {})
+                }}
+              >
+                <IoPrint size={20} style={{ marginRight: cameraSupported ? '8px' : '12px' }} />
+                <span>{cameraSupported ? 'Carica Immagine' : 'Scansiona da Foto'}</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
+
     </div>
   );
 };
@@ -392,8 +353,8 @@ const styles = {
     marginBottom: '24px'
   },
   backButton: {
-    width: '48px',
-    height: '48px',
+    width: '40px',
+    height: '40px',
     borderRadius: '50%',
     border: '2px solid #e5e5e5',
     background: '#fff',
@@ -408,27 +369,8 @@ const styles = {
   title: {
     margin: 0,
     fontSize: '24px',
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1a1a1a'
-  },
-  torchButton: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '50%',
-    border: '2px solid #e5e5e5',
-    background: '#fff',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#666',
-    transition: 'all 0.2s ease',
-    fontSize: '0'
-  },
-  torchButtonActive: {
-    background: '#fffbeb',
-    borderColor: '#f59e0b',
-    color: '#f59e0b'
   },
   message: {
     display: 'flex',
@@ -485,27 +427,53 @@ const styles = {
     fontSize: '16px',
     color: '#999'
   },
-  scannerArea: {
-    marginBottom: '24px'
+  mainContent: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 400px',
+    gap: '32px',
+    marginBottom: '24px',
+    alignItems: 'center',
+    minHeight: 'calc(100vh - 200px)'
+  },
+  leftColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  rightColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   qrVideo: {
     width: '100%',
     maxWidth: '500px',
-    height: 'auto',
+    aspectRatio: '1/1',
     borderRadius: '16px',
     overflow: 'hidden',
-    border: '3px solid #3b82f6',
+    border: '3px dashed #10b981',
     display: 'block',
-    margin: '0 auto'
+    objectFit: 'cover'
   },
   scanFrame: {
-    padding: '60px 40px',
+    width: '100%',
+    maxWidth: '500px',
+    aspectRatio: '1/1',
     borderRadius: '16px',
-    border: '3px dashed #e5e5e5',
+    border: '3px dashed #10b981',
     textAlign: 'center',
     background: '#fff',
     position: 'relative',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '40px'
   },
   videoContainer: {
     position: 'relative',
@@ -535,37 +503,44 @@ const styles = {
   scannerBox: {
     width: '250px',
     height: '250px',
-    border: '3px solid #3b82f6',
+    border: '3px dashed #10b981',
     borderRadius: '12px',
     boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
     animation: 'pulse 2s ease-in-out infinite'
   },
   scanIconContainer: {
-    marginBottom: '16px'
+    width: '140px',
+    height: '140px',
+    borderRadius: '16px',
+    background: '#f0fdf4',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '24px'
   },
   scanText: {
     margin: 0,
-    fontSize: '16px',
+    fontSize: '18px',
     color: '#666',
-    fontWeight: '500'
-  },
-  buttonContainer: {
-    marginBottom: '24px'
+    fontWeight: '500',
+    lineHeight: '1.5'
   },
   scanButton: {
     width: '100%',
-    height: '64px',
-    borderRadius: '12px',
-    border: '2px solid #3b82f6',
-    background: '#3b82f6',
+    height: '80px',
+    borderRadius: '16px',
+    border: 'none',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     color: '#fff',
     fontSize: '18px',
-    fontWeight: '600',
+    fontWeight: '700',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)',
+    letterSpacing: '0.5px'
   },
   scanButtonDisabled: {
     opacity: 0.6,
@@ -573,19 +548,20 @@ const styles = {
   },
   uploadButton: {
     width: '100%',
-    height: '56px',
-    borderRadius: '12px',
-    border: '2px solid #e5e5e5',
+    height: '80px',
+    borderRadius: '16px',
+    border: '3px solid #e5e7eb',
     background: '#fff',
-    color: '#666',
-    fontSize: '16px',
-    fontWeight: '600',
+    color: '#6b7280',
+    fontSize: '18px',
+    fontWeight: '700',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'all 0.2s ease',
-    marginTop: '12px'
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    letterSpacing: '0.5px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
   },
   uploadButtonDisabled: {
     opacity: 0.6,
@@ -599,54 +575,6 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
     marginRight: '12px'
-  },
-  instructions: {
-    padding: '24px',
-    borderRadius: '16px',
-    background: '#fff',
-    border: '2px solid #e5e5e5'
-  },
-  instructionsHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: '16px'
-  },
-  instructionsIcon: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    background: '#eff6ff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: '12px'
-  },
-  instructionsTitle: {
-    margin: 0,
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a1a1a'
-  },
-  instructionsList: {
-    margin: 0,
-    paddingLeft: '24px',
-    color: '#666',
-    fontSize: '15px',
-    lineHeight: '1.8'
-  },
-  warningBox: {
-    marginTop: '12px'
-  },
-  warningText: {
-    margin: '0 0 12px 0',
-    padding: '12px',
-    background: '#fffbeb',
-    border: '2px solid #f59e0b',
-    borderRadius: '8px',
-    color: '#92400e',
-    fontSize: '14px',
-    fontWeight: '500',
-    lineHeight: '1.6'
   }
 };
 
@@ -660,12 +588,12 @@ if (typeof document !== 'undefined') {
     }
     @keyframes pulse {
       0%, 100% {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.5);
+        border-color: #10b981;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.5);
       }
       50% {
-        border-color: #60a5fa;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.8);
+        border-color: #34d399;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 40px rgba(16, 185, 129, 0.8);
       }
     }
   `;
