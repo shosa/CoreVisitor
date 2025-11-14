@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   IoQrCode,
   IoArrowBack,
@@ -185,8 +186,47 @@ const ScanQR = ({ onBack }) => {
     };
   }, []);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1]
+      }
+    }
+  };
+
+  const buttonVariants = {
+    hover: {
+      scale: 1.03,
+      boxShadow: '0 12px 28px rgba(16, 185, 129, 0.4)',
+      transition: { duration: 0.2 }
+    },
+    tap: {
+      scale: 0.98
+    }
+  };
+
   return (
-    <div style={styles.container}>
+    <motion.div
+      style={styles.container}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <style>{`
         @media (max-width: 1024px) {
           .scan-content-grid {
@@ -198,56 +238,77 @@ const ScanQR = ({ onBack }) => {
       `}</style>
 
       {/* Header */}
-      <div style={styles.header}>
+      <motion.div style={styles.header} variants={itemVariants}>
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
         <h1 style={styles.title}>Scanner QR Check-Out</h1>
         <div style={{ width: '40px' }}></div>
-      </div>
+      </motion.div>
 
       {/* Message */}
-      {message.show && (
-        <div style={{
-          ...styles.message,
-          ...(message.type === 'success' ? styles.messageSuccess : styles.messageError)
-        }}>
-          {message.type === 'success' ? (
-            <IoCheckmarkCircle size={20} style={{ marginRight: '8px' }} />
-          ) : (
-            <IoCloseCircle size={20} style={{ marginRight: '8px' }} />
-          )}
-          <span>{message.text}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {message.show && (
+          <motion.div
+            style={{
+              ...styles.message,
+              ...(message.type === 'success' ? styles.messageSuccess : styles.messageError)
+            }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {message.type === 'success' ? (
+              <IoCheckmarkCircle size={20} style={{ marginRight: '8px' }} />
+            ) : (
+              <IoCloseCircle size={20} style={{ marginRight: '8px' }} />
+            )}
+            <span>{message.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Result Display */}
-      {result && (
-        <div style={{
-          ...styles.resultCard,
-          ...(result.success ? styles.resultSuccess : styles.resultError)
-        }}>
-          <div style={styles.resultIcon}>
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            style={{
+              ...styles.resultCard,
+              ...(result.success ? styles.resultSuccess : styles.resultError)
+            }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div
+              style={styles.resultIcon}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
+            >
+              {result.success ? (
+                <IoCheckmarkCircle size={80} color="#10b981" />
+              ) : (
+                <IoCloseCircle size={80} color="#ef4444" />
+              )}
+            </motion.div>
             {result.success ? (
-              <IoCheckmarkCircle size={80} color="#10b981" />
+              <>
+                <h2 style={styles.resultTitle}>Check-out Effettuato!</h2>
+                <p style={styles.resultText}>{result.visitor?.full_name}</p>
+                <p style={styles.resultTime}>Uscita: {result.checkOutTime}</p>
+              </>
             ) : (
-              <IoCloseCircle size={80} color="#ef4444" />
+              <>
+                <h2 style={styles.resultTitle}>Errore</h2>
+                <p style={styles.resultText}>{result.error}</p>
+              </>
             )}
-          </div>
-          {result.success ? (
-            <>
-              <h2 style={styles.resultTitle}>Check-out Effettuato!</h2>
-              <p style={styles.resultText}>{result.visitor?.full_name}</p>
-              <p style={styles.resultTime}>Uscita: {result.checkOutTime}</p>
-            </>
-          ) : (
-            <>
-              <h2 style={styles.resultTitle}>Errore</h2>
-              <p style={styles.resultText}>{result.error}</p>
-            </>
-          )}
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hidden file input for iOS fallback */}
       <input
@@ -264,7 +325,11 @@ const ScanQR = ({ onBack }) => {
 
       {/* Main Content - 2 Column Layout */}
       {!result && (
-        <div style={styles.mainContent} className="scan-content-grid">
+        <motion.div
+          style={styles.mainContent}
+          className="scan-content-grid"
+          variants={itemVariants}
+        >
           {/* Left Column - Scanner Area */}
           <div style={styles.leftColumn}>
             {isScanning ? (
@@ -290,13 +355,16 @@ const ScanQR = ({ onBack }) => {
           <div style={styles.rightColumn}>
             {/* Live Scanner - Only if camera is supported */}
             {cameraSupported && (
-              <button
+              <motion.button
                 onClick={handleScan}
                 disabled={isScanning || loading}
                 style={{
                   ...styles.scanButton,
                   ...(isScanning || loading ? styles.scanButtonDisabled : {})
                 }}
+                variants={buttonVariants}
+                whileHover={!isScanning && !loading ? "hover" : {}}
+                whileTap={!isScanning && !loading ? "tap" : {}}
               >
                 {loading ? (
                   <>
@@ -314,28 +382,31 @@ const ScanQR = ({ onBack }) => {
                     <span>Scansiona QR Code</span>
                   </>
                 )}
-              </button>
+              </motion.button>
             )}
 
             {/* Upload Image Button - Always available as fallback */}
             {!isScanning && (
-              <button
+              <motion.button
                 onClick={handleUploadImage}
                 disabled={loading}
                 style={{
                   ...(!cameraSupported ? styles.scanButton : styles.uploadButton),
                   ...(loading ? styles.scanButtonDisabled : {})
                 }}
+                variants={buttonVariants}
+                whileHover={!loading ? "hover" : {}}
+                whileTap={!loading ? "tap" : {}}
               >
                 <IoPrint size={20} style={{ marginRight: cameraSupported ? '8px' : '12px' }} />
                 <span>{cameraSupported ? 'Carica Immagine' : 'Scansiona da Foto'}</span>
-              </button>
+              </motion.button>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
-    </div>
+    </motion.div>
   );
 };
 

@@ -9,6 +9,8 @@
 # Logs:    docker-compose logs -f
 # Rebuild: docker-compose up -d --build
 
+version: '3.8'
+
 services:
   # Backend API (NestJS)
   backend:
@@ -17,6 +19,16 @@ services:
       dockerfile: apps/backend/Dockerfile
     container_name: corevisitor-backend
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      com.coresuite.app: "CoreVisitor"
+      com.coresuite.tier: "backend"
+      com.coresuite.technology: "NestJS"
+      com.coresuite.port: "3006"
     environment:
       # Database - usa il MySQL condiviso da CoreServices
       DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@core-mysql:3306/${MYSQL_DATABASE}
@@ -56,6 +68,17 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: corevisitor-frontend
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      com.coresuite.app: "CoreVisitor"
+      com.coresuite.tier: "frontend"
+      com.coresuite.technology: "Next.js"
+      com.coresuite.port: "3007"
+      com.coresuite.nginx-port: "83"
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NODE_ENV: production
@@ -66,8 +89,39 @@ services:
     networks:
       - core-network  # Usa la network condivisa
 
+  # Kiosk (React PWA)
+  kiosk:
+    build:
+      context: .
+      dockerfile: apps/kiosk/Dockerfile
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL}
+    container_name: corevisitor-kiosk
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      com.coresuite.app: "CoreVisitor"
+      com.coresuite.tier: "kiosk"
+      com.coresuite.technology: "React PWA"
+      com.coresuite.port: "3009"
+      com.coresuite.nginx-port: "85"
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL}
+      NODE_ENV: production
+    ports:
+      - "3009:80"
+    depends_on:
+      - backend
+    networks:
+      - core-network  # Usa la network condivisa
+
 # Nginx è gestito centralmente da CoreServices (core-nginx)
-# Accesso: http://localhost:83
+# Accesso Frontend: http://localhost:83
+# Accesso Kiosk: http://localhost:85
 
 # Usa la network esterna creata da CoreServices
 networks:

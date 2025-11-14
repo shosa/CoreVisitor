@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   IoCheckmarkCircle,
   IoCloseCircle,
@@ -101,8 +102,47 @@ const PinEntry = ({ onBack }) => {
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1]
+      }
+    }
+  };
+
+  const keypadButtonVariants = {
+    hover: {
+      scale: 1.05,
+      transition: { duration: 0.15 }
+    },
+    tap: {
+      scale: 0.95,
+      transition: { duration: 0.1 }
+    }
+  };
+
   return (
-    <div style={styles.container}>
+    <motion.div
+      style={styles.container}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <style>{`
         @keyframes btnPress {
           0% {
@@ -133,18 +173,27 @@ const PinEntry = ({ onBack }) => {
       `}</style>
 
       {/* Header */}
-      <div style={styles.header}>
+      <motion.div style={styles.header} variants={itemVariants}>
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
         <h1 style={styles.title}>Self Check-In</h1>
         <div style={{ width: 40 }}></div>
-      </div>
+      </motion.div>
 
-      {!visitData && !success && (
-        <div style={styles.mainContent} className="main-content-grid">
-          {/* Left Column - Info Area */}
-          <div style={styles.leftColumn}>
+      <AnimatePresence mode="wait">
+        {!visitData && !success && (
+          <motion.div
+            key="pin-input"
+            style={styles.mainContent}
+            className="main-content-grid"
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            exit={{ opacity: 0, scale: 0.95 }}
+          >
+            {/* Left Column - Info Area */}
+            <div style={styles.leftColumn}>
             <div style={styles.infoCard}>
               <div style={styles.iconContainer}>
                 <IoKeypad size={80} color="#3b82f6" />
@@ -187,40 +236,52 @@ const PinEntry = ({ onBack }) => {
             <div style={styles.keypad}>
               <div style={styles.keypadGrid}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                  <button
+                  <motion.button
                     key={num}
                     onClick={() => handleNumberClick(num.toString())}
                     style={styles.keypadButton}
                     className="keypad-btn"
                     disabled={loading}
+                    variants={keypadButtonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
                   >
                     {num}
-                  </button>
+                  </motion.button>
                 ))}
-                <button
+                <motion.button
                   onClick={handleClear}
                   style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
                   className="keypad-btn"
                   disabled={loading}
+                  variants={keypadButtonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
                 >
                   C
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   onClick={() => handleNumberClick('0')}
                   style={styles.keypadButton}
                   className="keypad-btn"
                   disabled={loading}
+                  variants={keypadButtonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
                 >
                   0
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   onClick={handleBackspace}
                   style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
                   className="keypad-btn"
                   disabled={loading}
+                  variants={keypadButtonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
                 >
                   <IoBackspace size={24} />
-                </button>
+                </motion.button>
               </div>
             </div>
           </div>
@@ -231,11 +292,18 @@ const PinEntry = ({ onBack }) => {
               <p style={styles.loadingText}>Verifica in corso...</p>
             </div>
           )}
-        </div>
-      )}
+          </motion.div>
+        )}
 
-      {visitData && !success && (
-        <div style={styles.confirmationContainer}>
+        {visitData && !success && (
+          <motion.div
+            key="confirmation"
+            style={styles.confirmationContainer}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
           {/* Header */}
           <div style={styles.confirmationHeader}>
             <h2 style={styles.confirmationTitle}>Conferma i tuoi dati</h2>
@@ -335,29 +403,41 @@ const PinEntry = ({ onBack }) => {
               Annulla
             </button>
           </div>
-        </div>
-      )}
+          </motion.div>
+        )}
 
-      {success && (
-        <div style={styles.successContainer}>
-          <div style={styles.successIcon}>
-            <IoCheckmarkCircle size={120} color="#10b981" />
-          </div>
-          <h2 style={styles.successTitle}>Check-In Completato!</h2>
-          <p style={styles.successMessage}>
-            Benvenuto {visitData?.visitor.full_name}
-          </p>
-          <p style={styles.successSubMessage}>
-            Il tuo badge sta per essere stampato.
-            <br />
-            Ritiralo presso la reception.
-          </p>
-          <div style={styles.autoCloseMessage}>
-            Reindirizzamento automatico in 5 secondi...
-          </div>
-        </div>
-      )}
-    </div>
+        {success && (
+          <motion.div
+            key="success"
+            style={styles.successContainer}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div
+              style={styles.successIcon}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
+            >
+              <IoCheckmarkCircle size={120} color="#10b981" />
+            </motion.div>
+            <h2 style={styles.successTitle}>Check-In Completato!</h2>
+            <p style={styles.successMessage}>
+              Benvenuto {visitData?.visitor.full_name}
+            </p>
+            <p style={styles.successSubMessage}>
+              Il tuo badge sta per essere stampato.
+              <br />
+              Ritiralo presso la reception.
+            </p>
+            <div style={styles.autoCloseMessage}>
+              Reindirizzamento automatico in 5 secondi...
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

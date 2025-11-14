@@ -1,34 +1,88 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import {
   IoKeypad,
   IoQrCode
 } from 'react-icons/io5';
 
 const KioskHome = ({ onSelectOption }) => {
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1]
+      }
+    }
+  };
+
+  const buttonVariants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1]
+      }
+    },
+    hover: {
+      scale: 1.05,
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+      transition: {
+        duration: 0.2
+      }
+    },
+    tap: {
+      scale: 0.98
+    }
+  };
+
   return (
-    <div style={styles.container}>
+    <motion.div
+      style={styles.container}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Logo / Header */}
-      <div style={styles.header}>
+      <motion.div style={styles.header} variants={itemVariants}>
         <div style={styles.logo}>
           <h1 style={styles.logoText}>CoreVisitor</h1>
           <p style={styles.logoSubtext}>Self-Service Kiosk</p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Welcome Message */}
-      <div style={styles.welcomeContainer}>
+      <motion.div style={styles.welcomeContainer} variants={itemVariants}>
         <h2 style={styles.welcomeTitle}>Benvenuto</h2>
         <p style={styles.welcomeSubtitle}>
           Calzaturificio Emmegiemme Shoes
         </p>
-      </div>
+      </motion.div>
 
       {/* Options */}
       <div style={styles.optionsContainer}>
         {/* PIN Entry Option */}
-        <button
+        <motion.button
           onClick={() => onSelectOption('pin')}
           style={styles.optionButton}
+          variants={buttonVariants}
+          whileHover="hover"
+          whileTap="tap"
         >
           <div style={styles.optionIconBlue}>
             <IoKeypad size={64} color="#3b82f6" />
@@ -37,12 +91,15 @@ const KioskHome = ({ onSelectOption }) => {
           <p style={styles.optionDescription}>
             Inserisci il PIN a 4 cifre ricevuto via email
           </p>
-        </button>
+        </motion.button>
 
         {/* QR Code Option */}
-        <button
+        <motion.button
           onClick={() => onSelectOption('qr')}
           style={styles.optionButton}
+          variants={buttonVariants}
+          whileHover="hover"
+          whileTap="tap"
         >
           <div style={styles.optionIconGreen}>
             <IoQrCode size={64} color="#10b981" />
@@ -51,16 +108,16 @@ const KioskHome = ({ onSelectOption }) => {
           <p style={styles.optionDescription}>
             Scansiona il QR code del tuo badge per uscire
           </p>
-        </button>
+        </motion.button>
       </div>
 
       {/* Footer */}
-      <div style={styles.footer}>
+      <motion.div style={styles.footer} variants={itemVariants}>
         <p style={styles.footerText}>
           Non hai ricevuto il PIN? Contatta la reception
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

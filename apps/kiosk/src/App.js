@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { setupIonicReact } from '@ionic/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
 import '@ionic/react/css/structure.css';
@@ -14,7 +15,6 @@ import '@ionic/react/css/typography.css';
 import KioskHome from './components/Kiosk/KioskHome';
 import PinEntry from './components/Kiosk/PinEntry';
 import ScanQR from './components/Kiosk/ScanQR';
-import PageTransition from './components/Common/PageTransition';
 
 // Setup Ionic
 setupIonicReact({
@@ -23,7 +23,6 @@ setupIonicReact({
 
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState('kiosk-home');
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Ripristina stato da localStorage al mount
   useEffect(() => {
@@ -42,11 +41,7 @@ const App = () => {
    * Transizione tra schermate con animazione
    */
   const transitionToScreen = (newScreen) => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentScreen(newScreen);
-      setIsTransitioning(false);
-    }, 300);
+    setCurrentScreen(newScreen);
   };
 
   /**
@@ -62,6 +57,35 @@ const App = () => {
 
   const handleBackToKioskHome = () => {
     transitionToScreen('kiosk-home');
+  };
+
+  /**
+   * Page transition variants
+   */
+  const pageVariants = {
+    initial: {
+      opacity: 0,
+      scale: 0.95,
+      y: 20
+    },
+    animate: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1]
+      }
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.95,
+      y: -20,
+      transition: {
+        duration: 0.3,
+        ease: [0.22, 1, 0.36, 1]
+      }
+    }
   };
 
   /**
@@ -93,9 +117,18 @@ const App = () => {
 
   return (
     <div style={styles.app}>
-      <PageTransition type="fade" duration={0.3}>
-        {!isTransitioning && renderScreen()}
-      </PageTransition>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentScreen}
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          style={styles.screenContainer}
+        >
+          {renderScreen()}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };
@@ -105,6 +138,10 @@ const styles = {
     width: '100%',
     height: '100%',
     overflow: 'hidden'
+  },
+  screenContainer: {
+    width: '100%',
+    height: '100%'
   }
 };
 
