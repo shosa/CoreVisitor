@@ -17,7 +17,8 @@ RUN npm config set fetch-retry-mintimeout 20000 && \
     npm config set maxsockets 3
 
 # Install dependencies
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps && \
+    npm install ajv@^8.0.0 --legacy-peer-deps
 
 # Stage 2: Builder
 FROM node:18-alpine AS builder
