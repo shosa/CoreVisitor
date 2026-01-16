@@ -15,7 +15,7 @@ const getBaseURL = () => {
   // Auto-detect: usa lo stesso protocollo della pagina corrente
   // Se il frontend è HTTPS, usa HTTPS anche per il backend (e viceversa)
   const protocol = window.location.protocol; // 'http:' o 'https:'
-  const defaultUrl = `${protocol}//192.168.3.131:3006`;
+  const defaultUrl = `${protocol}//192.168.3.40:3006`;
   console.log('📡 Using production server:', defaultUrl);
   return defaultUrl;
 };
