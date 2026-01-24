@@ -1,6 +1,7 @@
 /**
- * ScanBarcode Component
- * Scanner codici a barre per check-out visitatori in modalità kiosk
+ * BarcodeInput Component
+ * Input manuale codice a barre per check-out visitatori in modalità kiosk
+ * Ottimizzato per lettori barcode USB
  * CoreInWork Style - Clean, minimal, white design
  */
 
@@ -10,94 +11,49 @@ import {
   IoBarcode,
   IoArrowBack,
   IoCheckmarkCircle,
-  IoCloseCircle,
-  IoCamera
+  IoCloseCircle
 } from 'react-icons/io5';
-import scanner from '../../services/scanner';
-import { kioskAPI, printerAPI } from '../../services/api';
+import { kioskAPI } from '../../services/api';
 
 const ScanQR = ({ onBack }) => {
-  const [isScanning, setIsScanning] = useState(false);
+  const [badgeInput, setBadgeInput] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ show: false, type: 'info', text: '' });
-  const [cameraSupported, setCameraSupported] = useState(true);
-  const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
 
+  // Auto-focus sul campo input al mount
   useEffect(() => {
-    // Check if camera is supported
-    setCameraSupported(scanner.isCameraSupported());
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   }, []);
+
+  // Re-focus dopo ogni operazione
+  useEffect(() => {
+    if (!loading && !result && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [loading, result]);
 
   const showMessage = (type, text) => {
     setMessage({ show: true, type, text });
     setTimeout(() => setMessage({ show: false, type: 'info', text: '' }), 4000);
   };
 
-  const handleScan = async () => {
-    try {
-      setIsScanning(true);
-      setResult(null);
-
-      console.log('🚀 Starting scan...');
-
-      // Wait for DOM to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Scansiona codice a barre
-      await scanner.scanContinuous(async (code) => {
-        console.log('📷 Barcode scanned:', code);
-
-        // Stop scanning immediately
-        await scanner.stopScan();
-        setIsScanning(false);
-
-        // Process checkout
-        await processCheckOut(code);
-      }, {
-        videoId: 'qr-video',
-        canvasId: 'qr-canvas'
-      });
-
-      console.log('✅ Scanner started');
-
-    } catch (error) {
-      console.error('❌ Scan error:', error);
-      showMessage('error', error.message || 'Impossibile avviare lo scanner');
-      setIsScanning(false);
-    }
+  const handleInputChange = (e) => {
+    setBadgeInput(e.target.value.toUpperCase());
   };
 
-  // iOS PWA fallback - scan from image
-  const handleFileSelect = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    try {
-      setLoading(true);
-      console.log('📸 Scanning from image...');
-
-      const code = await scanner.scanFromFile(file);
-
-      console.log('✅ Barcode found in image:', code);
-
-      // Process checkout
-      await processCheckOut(code);
-
-    } catch (error) {
-      console.error('❌ Image scan error:', error);
-      showMessage('error', error.message || 'Nessun codice a barre trovato nell\'immagine');
-    } finally {
-      setLoading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    if (!badgeInput.trim()) {
+      showMessage('error', 'Inserisci il numero badge');
+      return;
     }
-  };
 
-  const handleUploadImage = () => {
-    fileInputRef.current?.click();
+    await processCheckOut(badgeInput.trim());
   };
 
   const processCheckOut = async (badgeCode) => {
@@ -154,7 +110,8 @@ const ScanQR = ({ onBack }) => {
 
         showMessage('success', `${visit.visitor?.full_name || 'Visitatore'} - Uscita registrata con successo`);
 
-        // Torna a scan dopo 3 secondi
+        // Reset input e torna allo stato iniziale dopo 3 secondi
+        setBadgeInput('');
         setTimeout(() => {
           setResult(null);
         }, 3000);
@@ -170,7 +127,8 @@ const ScanQR = ({ onBack }) => {
 
       showMessage('error', error.response?.data?.message || error.message || 'Impossibile completare il check-out');
 
-      // Torna a scan dopo 3 secondi
+      // Reset input e torna allo stato iniziale dopo 3 secondi
+      setBadgeInput('');
       setTimeout(() => {
         setResult(null);
       }, 3000);
@@ -178,13 +136,6 @@ const ScanQR = ({ onBack }) => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      // Cleanup: ferma scanner quando componente viene smontato
-      scanner.stopScan();
-    };
-  }, []);
 
   // Animation variants
   const containerVariants = {
@@ -209,17 +160,6 @@ const ScanQR = ({ onBack }) => {
     }
   };
 
-  const buttonVariants = {
-    hover: {
-      scale: 1.03,
-      boxShadow: '0 12px 28px rgba(16, 185, 129, 0.4)',
-      transition: { duration: 0.2 }
-    },
-    tap: {
-      scale: 0.98
-    }
-  };
-
   return (
     <motion.div
       style={styles.container}
@@ -227,22 +167,12 @@ const ScanQR = ({ onBack }) => {
       initial="hidden"
       animate="visible"
     >
-      <style>{`
-        @media (max-width: 1024px) {
-          .scan-content-grid {
-            grid-template-columns: 1fr !important;
-            gap: 20px !important;
-            padding: 0 20px !important;
-          }
-        }
-      `}</style>
-
       {/* Header */}
       <motion.div style={styles.header} variants={itemVariants}>
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
-        <h1 style={styles.title}>Scanner Codice a Barre Check-Out</h1>
+        <h1 style={styles.title}>CHECK-OUT</h1>
         <div style={{ width: '40px' }}></div>
       </motion.div>
 
@@ -310,102 +240,65 @@ const ScanQR = ({ onBack }) => {
         )}
       </AnimatePresence>
 
-      {/* Hidden file input for iOS fallback */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        hidden
-        onChange={handleFileSelect}
-      />
-
-      {/* Hidden canvas for barcode detection */}
-      <canvas id="qr-canvas" hidden></canvas>
-
-      {/* Main Content - 2 Column Layout */}
+      {/* Main Content */}
       {!result && (
-        <motion.div
-          style={styles.mainContent}
-          className="scan-content-grid"
-          variants={itemVariants}
-        >
-          {/* Left Column - Scanner Area */}
-          <div style={styles.leftColumn}>
-            {isScanning ? (
-              <video
-                id="qr-video"
-                style={styles.qrVideo}
-                playsInline
-                autoPlay
-              ></video>
-            ) : (
-              <div style={styles.scanFrame}>
-                <div style={styles.scanIconContainer}>
-                  <IoBarcode size={120} color="#10b981" />
-                </div>
-                <p style={styles.scanText}>
-                  Premi il pulsante per scansionare il codice a barre
-                </p>
-              </div>
-            )}
+        <motion.div style={styles.mainContent} variants={itemVariants}>
+          {/* Icon Container */}
+          <div style={styles.iconContainer}>
+            <div style={styles.barcodeIcon}>
+              <IoBarcode size={120} color="#10b981" />
+            </div>
           </div>
 
-          {/* Right Column - Actions */}
-          <div style={styles.rightColumn}>
-            {/* Live Scanner - Only if camera is supported */}
-            {cameraSupported && (
-              <motion.button
-                onClick={handleScan}
-                disabled={isScanning || loading}
-                style={{
-                  ...styles.scanButton,
-                  ...(isScanning || loading ? styles.scanButtonDisabled : {})
-                }}
-                variants={buttonVariants}
-                whileHover={!isScanning && !loading ? "hover" : {}}
-                whileTap={!isScanning && !loading ? "tap" : {}}
-              >
-                {loading ? (
-                  <>
-                    <div style={styles.spinner}></div>
-                    <span>Elaborazione...</span>
-                  </>
-                ) : isScanning ? (
-                  <>
-                    <div style={styles.spinner}></div>
-                    <span>Scanner Attivo</span>
-                  </>
-                ) : (
-                  <>
-                    <IoBarcode size={24} style={{ marginRight: '12px' }} />
-                    <span>Scansiona Codice a Barre</span>
-                  </>
-                )}
-              </motion.button>
-            )}
+          {/* Instructions */}
+          <p style={styles.instructions}>
+            Scansiona il codice a barre del badge o inserisci manualmente il numero
+          </p>
 
-            {/* Upload Image Button - Always available as fallback */}
-            {!isScanning && (
-              <motion.button
-                onClick={handleUploadImage}
-                disabled={loading}
-                style={{
-                  ...(!cameraSupported ? styles.scanButton : styles.uploadButton),
-                  ...(loading ? styles.scanButtonDisabled : {})
-                }}
-                variants={buttonVariants}
-                whileHover={!loading ? "hover" : {}}
-                whileTap={!loading ? "tap" : {}}
-              >
-                <IoCamera size={20} style={{ marginRight: cameraSupported ? '8px' : '12px' }} />
-                <span>{cameraSupported ? 'Carica Immagine' : 'Scansiona da Foto'}</span>
-              </motion.button>
-            )}
-          </div>
+          {/* Input Form */}
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={badgeInput}
+              onChange={handleInputChange}
+              placeholder="Numero Badge (es. VIS-XXX-XXX)"
+              style={styles.input}
+              disabled={loading}
+              autoComplete="off"
+              autoCapitalize="characters"
+            />
+
+            <motion.button
+              type="submit"
+              disabled={loading || !badgeInput.trim()}
+              style={{
+                ...styles.submitButton,
+                ...(loading || !badgeInput.trim() ? styles.submitButtonDisabled : {})
+              }}
+              whileHover={!loading && badgeInput.trim() ? { scale: 1.02 } : {}}
+              whileTap={!loading && badgeInput.trim() ? { scale: 0.98 } : {}}
+            >
+              {loading ? (
+                <>
+                  <div style={styles.spinner}></div>
+                  <span>Elaborazione...</span>
+                </>
+              ) : (
+                <>
+                  <IoCheckmarkCircle size={24} style={{ marginRight: '12px' }} />
+                  <span>Conferma Check-Out</span>
+                </>
+              )}
+            </motion.button>
+          </form>
+
+          {/* Help Text */}
+          <p style={styles.helpText}>
+            Il lettore barcode inserirà automaticamente il codice nel campo
+          </p>
         </motion.div>
       )}
-
     </motion.div>
   );
 };
@@ -421,7 +314,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: '24px'
+    marginBottom: '40px'
   },
   backButton: {
     width: '40px',
@@ -439,7 +332,7 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: '24px',
+    fontSize: '32px',
     fontWeight: '700',
     color: '#1a1a1a'
   },
@@ -469,7 +362,9 @@ const styles = {
     marginBottom: '24px',
     background: '#fff',
     border: '2px solid #e5e5e5',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+    maxWidth: '600px',
+    margin: '0 auto'
   },
   resultSuccess: {
     borderColor: '#10b981',
@@ -499,111 +394,65 @@ const styles = {
     color: '#999'
   },
   mainContent: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 400px',
-    gap: '32px',
-    marginBottom: '24px',
-    alignItems: 'center',
-    minHeight: 'calc(100vh - 200px)'
-  },
-  leftColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  rightColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  qrVideo: {
-    width: '100%',
-    maxWidth: '500px',
-    aspectRatio: '1/1',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    border: '3px dashed #10b981',
-    display: 'block',
-    objectFit: 'cover'
-  },
-  scanFrame: {
-    width: '100%',
-    maxWidth: '500px',
-    aspectRatio: '1/1',
-    borderRadius: '16px',
-    border: '3px dashed #10b981',
-    textAlign: 'center',
-    background: '#fff',
-    position: 'relative',
-    overflow: 'hidden',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px'
-  },
-  videoContainer: {
-    position: 'relative',
-    width: '100%',
-    maxWidth: '500px',
+    maxWidth: '600px',
     margin: '0 auto',
-    borderRadius: '12px',
-    overflow: 'hidden'
-  },
-  video: {
-    width: '100%',
-    height: 'auto',
-    display: 'block',
-    borderRadius: '12px'
-  },
-  scannerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-    pointerEvents: 'none'
+    paddingTop: '40px'
   },
-  scannerBox: {
-    width: '250px',
-    height: '250px',
-    border: '3px dashed #10b981',
-    borderRadius: '12px',
-    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
-    animation: 'pulse 2s ease-in-out infinite'
+  iconContainer: {
+    marginBottom: '40px'
   },
-  scanIconContainer: {
-    width: '140px',
-    height: '140px',
-    borderRadius: '16px',
+  barcodeIcon: {
+    width: '160px',
+    height: '160px',
+    borderRadius: '20px',
     background: '#f0fdf4',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '24px'
+    margin: '0 auto',
+    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)'
   },
-  scanText: {
-    margin: 0,
+  instructions: {
     fontSize: '18px',
     color: '#666',
+    textAlign: 'center',
+    marginBottom: '32px',
     fontWeight: '500',
-    lineHeight: '1.5'
+    lineHeight: '1.6'
   },
-  scanButton: {
+  form: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  input: {
+    width: '100%',
+    height: '70px',
+    fontSize: '20px',
+    padding: '0 24px',
+    borderRadius: '12px',
+    border: '3px solid #e5e7eb',
+    background: '#fff',
+    color: '#1a1a1a',
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: '1px',
+    fontFamily: 'monospace',
+    transition: 'all 0.2s ease',
+    outline: 'none'
+  },
+  submitButton: {
     width: '100%',
     height: '80px',
     borderRadius: '16px',
     border: 'none',
     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     color: '#fff',
-    fontSize: '18px',
+    fontSize: '20px',
     fontWeight: '700',
     cursor: 'pointer',
     display: 'flex',
@@ -613,30 +462,16 @@ const styles = {
     boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)',
     letterSpacing: '0.5px'
   },
-  scanButtonDisabled: {
+  submitButtonDisabled: {
     opacity: 0.6,
     cursor: 'not-allowed'
   },
-  uploadButton: {
-    width: '100%',
-    height: '80px',
-    borderRadius: '16px',
-    border: '3px solid #e5e7eb',
-    background: '#fff',
-    color: '#6b7280',
-    fontSize: '18px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    letterSpacing: '0.5px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
-  },
-  uploadButtonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed'
+  helpText: {
+    fontSize: '14px',
+    color: '#999',
+    textAlign: 'center',
+    marginTop: '24px',
+    fontWeight: '500'
   },
   spinner: {
     width: '20px',
@@ -649,7 +484,7 @@ const styles = {
   }
 };
 
-// Add animations to document head
+// Add animation to document head
 if (typeof document !== 'undefined') {
   const styleSheet = document.createElement('style');
   styleSheet.textContent = `
@@ -657,19 +492,14 @@ if (typeof document !== 'undefined') {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    @keyframes pulse {
-      0%, 100% {
-        border-color: #10b981;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.5);
-      }
-      50% {
-        border-color: #34d399;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 40px rgba(16, 185, 129, 0.8);
-      }
+
+    input:focus {
+      border-color: #10b981 !important;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
     }
   `;
-  if (!document.head.querySelector('style[data-scan-animation]')) {
-    styleSheet.setAttribute('data-scan-animation', 'true');
+  if (!document.head.querySelector('style[data-checkout-animation]')) {
+    styleSheet.setAttribute('data-checkout-animation', 'true');
     document.head.appendChild(styleSheet);
   }
 }

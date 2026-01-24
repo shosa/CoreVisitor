@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
   IoKeypad,
-  IoQrCode
+  IoLogOut
 } from 'react-icons/io5';
 
 const KioskHome = ({ onSelectOption }) => {
@@ -76,7 +76,7 @@ const KioskHome = ({ onSelectOption }) => {
 
       {/* Options */}
       <div style={styles.optionsContainer}>
-        {/* PIN Entry Option */}
+        {/* CHECK-IN Option */}
         <motion.button
           onClick={() => onSelectOption('pin')}
           style={styles.optionButton}
@@ -87,13 +87,13 @@ const KioskHome = ({ onSelectOption }) => {
           <div style={styles.optionIconBlue}>
             <IoKeypad size={64} color="#3b82f6" />
           </div>
-          <h3 style={styles.optionTitle}>Check-In con PIN</h3>
+          <h3 style={styles.optionTitle}>CHECK-IN</h3>
           <p style={styles.optionDescription}>
             Inserisci il PIN a 4 cifre ricevuto via email
           </p>
         </motion.button>
 
-        {/* QR Code Option */}
+        {/* CHECK-OUT Option */}
         <motion.button
           onClick={() => onSelectOption('qr')}
           style={styles.optionButton}
@@ -102,11 +102,11 @@ const KioskHome = ({ onSelectOption }) => {
           whileTap="tap"
         >
           <div style={styles.optionIconGreen}>
-            <IoQrCode size={64} color="#10b981" />
+            <IoLogOut size={64} color="#10b981" />
           </div>
-          <h3 style={styles.optionTitle}>Check-Out con QR</h3>
+          <h3 style={styles.optionTitle}>CHECK-OUT</h3>
           <p style={styles.optionDescription}>
-            Scansiona il QR code del tuo badge per uscire
+            Scansiona o inserisci il numero badge per uscire
           </p>
         </motion.button>
       </div>
