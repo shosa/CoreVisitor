@@ -191,7 +191,7 @@ export class VisitsService {
 
     // Genera badge
     const badgeNumber = this.badge.generateBadgeNumber();
-    const qrCode = await this.badge.generateBadgeQRCode(badgeNumber);
+    const barcode = await this.badge.generateBadgeBarcode(badgeNumber);
 
     // Aggiorna visita
     const updatedVisit = await this.prisma.visit.update({
@@ -200,7 +200,7 @@ export class VisitsService {
         status: VisitStatus.checked_in,
         actualCheckIn: new Date(),
         badgeNumber,
-        badgeQRCode: qrCode,
+        badgeQRCode: barcode, // Manteniamo il campo badgeQRCode per compatibilità, ma ora contiene un barcode
         badgeIssued: true,
         badgeIssuedAt: new Date(),
       },

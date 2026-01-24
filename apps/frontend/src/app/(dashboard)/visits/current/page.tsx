@@ -247,13 +247,13 @@ export default function CurrentVisitsPage() {
         <DialogContent>
           {selectedBadge && (
             <Stack spacing={3} alignItems="center" sx={{ py: 2 }}>
-              {/* QR Code */}
+              {/* Barcode */}
               {selectedBadge.qrCode && (
                 <Box
                   component="img"
                   src={selectedBadge.qrCode}
-                  alt="Badge QR Code"
-                  sx={{ width: 300, height: 300, border: '2px solid', borderColor: 'divider', borderRadius: 2 }}
+                  alt="Badge Barcode"
+                  sx={{ width: 300, height: 'auto', border: '2px solid', borderColor: 'divider', borderRadius: 2 }}
                 />
               )}
 

@@ -20,7 +20,7 @@ import {
   DialogActions,
   IconButton,
 } from '@mui/material';
-import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business, Close, QrCode2 } from '@mui/icons-material';
+import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business, Close, QrCode2, QrCodeScanner } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { visitsApi, printerApi } from '@/lib/api';
 import { Visit } from '@/types/visitor';
@@ -367,15 +367,15 @@ export default function VisitDetailPage() {
                 {badgeData.visitor?.company || 'N/A'}
               </Typography>
 
-              {/* QR Code */}
+              {/* Barcode */}
               {badgeData.qrCode && (
                 <Box
                   component="img"
                   src={badgeData.qrCode}
-                  alt="Badge QR Code"
+                  alt="Badge Barcode"
                   sx={{
                     width: 250,
-                    height: 250,
+                    height: 'auto',
                     margin: '0 auto',
                     display: 'block',
                     border: '2px solid',

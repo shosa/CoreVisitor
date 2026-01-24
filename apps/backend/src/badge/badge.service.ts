@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as QRCode from 'qrcode';
+import * as bwipjs from 'bwip-js';
 import { randomBytes } from 'crypto';
 
 @Injectable()
@@ -17,37 +17,47 @@ export class BadgeService {
   }
 
   /**
-   * Genera QR code per badge
+   * Genera codice a barre per badge
    * Contiene il badge number per identificazione univoca
+   * Usa il formato CODE128 che è ottimo per alfanumerici
    */
-  async generateBadgeQRCode(badgeNumber: string): Promise<string> {
-    // QR code contiene il badge number
-    return await QRCode.toDataURL(badgeNumber, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      width: 300,
-      margin: 1,
-    });
+  async generateBadgeBarcode(badgeNumber: string): Promise<string> {
+    try {
+      // Genera codice a barre in formato CODE128
+      const png = await bwipjs.toBuffer({
+        bcid: 'code128',       // Tipo di codice a barre
+        text: badgeNumber,      // Testo da codificare
+        scale: 3,               // Scala (risoluzione)
+        height: 10,             // Altezza delle barre in mm
+        includetext: true,      // Include il testo sotto il codice
+        textxalign: 'center',   // Allineamento testo
+      });
+
+      // Converti in base64 per il data URL
+      return `data:image/png;base64,${png.toString('base64')}`;
+    } catch (error) {
+      throw new Error(`Failed to generate barcode: ${error.message}`);
+    }
   }
 
   /**
    * Verifica validità badge
    * Ritorna il badge number se valido
    */
-  verifyBadge(qrData: string): {
+  verifyBadge(barcodeData: string): {
     valid: boolean;
     badgeNumber?: string;
     reason?: string;
   } {
-    // Il QR code contiene il badge number (formato VIS-{timestamp}-{random})
+    // Il codice a barre contiene il badge number (formato VIS-{timestamp}-{random})
     // Verifica che sia nel formato corretto
     const badgeRegex = /^VIS-[0-9A-Z]+-[0-9A-F]{6}$/i;
 
-    if (!badgeRegex.test(qrData)) {
+    if (!badgeRegex.test(barcodeData)) {
       return { valid: false, reason: 'Invalid badge number format' };
     }
 
-    return { valid: true, badgeNumber: qrData };
+    return { valid: true, badgeNumber: barcodeData };
   }
 
   /**
@@ -61,7 +71,7 @@ export class BadgeService {
 
     // Default: badge valido per durata configurata
     const hours =
-      parseInt(this.configService.get('QR_CODE_EXPIRY_HOURS')) || 24;
+      parseInt(this.configService.get('BADGE_EXPIRY_HOURS')) || 24;
     return new Date(now.getTime() + hours * 60 * 60 * 1000);
   }
 }

@@ -1,19 +1,18 @@
 /**
- * QR Code Scanner Service
- * Uses jsQR with video stream for reliable cross-platform scanning
+ * Barcode Scanner Service
+ * Uses Quagga2 for barcode scanning (CODE128, EAN, etc.)
  * Works on iOS Safari PWA without HTTPS requirement
  */
 
-import jsQR from 'jsqr';
+import Quagga from '@ericblade/quagga2';
 
-class QRScanner {
+class BarcodeScanner {
   constructor() {
     this.stream = null;
     this.scanning = false;
     this.videoElement = null;
-    this.canvasElement = null;
-    this.canvasContext = null;
     this.onScanCallback = null;
+    this.quaggaInitialized = false;
   }
 
   /**
@@ -28,7 +27,7 @@ class QRScanner {
    */
   async scanContinuous(onScan, options = {}) {
     try {
-      console.log('🎥 Starting QR scanner with jsQR...');
+      console.log('🎥 Starting barcode scanner with Quagga2...');
 
       // Check if camera is supported
       if (!this.isCameraSupported()) {
@@ -37,37 +36,66 @@ class QRScanner {
 
       this.onScanCallback = onScan;
 
-      // Get video and canvas elements
+      // Get video element
       const videoId = options.videoId || 'qr-video';
-      const canvasId = options.canvasId || 'qr-canvas';
-
       this.videoElement = document.getElementById(videoId);
-      this.canvasElement = document.getElementById(canvasId);
 
-      if (!this.videoElement || !this.canvasElement) {
-        throw new Error('Video o Canvas element non trovato');
+      if (!this.videoElement) {
+        throw new Error('Video element non trovato');
       }
-
-      this.canvasContext = this.canvasElement.getContext('2d');
-
-      // Request camera access
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-
-      console.log('✅ Camera access granted');
-
-      // Set up video stream
-      this.videoElement.srcObject = this.stream;
-      this.videoElement.setAttribute('playsinline', 'true'); // Required for iOS
-      await this.videoElement.play();
 
       this.scanning = true;
 
-      // Start scanning loop
-      requestAnimationFrame(() => this.scan());
+      // Initialize Quagga
+      await new Promise((resolve, reject) => {
+        Quagga.init({
+          inputStream: {
+            name: 'Live',
+            type: 'LiveStream',
+            target: this.videoElement,
+            constraints: {
+              facingMode: 'environment'
+            }
+          },
+          decoder: {
+            readers: ['code_128_reader'] // CODE128 è quello che usiamo
+          },
+          locate: true,
+          locator: {
+            patchSize: 'medium',
+            halfSample: true
+          }
+        }, (err) => {
+          if (err) {
+            console.error('❌ Quagga init error:', err);
+            reject(err);
+            return;
+          }
+          console.log('✅ Quagga initialized');
+          resolve();
+        });
+      });
 
-      console.log('▶️ Scanner started successfully');
+      // Start scanning
+      Quagga.start();
+      this.quaggaInitialized = true;
+
+      // Set up detection handler
+      Quagga.onDetected((result) => {
+        if (result && result.codeResult && result.codeResult.code) {
+          const code = result.codeResult.code;
+          console.log('✅ Barcode scanned:', code);
+          this.vibrate('success');
+
+          // Stop scanning and call callback
+          this.stopScan();
+          if (this.onScanCallback) {
+            this.onScanCallback(code);
+          }
+        }
+      });
+
+      console.log('▶️ Barcode scanner started successfully');
 
       // Return stop function
       return () => this.stopScan();
@@ -75,6 +103,7 @@ class QRScanner {
     } catch (error) {
       console.error('❌ Scanner error:', error);
       this.scanning = false;
+      this.quaggaInitialized = false;
 
       // Check if it's a permission error
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
@@ -86,101 +115,31 @@ class QRScanner {
   }
 
   /**
-   * Scan loop - reads video frame and looks for QR code
-   */
-  scan() {
-    if (!this.scanning || !this.videoElement || !this.canvasElement) {
-      return;
-    }
-
-    if (this.videoElement.readyState === this.videoElement.HAVE_ENOUGH_DATA) {
-      // Set canvas size to match video
-      this.canvasElement.height = this.videoElement.videoHeight;
-      this.canvasElement.width = this.videoElement.videoWidth;
-
-      // Draw current video frame to canvas
-      this.canvasContext.drawImage(
-        this.videoElement,
-        0,
-        0,
-        this.canvasElement.width,
-        this.canvasElement.height
-      );
-
-      // Get image data from canvas
-      const imageData = this.canvasContext.getImageData(
-        0,
-        0,
-        this.canvasElement.width,
-        this.canvasElement.height
-      );
-
-      // Try to decode QR code
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert'
-      });
-
-      if (code) {
-        console.log('✅ QR Code scanned:', code.data);
-        this.vibrate('success');
-
-        // Call callback with decoded text
-        if (this.onScanCallback) {
-          this.onScanCallback(code.data);
-        }
-
-        // Don't continue scanning after successful scan
-        return;
-      }
-    }
-
-    // Continue scanning if active
-    if (this.scanning) {
-      requestAnimationFrame(() => this.scan());
-    }
-  }
-
-  /**
    * Scan from image file (iOS PWA fallback)
    */
   async scanFromFile(file) {
     return new Promise((resolve, reject) => {
       try {
-        if (!this.canvasElement) {
-          this.canvasElement = document.getElementById('qr-canvas');
-          this.canvasContext = this.canvasElement.getContext('2d');
-        }
-
         const img = new Image();
 
         img.onload = () => {
-          // Set canvas size to image size
-          this.canvasElement.width = img.width;
-          this.canvasElement.height = img.height;
-
-          // Draw image to canvas
-          this.canvasContext.drawImage(img, 0, 0);
-
-          // Get image data
-          const imageData = this.canvasContext.getImageData(
-            0,
-            0,
-            this.canvasElement.width,
-            this.canvasElement.height
-          );
-
-          // Try to decode QR code
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert'
+          // Use Quagga to decode from image
+          Quagga.decodeSingle({
+            src: URL.createObjectURL(file),
+            numOfWorkers: 0,
+            decoder: {
+              readers: ['code_128_reader']
+            },
+            locate: true
+          }, (result) => {
+            if (result && result.codeResult && result.codeResult.code) {
+              console.log('✅ Barcode found in image:', result.codeResult.code);
+              this.vibrate('success');
+              resolve(result.codeResult.code);
+            } else {
+              reject(new Error('Nessun codice a barre trovato nell\'immagine'));
+            }
           });
-
-          if (code) {
-            console.log('✅ QR Code found in image:', code.data);
-            this.vibrate('success');
-            resolve(code.data);
-          } else {
-            reject(new Error('Nessun QR code trovato nell\'immagine'));
-          }
         };
 
         img.onerror = () => {
@@ -198,7 +157,7 @@ class QRScanner {
    * Stop scanning
    */
   async stopScan() {
-    if (!this.scanning) {
+    if (!this.scanning && !this.quaggaInitialized) {
       return;
     }
 
@@ -207,33 +166,16 @@ class QRScanner {
 
       this.scanning = false;
 
-      // Stop video stream
-      if (this.stream) {
-        this.stream.getTracks().forEach(track => track.stop());
-        this.stream = null;
-      }
-
-      // Clear video element
-      if (this.videoElement) {
-        this.videoElement.srcObject = null;
-        this.videoElement.setAttribute('playsinline', 'false');
+      // Stop Quagga
+      if (this.quaggaInitialized) {
+        Quagga.stop();
+        Quagga.offDetected();
+        this.quaggaInitialized = false;
       }
 
       console.log('✅ Scanner stopped');
     } catch (error) {
       console.warn('Error stopping scanner:', error);
-    }
-  }
-
-  /**
-   * Check if browser supports scanner
-   */
-  async isSupported() {
-    try {
-      const cameras = await Html5Qrcode.getCameras();
-      return cameras.length > 0;
-    } catch (error) {
-      return false;
     }
   }
 
@@ -255,5 +197,5 @@ class QRScanner {
 }
 
 // Export singleton instance
-const scanner = new QRScanner();
+const scanner = new BarcodeScanner();
 export default scanner;

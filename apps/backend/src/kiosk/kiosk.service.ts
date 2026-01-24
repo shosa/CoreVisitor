@@ -105,8 +105,8 @@ export class KioskService {
     // Genera badge number univoco (6 caratteri alfanumerici)
     const badgeNumber = await this.generateBadgeNumber();
 
-    // Genera QR code del badge (base64 PNG)
-    const badgeQRCode = await this.badge.generateBadgeQRCode(badgeNumber);
+    // Genera codice a barre del badge (base64 PNG)
+    const badgeBarcode = await this.badge.generateBadgeBarcode(badgeNumber);
 
     // Effettua check-in
     const updatedVisit = await this.prisma.visit.update({
@@ -115,7 +115,7 @@ export class KioskService {
         status: 'checked_in',
         actualCheckIn: new Date(),
         badgeNumber,
-        badgeQRCode,
+        badgeQRCode: badgeBarcode, // Manteniamo il campo badgeQRCode per compatibilità, ma ora contiene un barcode
         badgeIssued: true,
         badgeIssuedAt: new Date(),
       },

@@ -1,17 +1,17 @@
 /**
- * ScanQR Component
- * Scanner QR per check-out visitatori in modalità kiosk
+ * ScanBarcode Component
+ * Scanner codici a barre per check-out visitatori in modalità kiosk
  * CoreInWork Style - Clean, minimal, white design
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  IoQrCode,
+  IoBarcode,
   IoArrowBack,
   IoCheckmarkCircle,
   IoCloseCircle,
-  IoPrint
+  IoCamera
 } from 'react-icons/io5';
 import scanner from '../../services/scanner';
 import { kioskAPI, printerAPI } from '../../services/api';
@@ -44,9 +44,9 @@ const ScanQR = ({ onBack }) => {
       // Wait for DOM to update
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Scansiona QR code
+      // Scansiona codice a barre
       await scanner.scanContinuous(async (code) => {
-        console.log('📷 QR Code scanned:', code);
+        console.log('📷 Barcode scanned:', code);
 
         // Stop scanning immediately
         await scanner.stopScan();
@@ -79,14 +79,14 @@ const ScanQR = ({ onBack }) => {
 
       const code = await scanner.scanFromFile(file);
 
-      console.log('✅ QR Code found in image:', code);
+      console.log('✅ Barcode found in image:', code);
 
       // Process checkout
       await processCheckOut(code);
 
     } catch (error) {
       console.error('❌ Image scan error:', error);
-      showMessage('error', error.message || 'Nessun QR code trovato nell\'immagine');
+      showMessage('error', error.message || 'Nessun codice a barre trovato nell\'immagine');
     } finally {
       setLoading(false);
       // Reset file input
@@ -242,7 +242,7 @@ const ScanQR = ({ onBack }) => {
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
-        <h1 style={styles.title}>Scanner QR Check-Out</h1>
+        <h1 style={styles.title}>Scanner Codice a Barre Check-Out</h1>
         <div style={{ width: '40px' }}></div>
       </motion.div>
 
@@ -320,7 +320,7 @@ const ScanQR = ({ onBack }) => {
         onChange={handleFileSelect}
       />
 
-      {/* Hidden canvas for QR detection */}
+      {/* Hidden canvas for barcode detection */}
       <canvas id="qr-canvas" hidden></canvas>
 
       {/* Main Content - 2 Column Layout */}
@@ -342,10 +342,10 @@ const ScanQR = ({ onBack }) => {
             ) : (
               <div style={styles.scanFrame}>
                 <div style={styles.scanIconContainer}>
-                  <IoQrCode size={120} color="#10b981" />
+                  <IoBarcode size={120} color="#10b981" />
                 </div>
                 <p style={styles.scanText}>
-                  Premi il pulsante per scansionare
+                  Premi il pulsante per scansionare il codice a barre
                 </p>
               </div>
             )}
@@ -378,8 +378,8 @@ const ScanQR = ({ onBack }) => {
                   </>
                 ) : (
                   <>
-                    <IoQrCode size={24} style={{ marginRight: '12px' }} />
-                    <span>Scansiona QR Code</span>
+                    <IoBarcode size={24} style={{ marginRight: '12px' }} />
+                    <span>Scansiona Codice a Barre</span>
                   </>
                 )}
               </motion.button>
@@ -398,7 +398,7 @@ const ScanQR = ({ onBack }) => {
                 whileHover={!loading ? "hover" : {}}
                 whileTap={!loading ? "tap" : {}}
               >
-                <IoPrint size={20} style={{ marginRight: cameraSupported ? '8px' : '12px' }} />
+                <IoCamera size={20} style={{ marginRight: cameraSupported ? '8px' : '12px' }} />
                 <span>{cameraSupported ? 'Carica Immagine' : 'Scansiona da Foto'}</span>
               </motion.button>
             )}

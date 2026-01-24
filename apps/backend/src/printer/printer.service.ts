@@ -12,7 +12,7 @@ export interface BadgePrintData {
   visitDate: string;
   department: string;
   host?: string;
-  qrCode?: string; // base64 QR code image
+  qrCode?: string; // base64 barcode image (nome mantenuto per compatibilità)
   photoPath?: string;
 }
 
@@ -139,36 +139,36 @@ export class PrinterService {
         this.printer.println(`Host: ${data.host}`);
       }
 
-      // QR Code
+      // Codice a Barre
       if (data.qrCode) {
         this.printer.println('');
         this.printer.alignCenter();
 
         let tempFilePath: string | null = null;
         try {
-          this.logger.log('Processing QR code for printing...');
+          this.logger.log('Processing barcode for printing...');
           // Convert base64 to buffer
-          const qrBuffer = Buffer.from(data.qrCode.replace(/^data:image\/png;base64,/, ''), 'base64');
+          const barcodeBuffer = Buffer.from(data.qrCode.replace(/^data:image\/png;base64,/, ''), 'base64');
 
           // Save to temporary file (printImage requires a file path)
-          tempFilePath = path.join(os.tmpdir(), `qr-${Date.now()}.png`);
-          fs.writeFileSync(tempFilePath, qrBuffer);
-          this.logger.log(`QR code saved to temp file: ${tempFilePath}`);
+          tempFilePath = path.join(os.tmpdir(), `barcode-${Date.now()}.png`);
+          fs.writeFileSync(tempFilePath, barcodeBuffer);
+          this.logger.log(`Barcode saved to temp file: ${tempFilePath}`);
 
           // Print image from file
           await this.printer.printImage(tempFilePath);
-          this.logger.log('QR code printed successfully');
+          this.logger.log('Barcode printed successfully');
         } catch (error) {
           const errMsg = error instanceof Error ? error.message : String(error);
-          this.logger.warn(`Failed to print QR code: ${errMsg}`);
-          // Continue without QR code
+          this.logger.warn(`Failed to print barcode: ${errMsg}`);
+          // Continue without barcode
         } finally {
           // Clean up temporary file
           if (tempFilePath && fs.existsSync(tempFilePath)) {
             try {
               fs.unlinkSync(tempFilePath);
             } catch (err) {
-              this.logger.warn(`Failed to delete temp QR file: ${err instanceof Error ? err.message : String(err)}`);
+              this.logger.warn(`Failed to delete temp barcode file: ${err instanceof Error ? err.message : String(err)}`);
             }
           }
         }
