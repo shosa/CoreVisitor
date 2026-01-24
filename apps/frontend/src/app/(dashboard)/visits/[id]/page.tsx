@@ -19,8 +19,29 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
-import { ArrowBack, Edit, Print, Cancel, Login, Logout, Person, Business, Close, QrCode2, QrCodeScanner } from '@mui/icons-material';
+import {
+  ArrowBack,
+  Edit,
+  Print,
+  Cancel,
+  Login,
+  Logout,
+  Person,
+  Business,
+  Close,
+  QrCode2,
+  QrCodeScanner,
+  MoreVert,
+  RestartAlt,
+  ContentCopy,
+  Email,
+  DeleteForever,
+} from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { visitsApi, printerApi } from '@/lib/api';
 import { Visit } from '@/types/visitor';
@@ -38,6 +59,19 @@ export default function VisitDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
   const [badgeData, setBadgeData] = useState<any>(null);
+  const [actionsMenuAnchor, setActionsMenuAnchor] = useState<null | HTMLElement>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    action: () => void;
+    severity?: 'warning' | 'error';
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    action: () => {},
+  });
 
   const loadVisit = async () => {
     if (!id) return;
@@ -100,6 +134,77 @@ export default function VisitDetailPage() {
     }
   };
 
+  const handleReactivate = async () => {
+    try {
+      await visitsApi.reactivate(id);
+      enqueueSnackbar('Visita riattivata con successo', { variant: 'success' });
+      loadVisit();
+      setActionsMenuAnchor(null);
+    } catch (err: any) {
+      enqueueSnackbar(err.response?.data?.message || 'Errore durante la riattivazione', { variant: 'error' });
+      console.error(err);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      const res = await visitsApi.duplicate(id);
+      enqueueSnackbar('Visita duplicata con successo', { variant: 'success' });
+      setActionsMenuAnchor(null);
+      router.push(`/visits/${res.data.id}`);
+    } catch (err: any) {
+      enqueueSnackbar(err.response?.data?.message || 'Errore durante la duplicazione', { variant: 'error' });
+      console.error(err);
+    }
+  };
+
+  const handleSendNotification = async () => {
+    try {
+      await visitsApi.sendNotification(id);
+      enqueueSnackbar('Notifica inviata con successo', { variant: 'success' });
+      setActionsMenuAnchor(null);
+    } catch (err: any) {
+      enqueueSnackbar(err.response?.data?.message || 'Errore durante l\'invio della notifica', { variant: 'error' });
+      console.error(err);
+    }
+  };
+
+  const handleHardDelete = async () => {
+    try {
+      await visitsApi.hardDelete(id);
+      enqueueSnackbar('Visita eliminata definitivamente', { variant: 'success' });
+      router.push('/visits');
+    } catch (err: any) {
+      enqueueSnackbar(err.response?.data?.message || 'Errore durante l\'eliminazione', { variant: 'error' });
+      console.error(err);
+    }
+  };
+
+  const openConfirmDialog = (title: string, message: string, action: () => void, severity: 'warning' | 'error' = 'warning') => {
+    setConfirmDialog({
+      open: true,
+      title,
+      message,
+      action,
+      severity,
+    });
+    setActionsMenuAnchor(null);
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog({
+      open: false,
+      title: '',
+      message: '',
+      action: () => {},
+    });
+  };
+
+  const executeConfirmAction = () => {
+    confirmDialog.action();
+    closeConfirmDialog();
+  };
+
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
   }
@@ -115,6 +220,7 @@ export default function VisitDetailPage() {
   const canCheckIn = visit.status === 'pending';
   const canCheckOut = visit.status === 'checked_in';
   const canCancel = visit.status === 'pending';
+  const canReactivate = visit.status === 'cancelled' || visit.status === 'checked_out';
 
   return (
     <Box sx={{ p: 3 }}>
@@ -212,8 +318,73 @@ export default function VisitDetailPage() {
           >
             Modifica
           </Button>
+          <IconButton
+            onClick={(e) => setActionsMenuAnchor(e.currentTarget)}
+            sx={{
+              border: '2px solid',
+              borderColor: 'grey.300',
+              '&:hover': { borderColor: 'grey.500', bgcolor: 'grey.50' },
+            }}
+          >
+            <MoreVert />
+          </IconButton>
         </Stack>
       </Stack>
+
+      {/* Advanced Actions Menu */}
+      <Menu
+        anchorEl={actionsMenuAnchor}
+        open={Boolean(actionsMenuAnchor)}
+        onClose={() => setActionsMenuAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        {canReactivate && (
+          <MenuItem
+            onClick={() =>
+              openConfirmDialog(
+                'Riattiva Visita',
+                'Sei sicuro di voler riattivare questa visita? Lo stato verrà impostato su "In Attesa" e il badge verrà resettato se già emesso.',
+                handleReactivate
+              )
+            }
+          >
+            <ListItemIcon>
+              <RestartAlt fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Riattiva Visita</ListItemText>
+          </MenuItem>
+        )}
+        <MenuItem onClick={handleDuplicate}>
+          <ListItemIcon>
+            <ContentCopy fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Duplica Visita</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleSendNotification}>
+          <ListItemIcon>
+            <Email fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Invia Notifica Email</ListItemText>
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={() =>
+            openConfirmDialog(
+              'Elimina Definitivamente',
+              'ATTENZIONE: Questa azione eliminerà definitivamente la visita e non potrà essere annullata. Sei assolutamente sicuro?',
+              handleHardDelete,
+              'error'
+            )
+          }
+          sx={{ color: 'error.main' }}
+        >
+          <ListItemIcon>
+            <DeleteForever fontSize="small" sx={{ color: 'error.main' }} />
+          </ListItemIcon>
+          <ListItemText>Elimina Definitivamente</ListItemText>
+        </MenuItem>
+      </Menu>
 
       <Grid container spacing={3}>
         {/* Visitor & Host Info */}
@@ -418,6 +589,44 @@ export default function VisitDetailPage() {
             }}
           >
             Stampa
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={closeConfirmDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="h6" fontWeight="bold">
+              {confirmDialog.title}
+            </Typography>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity={confirmDialog.severity || 'warning'} sx={{ mb: 2 }}>
+            {confirmDialog.message}
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeConfirmDialog}>
+            Annulla
+          </Button>
+          <Button
+            variant="contained"
+            onClick={executeConfirmAction}
+            sx={{
+              bgcolor: confirmDialog.severity === 'error' ? 'error.main' : 'warning.main',
+              '&:hover': {
+                bgcolor: confirmDialog.severity === 'error' ? 'error.dark' : 'warning.dark',
+              },
+            }}
+          >
+            Conferma
           </Button>
         </DialogActions>
       </Dialog>

@@ -35,9 +35,13 @@ export const visitsApi = {
   create: (data: any) => api.post<Visit>('/visits', data),
   update: (id: string, data: any) => api.patch<Visit>(`/visits/${id}`, data),
   delete: (id: string) => api.delete(`/visits/${id}`),
+  hardDelete: (id: string) => api.delete(`/visits/${id}/hard`),
   checkIn: (id: string) => api.post<Visit>(`/visits/${id}/check-in`),
   checkOut: (id: string) => api.post<Visit>(`/visits/${id}/check-out`),
   cancel: (id: string) => api.post<Visit>(`/visits/${id}/cancel`),
+  reactivate: (id: string) => api.post<Visit>(`/visits/${id}/reactivate`),
+  duplicate: (id: string) => api.post<Visit>(`/visits/${id}/duplicate`),
+  sendNotification: (id: string) => api.post(`/visits/${id}/send-notification`),
   getBadge: (id: string) => api.get(`/visits/${id}/badge`),
 };
 

@@ -82,6 +82,24 @@ export class VisitsController {
     return this.visitsService.cancel(id);
   }
 
+  @Post(':id/reactivate')
+  @Roles('admin', 'receptionist')
+  reactivate(@Param('id') id: string) {
+    return this.visitsService.reactivate(id);
+  }
+
+  @Post(':id/duplicate')
+  @Roles('admin', 'receptionist')
+  duplicate(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.visitsService.duplicate(id, user.id);
+  }
+
+  @Post(':id/send-notification')
+  @Roles('admin', 'receptionist')
+  sendNotification(@Param('id') id: string) {
+    return this.visitsService.sendNotification(id);
+  }
+
   @Patch(':id')
   @Roles('admin', 'receptionist')
   update(@Param('id') id: string, @Body() updateVisitDto: UpdateVisitDto) {
@@ -92,5 +110,11 @@ export class VisitsController {
   @Roles('admin')
   remove(@Param('id') id: string) {
     return this.visitsService.remove(id);
+  }
+
+  @Delete(':id/hard')
+  @Roles('admin')
+  hardDelete(@Param('id') id: string) {
+    return this.visitsService.hardDelete(id);
   }
 }

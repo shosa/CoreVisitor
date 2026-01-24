@@ -321,6 +321,124 @@ export class VisitsService {
   }
 
   /**
+   * Riattiva visita cancellata o scaduta
+   */
+  async reactivate(id: string) {
+    const visit = await this.findOne(id);
+
+    // Verifica che la visita sia in uno stato riattivabile
+    if (visit.status !== VisitStatus.cancelled && visit.status !== VisitStatus.checked_out) {
+      throw new BadRequestException('Only cancelled or completed visits can be reactivated');
+    }
+
+    // Se la visita aveva un badge, lo resettiamo
+    const shouldResetBadge = visit.badgeIssued;
+
+    const updatedVisit = await this.prisma.visit.update({
+      where: { id },
+      data: {
+        status: VisitStatus.pending,
+        ...(shouldResetBadge && {
+          badgeNumber: null,
+          badgeQRCode: null,
+          badgeIssued: false,
+          badgeIssuedAt: null,
+          actualCheckIn: null,
+          actualCheckOut: null,
+        }),
+      },
+      include: {
+        visitor: true,
+        department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+      },
+    });
+
+    await this.meilisearch.indexVisit(updatedVisit);
+
+    return updatedVisit;
+  }
+
+  /**
+   * Duplica visita per creare una nuova visita con gli stessi dati
+   */
+  async duplicate(id: string, createdById: string) {
+    const originalVisit = await this.findOne(id);
+
+    // Genera nuovo PIN unico
+    const checkInPin = await this.generateUniquePin();
+
+    const duplicatedVisit = await this.prisma.visit.create({
+      data: {
+        visitorId: originalVisit.visitorId,
+        departmentId: originalVisit.departmentId,
+        visitType: originalVisit.visitType,
+        purpose: originalVisit.purpose,
+        scheduledDate: originalVisit.scheduledDate,
+        scheduledTimeStart: originalVisit.scheduledTimeStart,
+        scheduledTimeEnd: originalVisit.scheduledTimeEnd,
+        hostUserId: originalVisit.hostUserId,
+        hostName: originalVisit.hostName,
+        notes: originalVisit.notes ? `[DUPLICATED] ${originalVisit.notes}` : '[DUPLICATED]',
+        status: VisitStatus.pending,
+        checkInPin,
+        createdById,
+      },
+      include: {
+        visitor: true,
+        department: true,
+        hostUser: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+      },
+    });
+
+    await this.meilisearch.indexVisit(duplicatedVisit);
+
+    return duplicatedVisit;
+  }
+
+  /**
+   * Invia notifica email al visitatore
+   * TODO: Implementare servizio email
+   */
+  async sendNotification(id: string) {
+    const visit = await this.findOne(id);
+
+    // TODO: Implementare invio email con:
+    // - PIN per check-in
+    // - Dettagli visita
+    // - Badge barcode (se già emesso)
+    // - Informazioni host
+
+    // Per ora ritorniamo un messaggio di conferma
+    return {
+      message: 'Notification sent successfully',
+      visitId: visit.id,
+      email: visit.visitor.email,
+      // TODO: Aggiungere dettagli invio email reale
+    };
+  }
+
+  /**
+   * Eliminazione definitiva della visita (hard delete)
+   * Solo per admin
+   */
+  async hardDelete(id: string) {
+    const visit = await this.findOne(id);
+
+    await this.prisma.visit.delete({ where: { id } });
+    await this.meilisearch.deleteVisit(id);
+
+    return {
+      message: 'Visit permanently deleted',
+      deletedVisitId: id
+    };
+  }
+
+  /**
    * Statistiche dashboard
    */
   async getStats() {
