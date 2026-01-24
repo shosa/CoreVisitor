@@ -1,9 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ThermalPrinter, PrinterTypes, CharacterSet, BreakLine } from 'node-thermal-printer';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import {
+  ThermalPrinter,
+  PrinterTypes,
+  CharacterSet,
+  BreakLine,
+} from "node-thermal-printer";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 export interface BadgePrintData {
   visitorName: string;
@@ -17,7 +22,7 @@ export interface BadgePrintData {
 }
 
 export interface PrinterConnection {
-  type: 'usb' | 'network' | 'file';
+  type: "usb" | "network" | "file";
   address?: string; // USB device path or IP address
   port?: number; // For network printers
 }
@@ -37,24 +42,26 @@ export class PrinterService {
       let printerInterface: any;
 
       switch (connection.type) {
-        case 'usb':
+        case "usb":
           // For USB connection - will auto-detect or use specific device
           printerInterface = connection.address || undefined;
           break;
 
-        case 'network':
+        case "network":
           // For network connection - use string format "tcp://ip:port"
-          printerInterface = `tcp://${connection.address}:${connection.port || 9100}`;
+          printerInterface = `tcp://${connection.address}:${
+            connection.port || 9100
+          }`;
           this.logger.log(`Network printer: ${printerInterface}`);
           break;
 
-        case 'file':
+        case "file":
           // For testing - prints to file
           // Convert relative paths to absolute paths in /tmp for Docker compatibility
-          let filePath = connection.address || './print-output.txt';
-          if (filePath.startsWith('./')) {
+          let filePath = connection.address || "./print-output.txt";
+          if (filePath.startsWith("./")) {
             filePath = `/tmp/${filePath.substring(2)}`;
-          } else if (!filePath.startsWith('/')) {
+          } else if (!filePath.startsWith("/")) {
             filePath = `/tmp/${filePath}`;
           }
           printerInterface = filePath;
@@ -67,7 +74,7 @@ export class PrinterService {
         interface: printerInterface,
         characterSet: CharacterSet.PC858_EURO,
         removeSpecialCharacters: false,
-        lineCharacter: '=',
+        lineCharacter: "=",
         breakLine: BreakLine.WORD,
         options: {
           timeout: 5000,
@@ -75,14 +82,18 @@ export class PrinterService {
       });
 
       // For file mode, don't check connection
-      if (connection.type !== 'file') {
+      if (connection.type !== "file") {
         try {
           const isConnected = await this.printer.isPrinterConnected();
           if (!isConnected) {
-            this.logger.warn('Printer not physically connected, but initialized for future use');
+            this.logger.warn(
+              "Printer not physically connected, but initialized for future use"
+            );
           }
         } catch (error) {
-          this.logger.warn(`Could not verify printer connection: ${error.message}`);
+          this.logger.warn(
+            `Could not verify printer connection: ${error.message}`
+          );
           // Don't throw - allow initialization anyway
         }
       }
@@ -102,7 +113,9 @@ export class PrinterService {
       this.logger.log(`Starting badge print for: ${data.visitorName}`);
 
       if (!this.printer) {
-        throw new Error('Printer not initialized. Please configure and initialize a printer first.');
+        throw new Error(
+          "Printer not initialized. Please configure and initialize a printer first."
+        );
       }
 
       this.printer.clear();
@@ -111,14 +124,15 @@ export class PrinterService {
       this.printer.alignCenter();
       this.printer.setTextSize(1, 1);
       this.printer.bold(true);
-      this.printer.println('BADGE VISITATORE');
+      this.printer.println("BADGE VISITATORE");
       this.printer.bold(false);
+      this.printer.setTextNormal();
       this.printer.drawLine();
-
+      this.printer.println("Calzaturificio Emmegiemme Shoes S.r.l.");
       // Visitor info
       this.printer.alignLeft();
       this.printer.setTextNormal();
-      this.printer.println('');
+      this.printer.println("");
 
       this.printer.bold(true);
       this.printer.setTextSize(1, 1);
@@ -130,7 +144,7 @@ export class PrinterService {
         this.printer.println(`${data.company}`);
       }
 
-      this.printer.println('');
+      this.printer.println("");
       this.printer.println(`Badge #: ${data.badgeNumber}`);
       this.printer.println(`Data: ${data.visitDate}`);
       this.printer.println(`Reparto: ${data.department}`);
@@ -141,14 +155,17 @@ export class PrinterService {
 
       // Codice a Barre
       if (data.qrCode) {
-        this.printer.println('');
+        this.printer.println("");
         this.printer.alignCenter();
 
         let tempFilePath: string | null = null;
         try {
-          this.logger.log('Processing barcode for printing...');
+          this.logger.log("Processing barcode for printing...");
           // Convert base64 to buffer
-          const barcodeBuffer = Buffer.from(data.qrCode.replace(/^data:image\/png;base64,/, ''), 'base64');
+          const barcodeBuffer = Buffer.from(
+            data.qrCode.replace(/^data:image\/png;base64,/, ""),
+            "base64"
+          );
 
           // Save to temporary file (printImage requires a file path)
           tempFilePath = path.join(os.tmpdir(), `barcode-${Date.now()}.png`);
@@ -157,7 +174,7 @@ export class PrinterService {
 
           // Print image from file
           await this.printer.printImage(tempFilePath);
-          this.logger.log('Barcode printed successfully');
+          this.logger.log("Barcode printed successfully");
         } catch (error) {
           const errMsg = error instanceof Error ? error.message : String(error);
           this.logger.warn(`Failed to print barcode: ${errMsg}`);
@@ -168,33 +185,38 @@ export class PrinterService {
             try {
               fs.unlinkSync(tempFilePath);
             } catch (err) {
-              this.logger.warn(`Failed to delete temp barcode file: ${err instanceof Error ? err.message : String(err)}`);
+              this.logger.warn(
+                `Failed to delete temp barcode file: ${
+                  err instanceof Error ? err.message : String(err)
+                }`
+              );
             }
           }
         }
       }
 
       // Footer
-      this.printer.println('');
+      this.printer.println("");
       this.printer.alignCenter();
       this.printer.drawLine();
       this.printer.setTextSize(0, 0);
-      this.printer.println('Per favore indossare il badge');
-      this.printer.println('per la durata della visita.');
+      this.printer.println("Per favore indossare il badge");
+      this.printer.println("per la durata della visita.");
 
       // Cut paper
       this.printer.cut();
 
       // Execute print
-      this.logger.log('Executing print command...');
+      this.logger.log("Executing print command...");
       await this.printer.execute();
       this.logger.log(`Badge printed successfully for: ${data.visitorName}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to print badge: ${errorMessage}`);
-      console.error('Full error object:', error);
+      console.error("Full error object:", error);
       if (error instanceof Error && error.stack) {
-        console.error('Stack trace:', error.stack);
+        console.error("Stack trace:", error.stack);
       }
       throw new Error(`Print failed: ${errorMessage}`);
     }
@@ -206,23 +228,23 @@ export class PrinterService {
   async testPrint(): Promise<void> {
     try {
       if (!this.printer) {
-        throw new Error('Printer not initialized');
+        throw new Error("Printer not initialized");
       }
 
       this.printer.clear();
       this.printer.alignCenter();
       this.printer.bold(true);
-      this.printer.println('TEST PRINT');
+      this.printer.println("TEST PRINT");
       this.printer.bold(false);
-      this.printer.println('');
-      this.printer.println('CoreVisitor Kiosk');
+      this.printer.println("");
+      this.printer.println("CoreVisitor Kiosk");
       this.printer.println(`Date: ${new Date().toLocaleString()}`);
-      this.printer.println('');
-      this.printer.println('Printer is working correctly!');
+      this.printer.println("");
+      this.printer.println("Printer is working correctly!");
       this.printer.cut();
 
       await this.printer.execute();
-      this.logger.log('Test print completed successfully');
+      this.logger.log("Test print completed successfully");
     } catch (error) {
       this.logger.error(`Test print failed: ${error.message}`);
       throw error;
@@ -245,7 +267,7 @@ export class PrinterService {
       const connected = await this.printer.isPrinterConnected();
       return {
         connected,
-        type: 'ESC/POS',
+        type: "ESC/POS",
       };
     } catch (error) {
       this.logger.error(`Failed to get printer status: ${error.message}`);
@@ -259,7 +281,7 @@ export class PrinterService {
   async disconnect(): Promise<void> {
     if (this.printer) {
       this.printer = null;
-      this.logger.log('Printer disconnected');
+      this.logger.log("Printer disconnected");
     }
   }
 }
