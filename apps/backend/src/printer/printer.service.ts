@@ -131,9 +131,9 @@ export class PrinterService {
       }
 
       this.printer.println('');
-      this.printer.println(`Badge: ${data.badgeNumber}`);
+      this.printer.println(`Badge #: ${data.badgeNumber}`);
       this.printer.println(`Data: ${data.visitDate}`);
-      this.printer.println(`Dipartimento: ${data.department}`);
+      this.printer.println(`Reparto: ${data.department}`);
 
       if (data.host) {
         this.printer.println(`Host: ${data.host}`);
