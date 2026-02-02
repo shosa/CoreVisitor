@@ -1,46 +1,28 @@
 'use client';
 
-import { Paper, Typography, Box } from '@mui/material';
 import { ReactNode } from 'react';
 
 interface WidgetProps {
-  title?: string;
+  title?: string | ReactNode;
   children: ReactNode;
   action?: ReactNode;
-  elevation?: number;
-  sx?: any;
+  className?: string;
 }
 
-export default function Widget({ title, children, action, elevation = 0, sx }: WidgetProps) {
+export default function Widget({ title, children, action, className = '' }: WidgetProps) {
   return (
-    <Paper
-      elevation={elevation}
-      sx={{
-        p: 3,
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        ...sx,
-      }}
-    >
+    <div className={`card p-6 h-full flex flex-col ${className}`}>
       {(title || action) && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: title ? 2 : 0,
-          }}
-        >
+        <div className="flex justify-between items-center mb-4">
           {title && (
-            <Typography variant="h6" component="h2" fontWeight={600}>
+            <h2 className="text-lg font-semibold text-gray-900">
               {title}
-            </Typography>
+            </h2>
           )}
-          {action && <Box>{action}</Box>}
-        </Box>
+          {action && <div>{action}</div>}
+        </div>
       )}
-      <Box sx={{ flex: 1 }}>{children}</Box>
-    </Paper>
+      <div className="flex-1">{children}</div>
+    </div>
   );
 }

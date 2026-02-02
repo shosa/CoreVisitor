@@ -1,80 +1,160 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  Box,
-  Typography,
-  Card,
-  Grid,
-  Stack,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  Divider,
-  Avatar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material';
-import {
-  ArrowBack,
-  Edit,
-  Print,
-  Cancel,
-  Login,
-  Logout,
-  Person,
-  Business,
-  Close,
-  QrCode2,
-  QrCodeScanner,
-  MoreVert,
-  RestartAlt,
-  ContentCopy,
-  Email,
-  DeleteForever,
-} from '@mui/icons-material';
-import { useSnackbar } from 'notistack';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { visitsApi, printerApi } from '@/lib/api';
 import { Visit } from '@/types/visitor';
-import { translateVisitStatus, getVisitStatusColor, translateVisitType } from '@/lib/translations';
-import Breadcrumbs from '@/components/Breadcrumbs';
+import { translateVisitStatus, translateVisitType } from '@/lib/translations';
+import { useToast } from '@/components/Toast';
+
+// Icons
+const ChevronRightIcon = () => (
+  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+const ArrowLeftIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const PrintIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+  </svg>
+);
+
+const LoginIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+  </svg>
+);
+
+const CancelIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const QRCodeIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+  </svg>
+);
+
+const MoreIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+  </svg>
+);
+
+const EmailIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const PersonIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
+const BusinessIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+// Status badge helper
+const getStatusBadgeClass = (status: string): string => {
+  switch (status) {
+    case 'checked_in': return 'badge-green';
+    case 'checked_out': return 'badge-blue';
+    case 'pending': return 'badge-yellow';
+    case 'approved': return 'badge-blue';
+    case 'rejected':
+    case 'cancelled': return 'badge-red';
+    default: return 'badge';
+  }
+};
 
 export default function VisitDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { enqueueSnackbar } = useSnackbar();
+  const toast = useToast();
   const id = params.id as string;
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const [visit, setVisit] = useState<Visit | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
   const [badgeData, setBadgeData] = useState<any>(null);
-  const [actionsMenuAnchor, setActionsMenuAnchor] = useState<null | HTMLElement>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
     title: string;
     message: string;
     action: () => void;
-    severity?: 'warning' | 'error';
-  }>({
-    open: false,
-    title: '',
-    message: '',
-    action: () => {},
-  });
+    severity: 'warning' | 'error';
+  } | null>(null);
+
+  useEffect(() => {
+    if (id) loadVisit();
+  }, [id]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadVisit = async () => {
-    if (!id) return;
     setLoading(true);
     try {
       const res = await visitsApi.getOne(id);
@@ -87,17 +167,13 @@ export default function VisitDetailPage() {
     }
   };
 
-  useEffect(() => {
-    loadVisit();
-  }, [id]);
-
   const handleAction = async (action: 'checkIn' | 'checkOut' | 'cancel') => {
     try {
       await visitsApi[action](id);
-      enqueueSnackbar(`Azione eseguita con successo`, { variant: 'success' });
-      loadVisit(); // Refresh data
+      toast.showSuccess('Azione eseguita con successo');
+      loadVisit();
     } catch (err) {
-      enqueueSnackbar(`Errore durante l'esecuzione dell'azione`, { variant: 'error' });
+      toast.showError("Errore durante l'esecuzione dell'azione");
       console.error(err);
     }
   };
@@ -108,7 +184,7 @@ export default function VisitDetailPage() {
       setBadgeData(res.data);
       setBadgeModalOpen(true);
     } catch (err) {
-      enqueueSnackbar('Errore nel caricamento del badge', { variant: 'error' });
+      toast.showError('Errore nel caricamento del badge');
       console.error(err);
     }
   };
@@ -116,20 +192,10 @@ export default function VisitDetailPage() {
   const handlePrintBadge = async () => {
     try {
       await printerApi.printBadge(id, { copies: 1 });
-      enqueueSnackbar('Badge aggiunto alla coda di stampa', { variant: 'success' });
+      toast.showSuccess('Badge aggiunto alla coda di stampa');
       setBadgeModalOpen(false);
     } catch (err) {
-      enqueueSnackbar('Errore nella stampa del badge', { variant: 'error' });
-      console.error(err);
-    }
-  };
-
-  const handlePrintBadgeToQueue = async () => {
-    try {
-      await printerApi.printBadge(id, { copies: 1 });
-      enqueueSnackbar('Badge aggiunto alla coda di stampa', { variant: 'success' });
-    } catch (err) {
-      enqueueSnackbar('Errore nella stampa del badge', { variant: 'error' });
+      toast.showError('Errore nella stampa del badge');
       console.error(err);
     }
   };
@@ -137,11 +203,11 @@ export default function VisitDetailPage() {
   const handleReactivate = async () => {
     try {
       await visitsApi.reactivate(id);
-      enqueueSnackbar('Visita riattivata con successo', { variant: 'success' });
+      toast.showSuccess('Visita riattivata con successo');
       loadVisit();
-      setActionsMenuAnchor(null);
+      setMoreMenuOpen(false);
     } catch (err: any) {
-      enqueueSnackbar(err.response?.data?.message || 'Errore durante la riattivazione', { variant: 'error' });
+      toast.showError(err.response?.data?.message || 'Errore durante la riattivazione');
       console.error(err);
     }
   };
@@ -149,11 +215,11 @@ export default function VisitDetailPage() {
   const handleDuplicate = async () => {
     try {
       const res = await visitsApi.duplicate(id);
-      enqueueSnackbar('Visita duplicata con successo', { variant: 'success' });
-      setActionsMenuAnchor(null);
+      toast.showSuccess('Visita duplicata con successo');
+      setMoreMenuOpen(false);
       router.push(`/visits/${res.data.id}`);
     } catch (err: any) {
-      enqueueSnackbar(err.response?.data?.message || 'Errore durante la duplicazione', { variant: 'error' });
+      toast.showError(err.response?.data?.message || 'Errore durante la duplicazione');
       console.error(err);
     }
   };
@@ -161,10 +227,10 @@ export default function VisitDetailPage() {
   const handleSendNotification = async () => {
     try {
       await visitsApi.sendNotification(id);
-      enqueueSnackbar('Notifica inviata con successo', { variant: 'success' });
-      setActionsMenuAnchor(null);
+      toast.showSuccess('Notifica inviata con successo');
+      setMoreMenuOpen(false);
     } catch (err: any) {
-      enqueueSnackbar(err.response?.data?.message || 'Errore durante l\'invio della notifica', { variant: 'error' });
+      toast.showError(err.response?.data?.message || "Errore durante l'invio della notifica");
       console.error(err);
     }
   };
@@ -172,49 +238,42 @@ export default function VisitDetailPage() {
   const handleHardDelete = async () => {
     try {
       await visitsApi.hardDelete(id);
-      enqueueSnackbar('Visita eliminata definitivamente', { variant: 'success' });
+      toast.showSuccess('Visita eliminata definitivamente');
       router.push('/visits');
     } catch (err: any) {
-      enqueueSnackbar(err.response?.data?.message || 'Errore durante l\'eliminazione', { variant: 'error' });
+      toast.showError(err.response?.data?.message || "Errore durante l'eliminazione");
       console.error(err);
     }
   };
 
-  const openConfirmDialog = (title: string, message: string, action: () => void, severity: 'warning' | 'error' = 'warning') => {
-    setConfirmDialog({
-      open: true,
-      title,
-      message,
-      action,
-      severity,
-    });
-    setActionsMenuAnchor(null);
-  };
-
-  const closeConfirmDialog = () => {
-    setConfirmDialog({
-      open: false,
-      title: '',
-      message: '',
-      action: () => {},
-    });
-  };
-
-  const executeConfirmAction = () => {
-    confirmDialog.action();
-    closeConfirmDialog();
+  const openConfirm = (title: string, message: string, action: () => void, severity: 'warning' | 'error' = 'warning') => {
+    setConfirmAction({ title, message, action, severity });
+    setConfirmModalOpen(true);
+    setMoreMenuOpen(false);
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
+    return (
+      <div className="flex justify-center items-center p-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">{error}</div>
+      </div>
+    );
   }
 
   if (!visit) {
-    return <Alert severity="info">Nessuna visita trovata.</Alert>;
+    return (
+      <div className="p-6">
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl">Nessuna visita trovata.</div>
+      </div>
+    );
   }
 
   const canCheckIn = visit.status === 'pending';
@@ -223,413 +282,335 @@ export default function VisitDetailPage() {
   const canReactivate = visit.status === 'cancelled' || visit.status === 'checked_out';
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Breadcrumbs
-        items={[
-          { label: 'Home', href: '/dashboard' },
-          { label: 'Visite', href: '/visits' },
-          { label: visit.purpose || visit.id }
-        ]}
-      />
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Button startIcon={<ArrowBack />} onClick={() => router.push('/visits')}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="p-6"
+    >
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm mb-4">
+        <Link href="/dashboard" className="text-gray-500 hover:text-gray-700 transition-colors">Home</Link>
+        <ChevronRightIcon />
+        <Link href="/visits" className="text-gray-500 hover:text-gray-700 transition-colors">Visite</Link>
+        <ChevronRightIcon />
+        <span className="text-gray-900 font-medium">{visit.purpose || visit.id}</span>
+      </nav>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <button onClick={() => router.push('/visits')} className="btn btn-secondary">
+          <ArrowLeftIcon />
           Tutte le Visite
-        </Button>
-        <Stack direction="row" spacing={1} flexWrap="wrap">
+        </button>
+        <div className="flex flex-wrap gap-2">
           {canCheckIn && (
-            <Button
-              variant="contained"
-              startIcon={<Login />}
-              onClick={() => handleAction('checkIn')}
-              sx={{
-                backgroundColor: 'common.black',
-                color: 'common.white',
-                '&:hover': { backgroundColor: 'grey.800' },
-              }}
-            >
+            <button onClick={() => handleAction('checkIn')} className="btn btn-primary">
+              <LoginIcon />
               Check-In
-            </Button>
+            </button>
           )}
           {canCheckOut && (
-            <Button
-              variant="contained"
-              startIcon={<Logout />}
-              onClick={() => handleAction('checkOut')}
-              sx={{
-                backgroundColor: 'error.main',
-                color: 'common.white',
-                '&:hover': { backgroundColor: 'error.dark' },
-              }}
-            >
+            <button onClick={() => handleAction('checkOut')} className="btn btn-primary bg-red-600 hover:bg-red-700">
+              <LogoutIcon />
               Check-Out
-            </Button>
+            </button>
           )}
           {canCancel && (
-            <Button
-              variant="contained"
-              startIcon={<Cancel />}
-              onClick={() => handleAction('cancel')}
-              sx={{
-                backgroundColor: 'common.black',
-                color: 'common.white',
-                '&:hover': { backgroundColor: 'grey.800' },
-              }}
-            >
+            <button onClick={() => handleAction('cancel')} className="btn btn-primary">
+              <CancelIcon />
               Annulla
-            </Button>
+            </button>
           )}
           {visit.badgeIssued && (
             <>
-              <Button
-                variant="contained"
-                startIcon={<QrCode2 />}
-                onClick={handleOpenBadge}
-                sx={{
-                  backgroundColor: 'common.black',
-                  color: 'common.white',
-                  '&:hover': { backgroundColor: 'grey.800' },
-                }}
-              >
+              <button onClick={handleOpenBadge} className="btn btn-primary">
+                <QRCodeIcon />
                 Visualizza Badge
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<Print />}
-                onClick={handlePrintBadgeToQueue}
-                sx={{
-                  backgroundColor: 'primary.main',
-                  color: 'common.white',
-                  '&:hover': { backgroundColor: 'primary.dark' },
-                }}
-              >
-                Stampa Badge
-              </Button>
+              </button>
+              <button onClick={handlePrintBadge} className="btn btn-secondary">
+                <PrintIcon />
+                Stampa
+              </button>
             </>
           )}
-          <Button
-            variant="contained"
-            startIcon={<Edit />}
-            onClick={() => router.push(`/visits/${visit.id}/edit`)}
-            sx={{
-              backgroundColor: 'common.black',
-              color: 'common.white',
-              '&:hover': { backgroundColor: 'grey.800' },
-            }}
-          >
+          <button onClick={() => router.push(`/visits/${visit.id}/edit`)} className="btn btn-primary">
+            <EditIcon />
             Modifica
-          </Button>
-          <IconButton
-            onClick={(e) => setActionsMenuAnchor(e.currentTarget)}
-            sx={{
-              border: '2px solid',
-              borderColor: 'grey.300',
-              '&:hover': { borderColor: 'grey.500', bgcolor: 'grey.50' },
-            }}
-          >
-            <MoreVert />
-          </IconButton>
-        </Stack>
-      </Stack>
-
-      {/* Advanced Actions Menu */}
-      <Menu
-        anchorEl={actionsMenuAnchor}
-        open={Boolean(actionsMenuAnchor)}
-        onClose={() => setActionsMenuAnchor(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        {canReactivate && (
-          <MenuItem
-            onClick={() =>
-              openConfirmDialog(
-                'Riattiva Visita',
-                'Sei sicuro di voler riattivare questa visita? Lo stato verrà impostato su "In Attesa" e il badge verrà resettato se già emesso.',
-                handleReactivate
-              )
-            }
-          >
-            <ListItemIcon>
-              <RestartAlt fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Riattiva Visita</ListItemText>
-          </MenuItem>
-        )}
-        <MenuItem onClick={handleDuplicate}>
-          <ListItemIcon>
-            <ContentCopy fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Duplica Visita</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleSendNotification}>
-          <ListItemIcon>
-            <Email fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Invia Notifica Email</ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem
-          onClick={() =>
-            openConfirmDialog(
-              'Elimina Definitivamente',
-              'ATTENZIONE: Questa azione eliminerà definitivamente la visita e non potrà essere annullata. Sei assolutamente sicuro?',
-              handleHardDelete,
-              'error'
-            )
-          }
-          sx={{ color: 'error.main' }}
-        >
-          <ListItemIcon>
-            <DeleteForever fontSize="small" sx={{ color: 'error.main' }} />
-          </ListItemIcon>
-          <ListItemText>Elimina Definitivamente</ListItemText>
-        </MenuItem>
-      </Menu>
-
-      <Grid container spacing={3}>
-        {/* Visitor & Host Info */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ p: 2, height: '100%' }}>
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'primary.main' }}><Person /></Avatar>
-              <Typography variant="h6">Visitatore</Typography>
-            </Stack>
-            <Typography><strong>Nome:</strong> {visit.visitor?.firstName} {visit.visitor?.lastName}</Typography>
-            <Typography><strong>Azienda:</strong> {visit.visitor?.company || '-'}</Typography>
-            <Typography><strong>Email:</strong> {visit.visitor?.email || '-'}</Typography>
-            <Button
-              size="small"
-              onClick={() => router.push(`/visitors/${visit.visitorId}`)}
-              sx={{
-                mt: 1,
-                backgroundColor: 'common.black',
-                color: 'common.white',
-                '&:hover': { backgroundColor: 'grey.800' },
-              }}
+          </button>
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+              className="p-2 border-2 border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-colors"
             >
-              Vedi Profilo
-            </Button>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ p: 2, height: '100%' }}>
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'secondary.main' }}><Business /></Avatar>
-              <Typography variant="h6">Ospite</Typography>
-            </Stack>
-            <Typography>
-              <strong>Nome:</strong>{' '}
-              {visit.hostUser
-                ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
-                : visit.hostName || '-'}
-            </Typography>
-          </Card>
-        </Grid>
-
-        {/* Visit Details */}
-        <Grid item xs={12}>
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Dettagli Visita</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography><strong>Stato:</strong></Typography>
-                  <Chip label={translateVisitStatus(visit.status)} size="small" color={getVisitStatusColor(visit.status)} />
-                </Stack>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Scopo:</strong> {visit.purpose}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Tipo Visita:</strong> {translateVisitType(visit.visitType)}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Dipartimento:</strong> {visit.department?.name || '-'}</Typography></Grid>
-              {visit.department?.area && (
-                <Grid item xs={12} sm={6} md={4}><Typography><strong>Area:</strong> {visit.department.area}</Typography></Grid>
-              )}
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Data Programmata:</strong> {new Date(visit.scheduledDate).toLocaleString('it-IT')}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-In:</strong> {visit.actualCheckIn ? new Date(visit.actualCheckIn).toLocaleString('it-IT') : '-'}</Typography></Grid>
-              <Grid item xs={12} sm={6} md={4}><Typography><strong>Check-Out:</strong> {visit.actualCheckOut ? new Date(visit.actualCheckOut).toLocaleString('it-IT') : '-'}</Typography></Grid>
-              <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
-              <Grid item xs={12} sm={6}><Typography><strong>Badge:</strong> {visit.badgeIssued ? `Sì, #${visit.badgeNumber}` : 'No'}</Typography></Grid>
-              {visit.checkInPin && !visit.badgeIssued && (
-                <Grid item xs={12} sm={6}>
-                  <Typography>
-                    <strong>PIN Check-In:</strong>{' '}
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-block',
-                        backgroundColor: 'primary.main',
-                        color: 'white',
-                        px: 2,
-                        py: 0.5,
-                        borderRadius: 1,
-                        fontWeight: 'bold',
-                        fontSize: '1.2rem',
-                        letterSpacing: '0.2em',
-                        fontFamily: 'monospace'
-                      }}
+              <MoreIcon />
+            </button>
+            <AnimatePresence>
+              {moreMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute right-0 mt-2 w-56 card p-2 z-20"
+                >
+                  {canReactivate && (
+                    <button
+                      onClick={() => openConfirm('Riattiva Visita', 'Sei sicuro di voler riattivare questa visita?', handleReactivate)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                      {visit.checkInPin}
-                    </Box>
-                  </Typography>
-                </Grid>
+                      <RefreshIcon />
+                      Riattiva Visita
+                    </button>
+                  )}
+                  <button
+                    onClick={handleDuplicate}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <CopyIcon />
+                    Duplica Visita
+                  </button>
+                  <button
+                    onClick={handleSendNotification}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <EmailIcon />
+                    Invia Notifica Email
+                  </button>
+                  <div className="border-t border-gray-100 my-1"></div>
+                  <button
+                    onClick={() => openConfirm('Elimina Definitivamente', 'ATTENZIONE: Questa azione eliminerà definitivamente la visita.', handleHardDelete, 'error')}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <TrashIcon />
+                    Elimina Definitivamente
+                  </button>
+                </motion.div>
               )}
-              <Grid item xs={12} sm={6}><Typography><strong>Notifica Inviata:</strong> {visit.notificationSent ? 'Sì' : 'No'}</Typography></Grid>
-              <Grid item xs={12}><Typography><strong>Note:</strong> {visit.notes || '-'}</Typography></Grid>
-            </Grid>
-          </Card>
-        </Grid>
-      </Grid>
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Visitor Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white">
+              <PersonIcon />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Visitatore</h3>
+          </div>
+          <div className="space-y-2 text-sm">
+            <p><span className="text-gray-500">Nome:</span> <span className="font-medium">{visit.visitor?.firstName} {visit.visitor?.lastName}</span></p>
+            <p><span className="text-gray-500">Azienda:</span> <span className="font-medium">{visit.visitor?.company || '-'}</span></p>
+            <p><span className="text-gray-500">Email:</span> <span className="font-medium">{visit.visitor?.email || '-'}</span></p>
+          </div>
+          <button
+            onClick={() => router.push(`/visitors/${visit.visitorId}`)}
+            className="btn btn-primary mt-4 text-sm"
+          >
+            Vedi Profilo
+          </button>
+        </div>
+
+        {/* Host Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white">
+              <BusinessIcon />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Ospite</h3>
+          </div>
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="text-gray-500">Nome:</span>{' '}
+              <span className="font-medium">
+                {visit.hostUser
+                  ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+                  : visit.hostName || '-'}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Visit Details Card */}
+        <div className="md:col-span-2 card p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Dettagli Visita</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <p className="text-sm text-gray-500">Stato</p>
+              <span className={`badge ${getStatusBadgeClass(visit.status)} mt-1`}>
+                {translateVisitStatus(visit.status)}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Scopo</p>
+              <p className="font-medium text-gray-900">{visit.purpose}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Tipo Visita</p>
+              <p className="font-medium text-gray-900">{translateVisitType(visit.visitType)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Dipartimento</p>
+              <p className="font-medium text-gray-900">{visit.department?.name || '-'}</p>
+            </div>
+            {visit.department?.area && (
+              <div>
+                <p className="text-sm text-gray-500">Area</p>
+                <p className="font-medium text-gray-900">{visit.department.area}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-sm text-gray-500">Data Programmata</p>
+              <p className="font-medium text-gray-900">{new Date(visit.scheduledDate).toLocaleString('it-IT')}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Check-In</p>
+              <p className="font-medium text-gray-900">{visit.actualCheckIn ? new Date(visit.actualCheckIn).toLocaleString('it-IT') : '-'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Check-Out</p>
+              <p className="font-medium text-gray-900">{visit.actualCheckOut ? new Date(visit.actualCheckOut).toLocaleString('it-IT') : '-'}</p>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 my-4"></div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <p className="text-sm text-gray-500">Badge</p>
+              <p className="font-medium text-gray-900">{visit.badgeIssued ? `Sì, #${visit.badgeNumber}` : 'No'}</p>
+            </div>
+            {visit.checkInPin && !visit.badgeIssued && (
+              <div>
+                <p className="text-sm text-gray-500">PIN Check-In</p>
+                <span className="inline-block mt-1 px-3 py-1 bg-blue-600 text-white rounded-lg font-mono font-bold text-lg tracking-widest">
+                  {visit.checkInPin}
+                </span>
+              </div>
+            )}
+            <div>
+              <p className="text-sm text-gray-500">Notifica Inviata</p>
+              <p className="font-medium text-gray-900">{visit.notificationSent ? 'Sì' : 'No'}</p>
+            </div>
+          </div>
+
+          {visit.notes && (
+            <>
+              <div className="border-t border-gray-100 my-4"></div>
+              <div>
+                <p className="text-sm text-gray-500">Note</p>
+                <p className="font-medium text-gray-900">{visit.notes}</p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Badge Modal */}
-      <Dialog
-        open={badgeModalOpen}
-        onClose={() => setBadgeModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            '@media print': {
-              boxShadow: 'none',
-              margin: 0,
-            }
-          }
-        }}
-      >
-        <DialogTitle>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" fontWeight="bold">
-              Badge Visitatore
-            </Typography>
-            <IconButton onClick={() => setBadgeModalOpen(false)} size="small" className="no-print">
-              <Close />
-            </IconButton>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          {badgeData && (
-            <Box
-              sx={{
-                textAlign: 'center',
-                py: 3,
-                border: '4px solid',
-                borderColor: 'primary.main',
-                borderRadius: 3,
-                bgcolor: 'grey.50',
-                '@media print': {
-                  border: '2px solid black',
-                }
-              }}
+      <AnimatePresence>
+        {badgeModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setBadgeModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-md w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-                color="primary.main"
-                sx={{ mb: 3 }}
-              >
-                VISITATORE
-              </Typography>
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Badge Visitatore</h3>
+                <button
+                  onClick={() => setBadgeModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <XIcon />
+                </button>
+              </div>
+              <div className="p-6">
+                {badgeData && (
+                  <div className="text-center py-4 border-4 border-blue-600 rounded-2xl bg-gray-50">
+                    <h2 className="text-2xl font-bold text-blue-600 mb-4">VISITATORE</h2>
+                    <p className="text-xl font-bold text-gray-900">{badgeData.visitor?.name}</p>
+                    <p className="text-gray-500 mb-4">{badgeData.visitor?.company || 'N/A'}</p>
+                    {badgeData.qrCode && (
+                      <img
+                        src={badgeData.qrCode}
+                        alt="Badge QR Code"
+                        className="w-48 h-48 mx-auto border-2 border-gray-200 rounded-xl bg-white p-2"
+                      />
+                    )}
+                    <div className="mt-4 space-y-1 text-sm">
+                      <p><span className="font-medium">Badge:</span> {badgeData.badgeNumber}</p>
+                      <p><span className="font-medium">Host:</span> {badgeData.host}</p>
+                      <p><span className="font-medium">Valido fino:</span> {badgeData.validUntil && new Date(badgeData.validUntil).toLocaleString('it-IT')}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+                <button onClick={() => setBadgeModalOpen(false)} className="btn btn-secondary">
+                  Chiudi
+                </button>
+                <button onClick={handlePrintBadge} className="btn btn-primary">
+                  <PrintIcon />
+                  Stampa
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              {/* Visitor Info */}
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                {badgeData.visitor?.name}
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                {badgeData.visitor?.company || 'N/A'}
-              </Typography>
-
-              {/* Barcode */}
-              {badgeData.qrCode && (
-                <Box
-                  component="img"
-                  src={badgeData.qrCode}
-                  alt="Badge Barcode"
-                  sx={{
-                    width: 250,
-                    height: 'auto',
-                    margin: '0 auto',
-                    display: 'block',
-                    border: '2px solid',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    bgcolor: 'white',
-                    p: 1
+      {/* Confirm Modal */}
+      <AnimatePresence>
+        {confirmModalOpen && confirmAction && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setConfirmModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-md w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{confirmAction.title}</h3>
+                <div className={`p-4 rounded-xl mb-4 ${confirmAction.severity === 'error' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                  {confirmAction.message}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+                <button onClick={() => setConfirmModalOpen(false)} className="btn btn-secondary">
+                  Annulla
+                </button>
+                <button
+                  onClick={() => {
+                    confirmAction.action();
+                    setConfirmModalOpen(false);
                   }}
-                />
-              )}
-
-              {/* Badge Details */}
-              <Stack spacing={1} sx={{ mt: 3, px: 3 }}>
-                <Typography variant="body2">
-                  <strong>Badge:</strong> {badgeData.badgeNumber}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Host:</strong> {badgeData.host}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Valido fino:</strong>{' '}
-                  {badgeData.validUntil &&
-                    new Date(badgeData.validUntil).toLocaleString('it-IT')}
-                </Typography>
-              </Stack>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions className="no-print">
-          <Button onClick={() => setBadgeModalOpen(false)}>
-            Chiudi
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Print />}
-            onClick={handlePrintBadge}
-            sx={{
-              bgcolor: 'black',
-              '&:hover': { bgcolor: 'grey.800' },
-            }}
-          >
-            Stampa
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Confirmation Dialog */}
-      <Dialog
-        open={confirmDialog.open}
-        onClose={closeConfirmDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography variant="h6" fontWeight="bold">
-              {confirmDialog.title}
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity={confirmDialog.severity || 'warning'} sx={{ mb: 2 }}>
-            {confirmDialog.message}
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeConfirmDialog}>
-            Annulla
-          </Button>
-          <Button
-            variant="contained"
-            onClick={executeConfirmAction}
-            sx={{
-              bgcolor: confirmDialog.severity === 'error' ? 'error.main' : 'warning.main',
-              '&:hover': {
-                bgcolor: confirmDialog.severity === 'error' ? 'error.dark' : 'warning.dark',
-              },
-            }}
-          >
-            Conferma
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+                  className={`btn btn-primary ${confirmAction.severity === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-600 hover:bg-yellow-700'}`}
+                >
+                  Conferma
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

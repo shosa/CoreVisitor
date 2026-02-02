@@ -1,47 +1,79 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Tabs,
-  Tab,
-  IconButton,
-  Stack,
-  TextField,
-  InputAdornment,
-  Button,
-  Menu,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Grid,
-} from '@mui/material';
-import {
-  Search,
-  Visibility,
-  AddCircle,
-  FileDownload,
-  Refresh,
-  FilterList,
-} from '@mui/icons-material';
+import { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import { visitsApi, departmentsApi } from '@/lib/api';
 import { Visit, VisitStatus, Department } from '@/types/visitor';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { translateVisitStatus, getVisitStatusColor, translateVisitType } from '@/lib/translations';
+import { translateVisitStatus, translateVisitType } from '@/lib/translations';
 import { it } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
-import Breadcrumbs from '@/components/Breadcrumbs';
+
+// SVG Icons
+const SearchIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
+const VisibilityIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const AddCircleIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const FileDownloadIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+const FilterListIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+// Get badge color class based on visit status
+const getStatusBadgeClass = (status: string): string => {
+  switch (status) {
+    case 'checked_in':
+      return 'badge-green';
+    case 'checked_out':
+      return 'badge-blue';
+    case 'pending':
+      return 'badge-yellow';
+    case 'approved':
+      return 'badge-blue';
+    case 'rejected':
+    case 'cancelled':
+      return 'badge-red';
+    case 'expired':
+      return 'badge';
+    default:
+      return 'badge';
+  }
+};
 
 export default function VisitsPage() {
   const router = useRouter();
@@ -55,7 +87,8 @@ export default function VisitsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
@@ -64,6 +97,17 @@ export default function VisitsPage() {
   useEffect(() => {
     filterVisits();
   }, [visits, statusFilter, searchQuery, departmentFilter, dateFrom, dateTo]);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadData = async () => {
     try {
@@ -160,7 +204,7 @@ export default function VisitsPage() {
     link.href = URL.createObjectURL(blob);
     link.download = `visite_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`;
     link.click();
-    setExportMenuAnchor(null);
+    setExportMenuOpen(false);
   };
 
   const handleClearFilters = () => {
@@ -178,246 +222,273 @@ export default function VisitsPage() {
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Breadcrumbs
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Visite' },
-        ]}
-      />
+  const tabs = [
+    { label: 'Tutte', value: 'ALL' },
+    { label: 'In Corso', value: VisitStatus.CHECKED_IN },
+    { label: 'Programmate', value: VisitStatus.SCHEDULED },
+    { label: 'Completate', value: VisitStatus.CHECKED_OUT },
+    { label: 'Cancellate', value: VisitStatus.CANCELLED },
+  ];
 
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
-          Tutte le Visite
-        </Typography>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Chip label={`${filteredVisits.length} visite`} color="primary" />
-          <IconButton onClick={loadData}>
-            <Refresh />
-          </IconButton>
-          <Button
-            variant="outlined"
-            startIcon={<FileDownload />}
-            onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+  return (
+    <div className="p-6">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+        <Link href="/" className="hover:text-gray-700 transition-colors">
+          Home
+        </Link>
+        <ChevronRightIcon />
+        <span className="text-gray-900 font-medium">Visite</span>
+      </nav>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Tutte le Visite</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="badge badge-blue">{filteredVisits.length} visite</span>
+          <button
+            onClick={loadData}
+            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            title="Aggiorna"
           >
-            Esporta
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddCircle />}
+            <RefreshIcon />
+          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setExportMenuOpen(!exportMenuOpen)}
+            >
+              <FileDownloadIcon />
+              Esporta
+            </button>
+            <AnimatePresence>
+              {exportMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute right-0 mt-2 w-48 card p-2 z-10"
+                >
+                  <button
+                    onClick={handleExportCSV}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <FileDownloadIcon />
+                    Esporta CSV
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <button
+            className="btn btn-primary"
             onClick={() => router.push('/visits/new')}
           >
+            <AddCircleIcon />
             Nuova Visita
-          </Button>
-        </Stack>
-      </Stack>
+          </button>
+        </div>
+      </div>
 
-      <Card sx={{ mb: 3 }}>
-        <Box sx={{ p: 2 }}>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <TextField
-              fullWidth
-              placeholder="Cerca per visitatore, azienda, host, badge, reparto..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              variant={showFilters ? 'contained' : 'outlined'}
-              startIcon={<FilterList />}
+      {/* Search and Filters Card */}
+      <div className="card mb-6">
+        <div className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <SearchIcon />
+              </span>
+              <input
+                type="text"
+                className="input pl-10"
+                placeholder="Cerca per visitatore, azienda, host, badge, reparto..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <button
+              className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setShowFilters(!showFilters)}
             >
+              <FilterListIcon />
               Filtri
               {activeFiltersCount > 0 && ` (${activeFiltersCount})`}
-            </Button>
-          </Stack>
+            </button>
+          </div>
 
-          {showFilters && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Reparto</InputLabel>
-                  <Select
-                    value={departmentFilter}
-                    onChange={(e) => setDepartmentFilter(e.target.value)}
-                    label="Reparto"
-                  >
-                    <MenuItem value="ALL">Tutti</MenuItem>
-                    {departments.map((dept) => (
-                      <MenuItem key={dept.id} value={dept.name}>
-                        {dept.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="date"
-                  label="Da Data"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="date"
-                  label="A Data"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  onClick={handleClearFilters}
-                  disabled={activeFiltersCount === 0}
-                >
-                  Azzera Filtri
-                </Button>
-              </Grid>
-            </Grid>
-          )}
-        </Box>
+          {/* Expanded Filters */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+                  <div>
+                    <label className="label">Reparto</label>
+                    <select
+                      className="input"
+                      value={departmentFilter}
+                      onChange={(e) => setDepartmentFilter(e.target.value)}
+                    >
+                      <option value="ALL">Tutti</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.name}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Da Data</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">A Data</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      className="btn btn-secondary w-full"
+                      onClick={handleClearFilters}
+                      disabled={activeFiltersCount === 0}
+                    >
+                      Azzera Filtri
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-        <Tabs
-          value={statusFilter}
-          onChange={(_, value) => setStatusFilter(value)}
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab label="Tutte" value="ALL" />
-          <Tab label="In Corso" value={VisitStatus.CHECKED_IN} />
-          <Tab label="Programmate" value={VisitStatus.SCHEDULED} />
-          <Tab label="Completate" value={VisitStatus.CHECKED_OUT} />
-          <Tab label="Cancellate" value={VisitStatus.CANCELLED} />
-        </Tabs>
-      </Card>
+        {/* Tabs */}
+        <div className="border-t border-gray-100 overflow-x-auto">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setStatusFilter(tab.value)}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  statusFilter === tab.value
+                    ? 'border-gray-900 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
+      {/* Table */}
       {loading ? (
-        <Typography>Caricamento...</Typography>
+        <div className="card p-8 text-center text-gray-500">
+          <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full mx-auto mb-4"></div>
+          Caricamento...
+        </div>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Data/Ora</TableCell>
-                <TableCell>Visitatore</TableCell>
-                <TableCell>Azienda</TableCell>
-                <TableCell>Host</TableCell>
-                <TableCell>Reparto</TableCell>
-                <TableCell>Motivo</TableCell>
-                <TableCell>Badge/PIN</TableCell>
-                <TableCell>Stato</TableCell>
-                <TableCell align="right">Azioni</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredVisits.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    Nessuna visita trovata
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredVisits.map((visit) => (
-                  <TableRow key={visit.id} hover>
-                    <TableCell>
-                      {format(new Date(visit.scheduledDate), 'dd/MM/yyyy HH:mm', {
-                        locale: it,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600}>
-                        {visit.visitor?.firstName} {visit.visitor?.lastName}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{visit.visitor?.company || '-'}</TableCell>
-                    <TableCell>
-                      {visit.hostUser
-                        ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
-                        : visit.hostName || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {visit.department?.name || '-'}
-                      {visit.department?.area && (
-                        <>
-                          <br />
-                          <Typography variant="caption" color="text.secondary">
-                            {visit.department.area}
-                          </Typography>
-                        </>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={visit.purpose} size="small" />
-                    </TableCell>
-                    <TableCell>
-                      {visit.badgeNumber ? (
-                        <Chip label={`Badge: ${visit.badgeNumber}`} size="small" color="success" />
-                      ) : visit.checkInPin ? (
-                        <Chip
-                          label={`PIN: ${visit.checkInPin}`}
-                          size="small"
-                          color="primary"
-                          sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}
-                        />
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={translateVisitStatus(visit.status)}
-                        size="small"
-                        color={getVisitStatusColor(visit.status)}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={() => router.push(`/visits/${visit.id}`)}
-                        sx={{
-                          bgcolor: 'black',
-                          color: 'white',
-                          borderRadius: '6px',
-                          '&:hover': { bgcolor: 'grey.800' },
-                        }}
-                      >
-                        <Visibility fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data/Ora</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Visitatore</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Azienda</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Host</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Reparto</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Motivo</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Badge/PIN</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stato</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVisits.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                      Nessuna visita trovata
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVisits.map((visit) => (
+                    <motion.tr
+                      key={visit.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {format(new Date(visit.scheduledDate), 'dd/MM/yyyy HH:mm', {
+                          locale: it,
+                        })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {visit.visitor?.firstName} {visit.visitor?.lastName}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {visit.visitor?.company || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {visit.hostUser
+                          ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+                          : visit.hostName || '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-gray-700">{visit.department?.name || '-'}</div>
+                        {visit.department?.area && (
+                          <div className="text-xs text-gray-500">{visit.department.area}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="badge">{visit.purpose}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {visit.badgeNumber ? (
+                          <span className="badge badge-green">Badge: {visit.badgeNumber}</span>
+                        ) : visit.checkInPin ? (
+                          <span className="badge badge-blue font-mono font-bold">PIN: {visit.checkInPin}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`badge ${getStatusBadgeClass(visit.status)}`}>
+                          {translateVisitStatus(visit.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => router.push(`/visits/${visit.id}`)}
+                          className="inline-flex items-center justify-center w-8 h-8 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        >
+                          <VisibilityIcon />
+                        </button>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
-
-      <Menu
-        anchorEl={exportMenuAnchor}
-        open={Boolean(exportMenuAnchor)}
-        onClose={() => setExportMenuAnchor(null)}
-      >
-        <MenuItem onClick={handleExportCSV}>
-          <FileDownload sx={{ mr: 1 }} /> Esporta CSV
-        </MenuItem>
-      </Menu>
-    </Box>
+    </div>
   );
 }

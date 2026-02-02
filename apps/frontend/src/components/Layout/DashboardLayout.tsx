@@ -1,107 +1,92 @@
 'use client';
 
 import { useState, ReactNode } from 'react';
-import {
-  AppBar,
-  Box,
-  Drawer,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  Menu,
-  MenuItem,
-  Badge,
-  Divider,
-  Collapse,
-} from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  Group as GroupIcon,
-  EventNote as EventNoteIcon,
-  People as PeopleIcon,
-  AddCircle as AddCircleIcon,
-  Schedule as ScheduleIcon,
-  Business as BusinessIcon,
-  Logout as LogoutIcon,
-  ExpandLess,
-  ExpandMore,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  ManageAccounts as ManageAccountsIcon,
-  Print as PrintIcon,
-  PrintOutlined as PrintQueueIcon,
-} from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '@/components/Logo';
 import UserAvatar from '@/components/UserAvatar';
 import GlobalSearch from '@/components/GlobalSearch';
 import { useAuthStore } from '@/store/authStore';
-
-const DRAWER_WIDTH = 280;
-const COLLAPSED_DRAWER_WIDTH = 70;
 
 interface NavigationItem {
   label: string;
   href: string;
   icon: ReactNode;
   roles?: string[];
-  children?: NavigationItem[];
 }
 
+const DashboardIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+);
+
+const VisitsCurrentIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const VisitsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+  </svg>
+);
+
+const AddIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const VisitorsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+);
+
+const DepartmentsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const PrinterIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+  </svg>
+);
+
+const PrintJobsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+  </svg>
+);
+
 const navigationItems: NavigationItem[] = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: <DashboardIcon />,
-  },
-  {
-    label: 'Visite in Corso',
-    href: '/visits/current',
-    icon: <GroupIcon />,
-  },
-  {
-    label: 'Tutte le Visite',
-    href: '/visits',
-    icon: <EventNoteIcon />,
-  },
-  {
-    label: 'Pre-registrazione',
-    href: '/visits/new',
-    icon: <AddCircleIcon />,
-  },
-  {
-    label: 'Visitatori',
-    href: '/visitors',
-    icon: <PeopleIcon />,
-  },
-  {
-    label: 'Reparti',
-    href: '/departments',
-    icon: <BusinessIcon />,
-  },
-  {
-    label: 'Utenti',
-    href: '/users',
-    icon: <ManageAccountsIcon />,
-    roles: ['admin'],
-  },
-  {
-    label: 'Stampanti',
-    href: '/printers',
-    icon: <PrintIcon />,
-    roles: ['admin'],
-  },
-  {
-    label: 'Lavori di Stampa',
-    href: '/print-jobs',
-    icon: <PrintQueueIcon />,
-    roles: ['admin'],
-  },
+  { label: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
+  { label: 'Visite in Corso', href: '/visits/current', icon: <VisitsCurrentIcon /> },
+  { label: 'Tutte le Visite', href: '/visits', icon: <VisitsIcon /> },
+  { label: 'Pre-registrazione', href: '/visits/new', icon: <AddIcon /> },
+  { label: 'Visitatori', href: '/visitors', icon: <VisitorsIcon /> },
+  { label: 'Reparti', href: '/departments', icon: <DepartmentsIcon /> },
+  { label: 'Utenti', href: '/users', icon: <UsersIcon />, roles: ['admin'] },
+  { label: 'Stampanti', href: '/printers', icon: <PrinterIcon />, roles: ['admin'] },
+  { label: 'Lavori di Stampa', href: '/print-jobs', icon: <PrintJobsIcon />, roles: ['admin'] },
 ];
 
 interface DashboardLayoutProps {
@@ -110,55 +95,21 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, hasRole } = useAuthStore();
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const handleSidebarToggle = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
-  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setUserMenuAnchor(event.currentTarget);
-  };
-
-  const handleUserMenuClose = () => {
-    setUserMenuAnchor(null);
-  };
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
 
-  const handleItemClick = (href: string) => {
-    router.push(href);
-    setMobileOpen(false);
-  };
-
-  const handleExpandClick = (label: string) => {
-    setExpandedItems((prev) =>
-      prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]
-    );
-  };
-
   const isItemActive = (href: string) => {
-    // Exact match per evitare che /visits matchi /visits/current
     if (pathname === href) return true;
-
-    // Per le route con children, controlla se il path inizia con href
-    // Ma non considerare /visits attivo quando siamo in /visits/current o /visits/new
     if (href === '/visits' && (pathname === '/visits/current' || pathname === '/visits/new')) {
       return false;
     }
-
     return pathname.startsWith(`${href}/`) && pathname !== href;
   };
 
@@ -171,248 +122,116 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     });
   };
 
-  const renderNavItem = (item: NavigationItem) => {
-    const hasChildren = item.children && item.children.length > 0;
-    const isExpanded = expandedItems.includes(item.label);
-    const isActive = isItemActive(item.href);
-
-    return (
-      <Box key={item.label}>
-        <ListItemButton
-          onClick={() => {
-            if (hasChildren) {
-              handleExpandClick(item.label);
-            } else {
-              handleItemClick(item.href);
-            }
-          }}
-          selected={isActive && !hasChildren}
-          sx={{
-            py: 1.25,
-            px: 2,
-            mb: 0.5,
-            mx: 1,
-            borderRadius: 1,
-            '&:hover': {
-              bgcolor: 'grey.800',
-            },
-            '&.Mui-selected': {
-              bgcolor: 'common.white',
-              color: 'common.black',
-              '&:hover': {
-                bgcolor: 'common.white',
-              },
-            },
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: 40, color: isActive ? 'common.black' : 'inherit' }}>
-            {item.icon}
-          </ListItemIcon>
-          {!sidebarCollapsed && (
-            <ListItemText
-              primary={item.label}
-              primaryTypographyProps={{
-                fontSize: '0.875rem',
-                fontWeight: isActive ? 600 : 400,
-                color: isActive ? 'common.black' : 'inherit',
-              }}
-            />
-          )}
-          {hasChildren && (isExpanded ? <ExpandLess sx={{ color: isActive ? 'common.black' : 'inherit' }} /> : <ExpandMore sx={{ color: isActive ? 'common.black' : 'inherit' }} />)}
-        </ListItemButton>
-        {hasChildren && (
-          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              {item.children?.map((child) => (
-                <ListItemButton
-                  key={child.label}
-                  onClick={() => handleItemClick(child.href)}
-                  selected={isItemActive(child.href)}
-                  sx={{
-                    py: 1,
-                    pl: 7,
-                    pr: 2,
-                    mb: 0.5,
-                    mx: 1,
-                    borderRadius: 1,
-                    '&:hover': {
-                      bgcolor: 'grey.800',
-                    },
-                    '&.Mui-selected': {
-                      bgcolor: 'common.white',
-                      color: 'common.black',
-                      '&:hover': {
-                        bgcolor: 'common.white',
-                      },
-                    },
-                  }}
-                >
-                  {!sidebarCollapsed && (
-                    <ListItemText
-                      primary={child.label}
-                      primaryTypographyProps={{
-                        fontSize: '0.813rem',
-                        fontWeight: isItemActive(child.href) ? 600 : 400,
-                        color: isItemActive(child.href) ? 'common.black' : 'inherit',
-                      }}
-                    />
-                  )}
-                </ListItemButton>
-              ))}
-            </List>
-          </Collapse>
-        )}
-      </Box>
-    );
-  };
-
-  const drawer = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box>
-        <Logo collapsed={sidebarCollapsed} />
-      </Box>
-      <Divider sx={{ borderColor: 'grey.800' }} />
-      <Box sx={{ flex: 1, overflowY: 'auto', py: 2 }}>
-        <List>{filterNavItems(navigationItems).map(renderNavItem)}</List>
-      </Box>
-      <Divider sx={{ borderColor: 'grey.800' }} />
-      {user && (
-        <Box
-          sx={{
-            p: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            cursor: 'pointer',
-            '&:hover': {
-              bgcolor: 'grey.800',
-            },
-          }}
-          onClick={handleUserMenuOpen}
-        >
-          <UserAvatar user={user} size={40} />
-          {!sidebarCollapsed && (
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600} noWrap>
-                {user.firstName} {user.lastName}
-              </Typography>
-              <Typography variant="caption" noWrap>
-                {user.role}
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      )}
-    </Box>
-  );
-
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }} className="dashboard-layout-container">
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { md: `calc(100% - ${sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : DRAWER_WIDTH}px)` },
-          ml: { md: `${sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : DRAWER_WIDTH}px` },
-          boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
-        }}
+    <div className="flex h-screen overflow-hidden">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed md:relative top-0 left-0 h-full z-50 flex-shrink-0 w-64 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="p-4 border-b border-gray-800">
+            <Logo />
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto py-4">
+            <ul className="space-y-1 px-2">
+              {filterNavItems(navigationItems).map((item) => {
+                const isActive = isItemActive(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-white text-gray-900 font-medium'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <span className={isActive ? 'text-gray-900' : 'text-gray-400'}>{item.icon}</span>
+                      <span className="text-sm">{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* User Section */}
+          {user && (
+            <div className="border-t border-gray-800 p-4">
+              <div
+                className="flex items-center gap-3 cursor-pointer hover:bg-gray-800 rounded-lg p-2 -m-2 transition-colors"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+              >
+                <UserAvatar user={user} size={40} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
+                  <p className="text-xs text-gray-400 truncate">{user.role}</p>
+                </div>
+              </div>
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-2"
+                  >
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
+                    >
+                      <LogoutIcon />
+                      Logout
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Header */}
+        <header className="flex-shrink-0 h-16 bg-white border-b border-gray-200 flex items-center px-4 gap-4">
+          <button
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            onClick={() => setMobileOpen(true)}
           >
-            <MenuIcon />
-          </IconButton>
-          <IconButton
-            color="inherit"
-            aria-label="toggle sidebar"
-            onClick={handleSidebarToggle}
-            sx={{ mr: 2, display: { xs: 'none', md: 'block' } }}
-          >
-            {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
-          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', px: 2 }}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="flex-1 flex justify-center">
             <GlobalSearch />
-          </Box>
-        </Toolbar>
-      </AppBar>
+          </div>
+        </header>
 
-      <Box
-        component="nav"
-        sx={{
-          width: { md: sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : DRAWER_WIDTH },
-          flexShrink: { md: 0 },
-        }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: DRAWER_WIDTH,
-              boxShadow: '4px 0px 8px rgba(0, 0, 0, 0.1)',
-              bgcolor: 'primary.main',
-              color: 'common.white',
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : DRAWER_WIDTH,
-              boxShadow: '4px 0px 8px rgba(0, 0, 0, 0.1)',
-              bgcolor: 'primary.main',
-              color: 'common.white',
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { md: `calc(100% - ${sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : DRAWER_WIDTH}px)` },
-          mt: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-        }}
-      >
-        <Box sx={{ flexGrow: 1, p: 3 }}>{children}</Box>
-
-      </Box>
-
-      <Menu
-        anchorEl={userMenuAnchor}
-        open={Boolean(userMenuAnchor)}
-        onClose={handleUserMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
-      >
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <LogoutIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
-    </Box>
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }

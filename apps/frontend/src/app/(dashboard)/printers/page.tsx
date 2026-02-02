@@ -1,42 +1,68 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  IconButton,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Switch,
-  FormControlLabel,
-  Alert,
-  CircularProgress,
-  Grid,
-} from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Print as PrintIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import { printerApi, PrinterConfig, PrinterStatus, QueueStatus } from '@/lib/api';
+import { useToast } from '@/components/Toast';
+
+// SVG Icons
+const PlusIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const PrintIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const ErrorCircleIcon = () => (
+  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const SpinnerIcon = () => (
+  <svg className="w-8 h-8 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+  </svg>
+);
 
 export default function PrintersPage() {
+  const toast = useToast();
   const [configs, setConfigs] = useState<PrinterConfig[]>([]);
   const [printerStatus, setPrinterStatus] = useState<PrinterStatus | null>(null);
   const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
@@ -53,12 +79,10 @@ export default function PrintersPage() {
     isActive: true,
   });
   const [testingPrinter, setTestingPrinter] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadQueueStatus, 5000); // Refresh queue every 5 seconds
+    const interval = setInterval(loadQueueStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -75,7 +99,7 @@ export default function PrintersPage() {
       setPrinterStatus(statusRes.data);
       setQueueStatus(queueRes.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Errore nel caricamento dati');
+      toast.showError(err.response?.data?.message || 'Errore nel caricamento dati');
     } finally {
       setLoading(false);
     }
@@ -120,12 +144,10 @@ export default function PrintersPage() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingConfig(null);
-    setError(null);
   };
 
   const handleSave = async () => {
     try {
-      setError(null);
       const data = {
         ...formData,
         settings: null,
@@ -133,16 +155,16 @@ export default function PrintersPage() {
 
       if (editingConfig) {
         await printerApi.updateConfig(editingConfig.id, data);
-        setSuccess('Configurazione aggiornata con successo');
+        toast.showSuccess('Configurazione aggiornata con successo');
       } else {
         await printerApi.createConfig(data as any);
-        setSuccess('Configurazione creata con successo');
+        toast.showSuccess('Configurazione creata con successo');
       }
 
       handleCloseDialog();
       await loadData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Errore nel salvataggio');
+      toast.showError(err.response?.data?.message || 'Errore nel salvataggio');
     }
   };
 
@@ -151,21 +173,20 @@ export default function PrintersPage() {
 
     try {
       await printerApi.deleteConfig(id);
-      setSuccess('Configurazione eliminata con successo');
+      toast.showSuccess('Configurazione eliminata con successo');
       await loadData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Errore nell\'eliminazione');
+      toast.showError(err.response?.data?.message || "Errore nell'eliminazione");
     }
   };
 
   const handleTestPrint = async () => {
     try {
       setTestingPrinter(true);
-      setError(null);
       await printerApi.test();
-      setSuccess('Stampa di test inviata con successo!');
+      toast.showSuccess('Stampa di test inviata con successo!');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Errore nella stampa di test');
+      toast.showError(err.response?.data?.message || 'Errore nella stampa di test');
     } finally {
       setTestingPrinter(false);
     }
@@ -173,289 +194,335 @@ export default function PrintersPage() {
 
   const handleInitPrinter = async (config: PrinterConfig) => {
     try {
-      setError(null);
       await printerApi.init({
         type: config.connection as any,
         address: config.address || undefined,
         port: config.port || undefined,
       });
-      setSuccess('Stampante inizializzata con successo');
+      toast.showSuccess('Stampante inizializzata con successo');
       await loadData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Errore nell\'inizializzazione');
+      toast.showError(err.response?.data?.message || "Errore nell'inizializzazione");
     }
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <SpinnerIcon />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-6">
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Gestione Stampanti</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Gestione Stampanti</h1>
+        <button
+          className="btn btn-primary"
           onClick={() => handleOpenDialog()}
         >
+          <PlusIcon />
           Nuova Stampante
-        </Button>
-      </Box>
-
-      {/* Alerts */}
-      {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
+        </button>
+      </div>
 
       {/* Status Cards */}
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Stato Stampante
-              </Typography>
-              <Box display="flex" alignItems="center" gap={1}>
-                {printerStatus?.connected ? (
-                  <>
-                    <CheckCircleIcon color="success" />
-                    <Typography>Connessa</Typography>
-                  </>
-                ) : (
-                  <>
-                    <ErrorIcon color="error" />
-                    <Typography>Non connessa</Typography>
-                  </>
-                )}
-              </Box>
-              {printerStatus?.type && (
-                <Typography variant="body2" color="text.secondary" mt={1}>
-                  Tipo: {printerStatus.type}
-                </Typography>
-              )}
-            </CardContent>
-            <CardActions>
-              <Button
-                size="small"
-                startIcon={<PrintIcon />}
-                onClick={handleTestPrint}
-                disabled={!printerStatus?.connected || testingPrinter}
-              >
-                {testingPrinter ? 'Stampa in corso...' : 'Test Stampa'}
-              </Button>
-              <Button size="small" startIcon={<RefreshIcon />} onClick={loadData}>
-                Aggiorna
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-5"
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Stato Stampante</h2>
+          <div className="flex items-center gap-2 mb-2">
+            {printerStatus?.connected ? (
+              <>
+                <CheckCircleIcon />
+                <span className="text-gray-700">Connessa</span>
+              </>
+            ) : (
+              <>
+                <ErrorCircleIcon />
+                <span className="text-gray-700">Non connessa</span>
+              </>
+            )}
+          </div>
+          {printerStatus?.type && (
+            <p className="text-sm text-gray-500 mt-1">
+              Tipo: {printerStatus.type}
+            </p>
+          )}
+          <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+            <button
+              className="btn btn-secondary text-sm"
+              onClick={handleTestPrint}
+              disabled={!printerStatus?.connected || testingPrinter}
+            >
+              <PrintIcon />
+              {testingPrinter ? 'Stampa in corso...' : 'Test Stampa'}
+            </button>
+            <button className="btn btn-secondary text-sm" onClick={loadData}>
+              <RefreshIcon />
+              Aggiorna
+            </button>
+          </div>
+        </motion.div>
 
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Coda di Stampa
-              </Typography>
-              {queueStatus && (
-                <Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">In attesa:</Typography>
-                    <Chip label={queueStatus.pending} size="small" color="warning" />
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">In stampa:</Typography>
-                    <Chip label={queueStatus.printing} size="small" color="info" />
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">Completati:</Typography>
-                    <Chip label={queueStatus.completed} size="small" color="success" />
-                  </Box>
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Falliti:</Typography>
-                    <Chip label={queueStatus.failed} size="small" color="error" />
-                  </Box>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="card p-5"
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Coda di Stampa</h2>
+          {queueStatus && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">In attesa:</span>
+                <span className="badge badge-yellow">{queueStatus.pending}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">In stampa:</span>
+                <span className="badge badge-blue">{queueStatus.printing}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Completati:</span>
+                <span className="badge badge-green">{queueStatus.completed}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Falliti:</span>
+                <span className="badge badge-red">{queueStatus.failed}</span>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </div>
 
       {/* Printer Configs */}
-      <Typography variant="h6" mb={2}>
-        Configurazioni Stampanti
-      </Typography>
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Configurazioni Stampanti</h2>
 
       {configs.length === 0 ? (
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" align="center">
-              Nessuna stampante configurata
-            </Typography>
-          </CardContent>
-        </Card>
+        <div className="card p-8 text-center">
+          <p className="text-gray-500">Nessuna stampante configurata</p>
+        </div>
       ) : (
-        <Grid container spacing={2}>
-          {configs.map((config) => (
-            <Grid item xs={12} md={6} key={config.id}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
-                    <Box>
-                      <Typography variant="h6">{config.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {config.type.toUpperCase()} - {config.connection.toUpperCase()}
-                      </Typography>
-                    </Box>
-                    <Box display="flex" gap={1}>
-                      {config.isDefault && <Chip label="Predefinita" size="small" color="primary" />}
-                      {config.isActive ? (
-                        <Chip label="Attiva" size="small" color="success" />
-                      ) : (
-                        <Chip label="Disattiva" size="small" color="default" />
-                      )}
-                    </Box>
-                  </Box>
-
-                  {config.address && (
-                    <Typography variant="body2" color="text.secondary">
-                      Indirizzo: {config.address}
-                      {config.port && `:${config.port}`}
-                    </Typography>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {configs.map((config, index) => (
+            <motion.div
+              key={config.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="card p-5"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-semibold text-gray-900">{config.name}</h3>
+                  <p className="text-sm text-gray-500">
+                    {config.type.toUpperCase()} - {config.connection.toUpperCase()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {config.isDefault && (
+                    <span className="badge badge-blue">Predefinita</span>
                   )}
-                </CardContent>
-                <CardActions>
-                  <Button
-                    size="small"
-                    onClick={() => handleInitPrinter(config)}
-                    disabled={!config.isActive}
-                  >
-                    Inizializza
-                  </Button>
-                  <Button size="small" startIcon={<EditIcon />} onClick={() => handleOpenDialog(config)}>
-                    Modifica
-                  </Button>
-                  <IconButton size="small" color="error" onClick={() => handleDelete(config.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </CardActions>
-              </Card>
-            </Grid>
+                  {config.isActive ? (
+                    <span className="badge badge-green">Attiva</span>
+                  ) : (
+                    <span className="badge">Disattiva</span>
+                  )}
+                </div>
+              </div>
+
+              {config.address && (
+                <p className="text-sm text-gray-500 mb-4">
+                  Indirizzo: {config.address}
+                  {config.port && `:${config.port}`}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-4 border-t border-gray-100">
+                <button
+                  className="btn btn-secondary text-sm"
+                  onClick={() => handleInitPrinter(config)}
+                  disabled={!config.isActive}
+                >
+                  Inizializza
+                </button>
+                <button
+                  className="btn btn-secondary text-sm"
+                  onClick={() => handleOpenDialog(config)}
+                >
+                  <EditIcon />
+                  Modifica
+                </button>
+                <button
+                  className="btn btn-danger text-sm"
+                  onClick={() => handleDelete(config.id)}
+                >
+                  <DeleteIcon />
+                </button>
+              </div>
+            </motion.div>
           ))}
-        </Grid>
+        </div>
       )}
 
       {/* Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingConfig ? 'Modifica Stampante' : 'Nuova Stampante'}
-        </DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={2}>
-            <TextField
-              label="Nome"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              fullWidth
+      <AnimatePresence>
+        {openDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50"
+              onClick={handleCloseDialog}
             />
 
-            <FormControl fullWidth>
-              <InputLabel>Tipo Connessione</InputLabel>
-              <Select
-                value={formData.connection}
-                label="Tipo Connessione"
-                onChange={(e) => setFormData({ ...formData, connection: e.target.value })}
-              >
-                <MenuItem value="usb">USB</MenuItem>
-                <MenuItem value="network">Network</MenuItem>
-                <MenuItem value="file">File (Test)</MenuItem>
-              </Select>
-            </FormControl>
+            {/* Dialog Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="card relative w-full max-w-lg p-6 z-10"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {editingConfig ? 'Modifica Stampante' : 'Nuova Stampante'}
+                </h2>
+                <button
+                  onClick={handleCloseDialog}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
 
-            {formData.connection === 'network' && (
-              <>
-                <TextField
-                  label="Indirizzo IP"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="192.168.1.100"
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="Porta"
-                  type="number"
-                  value={formData.port}
-                  onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) })}
-                  required
-                  fullWidth
-                />
-              </>
-            )}
+              <div className="space-y-4">
+                <div>
+                  <label className="label">Nome</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
 
-            {formData.connection === 'usb' && (
-              <TextField
-                label="Device Path (opzionale)"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="/dev/usb/lp0 o lascia vuoto per auto-detect"
-                fullWidth
-              />
-            )}
+                <div>
+                  <label className="label">Tipo Connessione</label>
+                  <select
+                    className="input"
+                    value={formData.connection}
+                    onChange={(e) => setFormData({ ...formData, connection: e.target.value })}
+                  >
+                    <option value="usb">USB</option>
+                    <option value="network">Network</option>
+                    <option value="file">File (Test)</option>
+                  </select>
+                </div>
 
-            {formData.connection === 'file' && (
-              <TextField
-                label="File Path"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="./print-output.txt"
-                required
-                fullWidth
-              />
-            )}
+                {formData.connection === 'network' && (
+                  <>
+                    <div>
+                      <label className="label">Indirizzo IP</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        placeholder="192.168.1.100"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Porta</label>
+                      <input
+                        type="number"
+                        className="input"
+                        value={formData.port}
+                        onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) })}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isDefault}
-                  onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                />
-              }
-              label="Imposta come stampante predefinita"
-            />
+                {formData.connection === 'usb' && (
+                  <div>
+                    <label className="label">Device Path (opzionale)</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="/dev/usb/lp0 o lascia vuoto per auto-detect"
+                    />
+                  </div>
+                )}
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                />
-              }
-              label="Attiva"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Annulla</Button>
-          <Button onClick={handleSave} variant="contained" disabled={!formData.name}>
-            Salva
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+                {formData.connection === 'file' && (
+                  <div>
+                    <label className="label">File Path</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="./print-output.txt"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={formData.isDefault}
+                      onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gray-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
+                  </label>
+                  <span className="text-sm text-gray-700">Imposta come stampante predefinita</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gray-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
+                  </label>
+                  <span className="text-sm text-gray-700">Attiva</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button className="btn btn-secondary" onClick={handleCloseDialog}>
+                  Annulla
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSave}
+                  disabled={!formData.name}
+                >
+                  Salva
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
