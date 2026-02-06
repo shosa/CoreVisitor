@@ -42,8 +42,8 @@ const schema = yup.object().shape({
   email: yup.string().email('Email non valida').optional(),
   phone: yup.string().max(20).optional(),
   company: yup.string().max(200).optional(),
-  documentType: yup.mixed<DocumentType>().oneOf(Object.values(DocumentType)).optional(),
-  documentNumber: yup.string().max(50).optional(),
+  documentType: yup.mixed<DocumentType>().oneOf(Object.values(DocumentType), 'Seleziona un tipo di documento').required('Il tipo di documento è obbligatorio'),
+  documentNumber: yup.string().max(50).required('Il numero di documento è obbligatorio'),
   documentExpiry: yup.string().optional(),
   licensePlate: yup.string().max(20).optional(),
   privacyConsent: yup.boolean().optional(),
@@ -241,7 +241,7 @@ export default function NewVisitorPage() {
 
             {/* Tipo Documento */}
             <div>
-              <label className="label">Tipo Documento</label>
+              <label className="label">Tipo Documento *</label>
               <Controller
                 name="documentType"
                 control={control}
@@ -265,7 +265,7 @@ export default function NewVisitorPage() {
 
             {/* Numero Documento */}
             <div>
-              <label className="label">Numero Documento</label>
+              <label className="label">Numero Documento *</label>
               <Controller
                 name="documentNumber"
                 control={control}

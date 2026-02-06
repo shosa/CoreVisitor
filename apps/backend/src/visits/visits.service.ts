@@ -189,6 +189,10 @@ export class VisitsService {
       throw new BadRequestException('Visit already completed');
     }
 
+    if (visit.status === VisitStatus.cancelled) {
+      throw new BadRequestException('Cannot check-in a cancelled visit');
+    }
+
     // Genera badge
     const badgeNumber = this.badge.generateBadgeNumber();
     const barcode = await this.badge.generateBadgeBarcode(badgeNumber);
@@ -214,6 +218,22 @@ export class VisitsService {
     });
 
     await this.meilisearch.indexVisit(updatedVisit);
+
+    // Audit log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'check_in',
+          entityType: 'visit',
+          entityId: id,
+          details: `Check-in from dashboard for ${updatedVisit.visitor.firstName} ${updatedVisit.visitor.lastName}`,
+          userId: null,
+          ipAddress: null,
+        },
+      });
+    } catch (error) {
+      console.error('Audit log error:', error.message);
+    }
 
     return updatedVisit;
   }
@@ -244,6 +264,22 @@ export class VisitsService {
     });
 
     await this.meilisearch.indexVisit(updatedVisit);
+
+    // Audit log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'check_out',
+          entityType: 'visit',
+          entityId: id,
+          details: `Check-out from dashboard for ${updatedVisit.visitor.firstName} ${updatedVisit.visitor.lastName}`,
+          userId: null,
+          ipAddress: null,
+        },
+      });
+    } catch (error) {
+      console.error('Audit log error:', error.message);
+    }
 
     return updatedVisit;
   }
@@ -306,6 +342,16 @@ export class VisitsService {
    * Cancella visita
    */
   async cancel(id: string) {
+    const existing = await this.findOne(id);
+
+    if (existing.status === VisitStatus.cancelled) {
+      throw new BadRequestException('La visita è già cancellata');
+    }
+
+    if (existing.status === VisitStatus.checked_out) {
+      throw new BadRequestException('Impossibile cancellare una visita già completata');
+    }
+
     const visit = await this.prisma.visit.update({
       where: { id },
       data: { status: VisitStatus.cancelled },
@@ -316,6 +362,22 @@ export class VisitsService {
     });
 
     await this.meilisearch.indexVisit(visit);
+
+    // Audit log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'update',
+          entityType: 'visit',
+          entityId: id,
+          details: `Visit cancelled for ${visit.visitor.firstName} ${visit.visitor.lastName}`,
+          userId: null,
+          ipAddress: null,
+        },
+      });
+    } catch (error) {
+      console.error('Audit log error:', error.message);
+    }
 
     return visit;
   }
@@ -462,7 +524,7 @@ export class VisitsService {
       this.prisma.visit.count({
         where: {
           scheduledDate: { gte: today },
-          status: VisitStatus.approved,
+          status: { in: [VisitStatus.pending, VisitStatus.approved] },
         },
       }),
       this.prisma.visit.count({

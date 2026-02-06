@@ -2,6 +2,8 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadgeService } from '../badge/badge.service';
 import { PrintQueueService } from '../printer/print-queue.service';
+import { MeilisearchService } from '../meilisearch/meilisearch.service';
+import { VisitStatus } from '@prisma/client';
 
 @Injectable()
 export class KioskService {
@@ -9,6 +11,7 @@ export class KioskService {
     private prisma: PrismaService,
     private badge: BadgeService,
     private printQueue: PrintQueueService,
+    private meilisearch: MeilisearchService,
   ) {}
 
   /**
@@ -19,7 +22,7 @@ export class KioskService {
       where: {
         checkInPin: pin,
         status: {
-          in: ['pending', 'approved'], // Visite in attesa o approvate possono fare check-in
+          in: [VisitStatus.pending, VisitStatus.approved],
         },
         scheduledDate: {
           // Solo visite programmate per oggi
@@ -88,22 +91,22 @@ export class KioskService {
     }
 
     // Verifica che la visita non sia già checked-in o completata
-    if (visit.status === 'checked_in') {
+    if (visit.status === VisitStatus.checked_in) {
       throw new HttpException(
         'Visita già in stato checked-in',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    if (visit.status === 'checked_out') {
+    if (visit.status === VisitStatus.checked_out) {
       throw new HttpException(
         'Visita già completata (checked-out)',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    // Genera badge number univoco (6 caratteri alfanumerici)
-    const badgeNumber = await this.generateBadgeNumber();
+    // Genera badge number univoco (usa BadgeService condiviso)
+    const badgeNumber = this.badge.generateBadgeNumber();
 
     // Genera codice a barre del badge (base64 PNG)
     const badgeBarcode = await this.badge.generateBadgeBarcode(badgeNumber);
@@ -112,10 +115,10 @@ export class KioskService {
     const updatedVisit = await this.prisma.visit.update({
       where: { id: visit.id },
       data: {
-        status: 'checked_in',
+        status: VisitStatus.checked_in,
         actualCheckIn: new Date(),
         badgeNumber,
-        badgeQRCode: badgeBarcode, // Manteniamo il campo badgeQRCode per compatibilità, ma ora contiene un barcode
+        badgeQRCode: badgeBarcode,
         badgeIssued: true,
         badgeIssuedAt: new Date(),
       },
@@ -125,6 +128,9 @@ export class KioskService {
         hostUser: true,
       },
     });
+
+    // Aggiorna indice Meilisearch
+    await this.meilisearch.indexVisit(updatedVisit);
 
     // Invia lavoro di stampa badge
     try {
@@ -176,40 +182,6 @@ export class KioskService {
   }
 
   /**
-   * Genera badge number univoco
-   */
-  private async generateBadgeNumber(): Promise<string> {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Esclusi caratteri ambigui
-    let badgeNumber: string;
-    let isUnique = false;
-    let attempts = 0;
-    const maxAttempts = 50;
-
-    while (!isUnique && attempts < maxAttempts) {
-      badgeNumber = '';
-      for (let i = 0; i < 6; i++) {
-        badgeNumber += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-
-      const existingBadge = await this.prisma.visit.findFirst({
-        where: { badgeNumber },
-      });
-
-      isUnique = !existingBadge;
-      attempts++;
-    }
-
-    if (!isUnique) {
-      throw new HttpException(
-        'Unable to generate unique badge number',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return badgeNumber;
-  }
-
-  /**
    * Verifica validità badge e ottieni informazioni visita
    */
   async verifyBadge(badgeCode: string) {
@@ -223,7 +195,7 @@ export class KioskService {
           { badgeQRCode: badgeCode },
           { id: badgeCode },
         ],
-        status: 'checked_in', // Solo visite con check-in attivo
+        status: VisitStatus.checked_in,
       },
       include: {
         visitor: {
@@ -293,7 +265,7 @@ export class KioskService {
       );
     }
 
-    if (visit.status !== 'checked_in') {
+    if (visit.status !== VisitStatus.checked_in) {
       throw new HttpException(
         `Impossibile effettuare check-out. Stato attuale: ${visit.status}`,
         HttpStatus.BAD_REQUEST,
@@ -304,7 +276,7 @@ export class KioskService {
     const updatedVisit = await this.prisma.visit.update({
       where: { id: visitId },
       data: {
-        status: 'checked_out',
+        status: VisitStatus.checked_out,
         actualCheckOut: new Date(),
       },
       include: {
@@ -317,8 +289,12 @@ export class KioskService {
             company: true,
           },
         },
+        department: true,
       },
     });
+
+    // Aggiorna indice Meilisearch
+    await this.meilisearch.indexVisit(updatedVisit);
 
     // Log audit
     try {
@@ -345,7 +321,7 @@ export class KioskService {
   async getCurrentVisitors() {
     const visits = await this.prisma.visit.findMany({
       where: {
-        status: 'checked_in',
+        status: VisitStatus.checked_in,
       },
       include: {
         visitor: {
@@ -399,41 +375,34 @@ export class KioskService {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Visitatori attualmente presenti
-    const current = await this.prisma.visit.count({
-      where: {
-        status: 'checked_in',
-      },
-    });
-
-    // Visite oggi
-    const today = await this.prisma.visit.count({
-      where: {
-        createdAt: {
-          gte: todayStart,
+    const [current, today, scheduled, monthly] = await Promise.all([
+      // Visitatori attualmente presenti
+      this.prisma.visit.count({
+        where: { status: VisitStatus.checked_in },
+      }),
+      // Visite oggi (basato su check-in effettivo, coerente con dashboard)
+      this.prisma.visit.count({
+        where: {
+          actualCheckIn: { gte: todayStart },
         },
-      },
-    });
-
-    // Visite programmate oggi
-    const scheduled = await this.prisma.visit.count({
-      where: {
-        status: 'approved',
-        scheduledDate: {
-          gte: todayStart,
-          lt: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+      }),
+      // Visite programmate oggi
+      this.prisma.visit.count({
+        where: {
+          status: { in: [VisitStatus.pending, VisitStatus.approved] },
+          scheduledDate: {
+            gte: todayStart,
+            lt: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+          },
         },
-      },
-    });
-
-    // Totale visite nel mese
-    const monthly = await this.prisma.visit.count({
-      where: {
-        createdAt: {
-          gte: monthStart,
+      }),
+      // Totale visite nel mese
+      this.prisma.visit.count({
+        where: {
+          scheduledDate: { gte: monthStart },
         },
-      },
-    });
+      }),
+    ]);
 
     return {
       current,

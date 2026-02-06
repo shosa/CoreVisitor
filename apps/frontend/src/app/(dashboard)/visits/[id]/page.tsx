@@ -113,7 +113,6 @@ const getStatusBadgeClass = (status: string): string => {
     case 'checked_out': return 'badge-blue';
     case 'pending': return 'badge-yellow';
     case 'approved': return 'badge-blue';
-    case 'rejected':
     case 'cancelled': return 'badge-red';
     default: return 'badge';
   }

@@ -14,7 +14,6 @@ export const translateDocumentType = (type: string): string => {
 export const visitStatusTranslations: Record<string, string> = {
   pending: 'In Attesa',
   approved: 'Approvato',
-  rejected: 'Rifiutato',
   checked_in: 'Presente',
   checked_out: 'Uscito',
   cancelled: 'Annullato',
@@ -36,7 +35,6 @@ export const getVisitStatusColor = (status: string): 'default' | 'primary' | 'se
       return 'warning';
     case 'approved':
       return 'primary';
-    case 'rejected':
     case 'cancelled':
       return 'error';
     case 'expired':

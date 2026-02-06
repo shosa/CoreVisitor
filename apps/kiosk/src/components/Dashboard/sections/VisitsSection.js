@@ -51,7 +51,7 @@ const VisitsSection = ({ user, onNewVisit }) => {
 
     // Filter by status
     if (statusFilter === 'active') {
-      // Visite attive: pending, approved, checked_in (escludi checked_out, cancelled, rejected)
+      // Visite attive: pending, approved, checked_in (escludi checked_out, cancelled)
       filtered = filtered.filter(v =>
         v.status === 'pending' ||
         v.status === 'approved' ||
@@ -116,8 +116,6 @@ const VisitsSection = ({ user, onNewVisit }) => {
         return { bg: '#fef3c7', color: '#d97706', border: '#d97706' };
       case 'approved':
         return { bg: '#dbeafe', color: '#2563eb', border: '#2563eb' };
-      case 'rejected':
-        return { bg: '#fee2e2', color: '#dc2626', border: '#dc2626' };
       case 'checked_in':
         return { bg: '#d1fae5', color: '#059669', border: '#059669' };
       case 'checked_out':
@@ -135,8 +133,6 @@ const VisitsSection = ({ user, onNewVisit }) => {
         return 'In Attesa';
       case 'approved':
         return 'Approvata';
-      case 'rejected':
-        return 'Rifiutata';
       case 'checked_in':
         return 'Presente';
       case 'checked_out':

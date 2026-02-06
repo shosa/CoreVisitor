@@ -44,13 +44,11 @@ export class CreateVisitorDto {
     return mappings[value] || value;
   })
   @IsEnum(DocumentType)
-  @IsOptional()
-  documentType?: DocumentType;
+  documentType: DocumentType;
 
   @IsString()
   @MaxLength(50)
-  @IsOptional()
-  documentNumber?: string;
+  documentNumber: string;
 
   @IsDateString()
   @IsOptional()

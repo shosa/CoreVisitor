@@ -65,7 +65,6 @@ const getStatusBadgeClass = (status: string): string => {
       return 'badge-yellow';
     case 'approved':
       return 'badge-blue';
-    case 'rejected':
     case 'cancelled':
       return 'badge-red';
     case 'expired':

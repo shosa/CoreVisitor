@@ -282,6 +282,7 @@ const VisitFormModal = ({ show, onClose, onSuccess }) => {
                   required
                 >
                   <option value="business">Business</option>
+                  <option value="personal">Personale</option>
                   <option value="interview">Colloquio</option>
                   <option value="delivery">Consegna</option>
                   <option value="maintenance">Manutenzione</option>

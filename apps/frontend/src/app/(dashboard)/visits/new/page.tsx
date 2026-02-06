@@ -67,7 +67,7 @@ export default function NewVisitPage() {
     email: '',
     phone: '',
     company: '',
-    documentType: 'CARTA_IDENTITA',
+    documentType: '',
     documentNumber: '',
     documentExpiry: '',
     licensePlate: '',
@@ -357,6 +357,7 @@ export default function NewVisitPage() {
                     onChange={(e) => setNewVisitor({ ...newVisitor, documentType: e.target.value })}
                     disabled={!!selectedVisitor}
                   >
+                    <option value="">Seleziona tipo documento</option>
                     <option value="CARTA_IDENTITA">Carta d'Identità</option>
                     <option value="PASSAPORTO">Passaporto</option>
                     <option value="PATENTE">Patente</option>

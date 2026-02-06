@@ -31,11 +31,13 @@ const SaveIcon = () => (
 );
 
 const schema = yup.object().shape({
-  purpose: yup.string().required('Lo scopo è obbligatorio'),
-  purposeNotes: yup.string().optional(),
-  departmentId: yup.string().optional(),
-  scheduledDate: yup.string().required('La data di inizio è obbligatoria'),
-  scheduledEndDate: yup.string().optional(),
+  purpose: yup.string().required('Il motivo della visita è obbligatorio'),
+  visitType: yup.string().required('Il tipo di visita è obbligatorio'),
+  departmentId: yup.string().required('Il reparto è obbligatorio'),
+  hostName: yup.string().optional(),
+  scheduledDate: yup.string().required('La data è obbligatoria'),
+  scheduledTimeStart: yup.string().required('L\'ora di inizio è obbligatoria'),
+  scheduledTimeEnd: yup.string().optional(),
   notes: yup.string().optional(),
 });
 
@@ -79,10 +81,12 @@ export default function EditVisitPage() {
       setVisit(visitData);
       reset({
         purpose: visitData.purpose || '',
-        purposeNotes: visitData.purposeNotes || '',
+        visitType: visitData.visitType || 'business',
         departmentId: visitData.departmentId || '',
-        scheduledDate: new Date(visitData.scheduledDate).toISOString().slice(0, 16),
-        scheduledEndDate: visitData.scheduledEndDate ? new Date(visitData.scheduledEndDate).toISOString().slice(0, 16) : '',
+        hostName: visitData.hostName || '',
+        scheduledDate: visitData.scheduledDate ? new Date(visitData.scheduledDate).toISOString().split('T')[0] : '',
+        scheduledTimeStart: visitData.scheduledTimeStart ? new Date(visitData.scheduledTimeStart).toISOString().slice(0, 16) : '',
+        scheduledTimeEnd: visitData.scheduledTimeEnd ? new Date(visitData.scheduledTimeEnd).toISOString().slice(0, 16) : '',
         notes: visitData.notes || ''
       });
     } catch (err) {
@@ -95,9 +99,14 @@ export default function EditVisitPage() {
   const onSubmit = async (data: yup.InferType<typeof schema>) => {
     try {
       await visitsApi.update(id, {
-        ...data,
-        scheduledDate: new Date(data.scheduledDate).toISOString(),
-        scheduledEndDate: data.scheduledEndDate ? new Date(data.scheduledEndDate).toISOString() : undefined,
+        purpose: data.purpose,
+        visitType: data.visitType,
+        departmentId: data.departmentId,
+        hostName: data.hostName || undefined,
+        scheduledDate: data.scheduledDate,
+        scheduledTimeStart: data.scheduledTimeStart,
+        scheduledTimeEnd: data.scheduledTimeEnd || undefined,
+        notes: data.notes || undefined,
       });
       toast.showSuccess('Visita aggiornata con successo');
       router.push(`/visits/${id}`);
@@ -155,71 +164,40 @@ export default function EditVisitPage() {
           <div className="lg:col-span-2 card p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="label">Scopo della visita *</label>
+                <label className="label">Tipo Visita *</label>
                 <Controller
-                  name="purpose"
+                  name="visitType"
                   control={control}
                   render={({ field }) => (
-                    <input
+                    <select
                       {...field}
-                      type="text"
-                      className={`input ${errors.purpose ? 'border-red-500 focus:ring-red-500' : ''}`}
-                    />
+                      className={`input ${errors.visitType ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    >
+                      <option value="business">Business</option>
+                      <option value="personal">Personale</option>
+                      <option value="delivery">Consegna</option>
+                      <option value="maintenance">Manutenzione</option>
+                      <option value="interview">Colloquio</option>
+                      <option value="other">Altro</option>
+                    </select>
                   )}
                 />
-                {errors.purpose && (
-                  <p className="text-red-500 text-sm mt-1">{errors.purpose.message}</p>
+                {errors.visitType && (
+                  <p className="text-red-500 text-sm mt-1">{errors.visitType.message}</p>
                 )}
               </div>
 
               <div>
-                <label className="label">Note sullo scopo</label>
-                <Controller
-                  name="purposeNotes"
-                  control={control}
-                  render={({ field }) => (
-                    <input {...field} type="text" className="input" />
-                  )}
-                />
-              </div>
-
-              <div>
-                <label className="label">Data e ora programmata *</label>
-                <Controller
-                  name="scheduledDate"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="datetime-local"
-                      className={`input ${errors.scheduledDate ? 'border-red-500 focus:ring-red-500' : ''}`}
-                    />
-                  )}
-                />
-                {errors.scheduledDate && (
-                  <p className="text-red-500 text-sm mt-1">{errors.scheduledDate.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="label">Data e ora fine (opzionale)</label>
-                <Controller
-                  name="scheduledEndDate"
-                  control={control}
-                  render={({ field }) => (
-                    <input {...field} type="datetime-local" className="input" />
-                  )}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="label">Dipartimento/Area di destinazione</label>
+                <label className="label">Reparto *</label>
                 <Controller
                   name="departmentId"
                   control={control}
                   render={({ field }) => (
-                    <select {...field} className="input">
-                      <option value="">Nessuno</option>
+                    <select
+                      {...field}
+                      className={`input ${errors.departmentId ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    >
+                      <option value="">Seleziona reparto</option>
                       {departments.map(dept => (
                         <option key={dept.id} value={dept.id}>
                           {dept.name}
@@ -228,15 +206,81 @@ export default function EditVisitPage() {
                     </select>
                   )}
                 />
+                {errors.departmentId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.departmentId.message}</p>
+                )}
               </div>
 
               <div className="md:col-span-2">
-                <label className="label">Note aggiuntive</label>
+                <label className="label">Motivo della Visita *</label>
+                <Controller
+                  name="purpose"
+                  control={control}
+                  render={({ field }) => (
+                    <textarea
+                      {...field}
+                      rows={2}
+                      className={`input resize-none ${errors.purpose ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    />
+                  )}
+                />
+                {errors.purpose && (
+                  <p className="text-red-500 text-sm mt-1">{errors.purpose.message}</p>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="label">Host / Referente</label>
+                <Controller
+                  name="hostName"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="input"
+                      placeholder="Nome della persona da visitare"
+                    />
+                  )}
+                />
+              </div>
+
+              <div>
+                <label className="label">Data/Ora Inizio *</label>
+                <Controller
+                  name="scheduledTimeStart"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="datetime-local"
+                      className={`input ${errors.scheduledTimeStart ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    />
+                  )}
+                />
+                {errors.scheduledTimeStart && (
+                  <p className="text-red-500 text-sm mt-1">{errors.scheduledTimeStart.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="label">Data/Ora Fine (opzionale)</label>
+                <Controller
+                  name="scheduledTimeEnd"
+                  control={control}
+                  render={({ field }) => (
+                    <input {...field} type="datetime-local" className="input" />
+                  )}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="label">Note</label>
                 <Controller
                   name="notes"
                   control={control}
                   render={({ field }) => (
-                    <textarea {...field} rows={4} className="input resize-none" />
+                    <textarea {...field} rows={3} className="input resize-none" />
                   )}
                 />
               </div>

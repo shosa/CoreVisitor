@@ -155,7 +155,24 @@ export default function VisitorDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!visitor || !confirm('Sei sicuro di voler eliminare questo visitatore? L\'azione è irreversibile.')) return;
+    if (!visitor) return;
+
+    const hasDocuments = visitor.documents && visitor.documents.length > 0;
+    const hasPhoto = !!visitor.photoPath;
+    const hasVisits = visitor.visits && visitor.visits.length > 0;
+
+    let message = 'Sei sicuro di voler eliminare questo visitatore?\n\n';
+    if (hasDocuments || hasPhoto) {
+      message += 'Verranno eliminati permanentemente:\n';
+      if (hasPhoto) message += '- La foto del visitatore\n';
+      if (hasDocuments) message += `- ${visitor.documents.length} documento/i allegato/i\n`;
+    }
+    if (hasVisits) {
+      message += `- ${visitor.visits.length} visita/e associata/e\n`;
+    }
+    message += '\nQuesta azione è irreversibile.';
+
+    if (!confirm(message)) return;
 
     try {
       await visitorsApi.delete(visitor.id);

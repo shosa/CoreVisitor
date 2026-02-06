@@ -93,7 +93,7 @@ export default function VisitorsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questo visitatore?')) return;
+    if (!confirm('Sei sicuro di voler eliminare questo visitatore?\n\nVerranno eliminati permanentemente tutti i dati, documenti, foto e visite associati.\n\nQuesta azione è irreversibile.')) return;
 
     try {
       await visitorsApi.delete(id);

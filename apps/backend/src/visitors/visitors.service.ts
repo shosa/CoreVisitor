@@ -140,12 +140,38 @@ export class VisitorsService {
   async remove(id: string) {
     const visitor = await this.findOne(id);
 
-    // Elimina file da MinIO
-    if (visitor.photoPath) {
-      await this.minio.deleteFile(visitor.photoPath);
+    // Elimina tutti i file documenti da MinIO
+    if (visitor.documents && visitor.documents.length > 0) {
+      for (const doc of visitor.documents) {
+        try {
+          await this.minio.deleteFile(doc.filePath);
+        } catch (error) {
+          console.error(`Failed to delete document file ${doc.filePath}:`, error.message);
+        }
+      }
     }
 
-    // Elimina da database (cascade deletes documents)
+    // Elimina foto da MinIO
+    if (visitor.photoPath) {
+      try {
+        await this.minio.deleteFile(visitor.photoPath);
+      } catch (error) {
+        console.error(`Failed to delete photo ${visitor.photoPath}:`, error.message);
+      }
+    }
+
+    // Elimina anche le visite correlate da Meilisearch
+    if (visitor.visits && visitor.visits.length > 0) {
+      for (const visit of visitor.visits) {
+        try {
+          await this.meilisearch.deleteVisit(visit.id);
+        } catch (error) {
+          console.error(`Failed to delete visit ${visit.id} from Meilisearch:`, error.message);
+        }
+      }
+    }
+
+    // Elimina da database (cascade deletes documents e visits)
     await this.prisma.visitor.delete({ where: { id } });
 
     // Elimina da indice
