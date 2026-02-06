@@ -61,7 +61,11 @@ const KioskHome = ({ onSelectOption }) => {
       {/* Logo / Header */}
       <motion.div style={styles.header} variants={itemVariants}>
         <div style={styles.logo}>
-          <h1 style={styles.logoText}>CoreVisitor</h1>
+          <img
+            src="/img/logo.png"
+            alt="CoreVisitor"
+            style={styles.logoImage}
+          />
           <p style={styles.logoSubtext}>Self-Service Kiosk</p>
         </div>
       </motion.div>
@@ -70,7 +74,7 @@ const KioskHome = ({ onSelectOption }) => {
       <motion.div style={styles.welcomeContainer} variants={itemVariants}>
         <h2 style={styles.welcomeTitle}>Benvenuto</h2>
         <p style={styles.welcomeSubtitle}>
-          Calzaturificio Emmegiemme Shoes
+          Seleziona per iniziare
         </p>
       </motion.div>
 
@@ -149,6 +153,11 @@ const styles = {
     fontWeight: '500',
     color: '#999',
     margin: 0
+  },
+  logoImage: {
+    maxWidth: '480px',
+    width: '100%',
+    marginBottom: '12px'
   },
   welcomeContainer: {
     textAlign: 'center',
