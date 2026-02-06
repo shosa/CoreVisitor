@@ -73,9 +73,7 @@ const KioskHome = ({ onSelectOption }) => {
       {/* Welcome Message */}
       <motion.div style={styles.welcomeContainer} variants={itemVariants}>
         <h2 style={styles.welcomeTitle}>Benvenuto</h2>
-        <p style={styles.welcomeSubtitle}>
-          Seleziona per iniziare
-        </p>
+     
       </motion.div>
 
       {/* Options */}
