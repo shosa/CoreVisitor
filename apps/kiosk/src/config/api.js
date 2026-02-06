@@ -8,7 +8,7 @@ const getBaseURL = () => {
   const savedServer = localStorage.getItem('corevisitor_server_url');
 
   if (savedServer) {
-    console.log('📡 Using saved server:', savedServer);
+    console.log('[CONSOLE]: Utilizzo server salvato:', savedServer);
     return savedServer;
   }
 
@@ -16,7 +16,7 @@ const getBaseURL = () => {
   // Se il frontend è HTTPS, usa HTTPS anche per il backend (e viceversa)
   const protocol = window.location.protocol; // 'http:' o 'https:'
   const defaultUrl = `${protocol}//192.168.3.40:3006`;
-  console.log('📡 Using production server:', defaultUrl);
+  console.log('[CONSOLE]: Utilizzo server produzione: ', defaultUrl);
   return defaultUrl;
 };
 
@@ -36,12 +36,12 @@ export const setServerURL = (url) => {
   // Rimuovi trailing slash
   const cleanUrl = url.replace(/\/$/, '');
   localStorage.setItem('corevisitor_server_url', cleanUrl);
-  console.log('✅ Server URL saved:', cleanUrl);
+  console.log('[CONSOLE]: Salvato Server URL:', cleanUrl);
 };
 
 export const clearServerURL = () => {
   localStorage.removeItem('corevisitor_server_url');
-  console.log('🗑️ Server URL cleared');
+  console.log('[CONSOLE]: Rimosso Server URL');
 };
 
 export const getServerURL = () => {

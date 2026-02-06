@@ -13,7 +13,7 @@ export class BadgeService {
   generateBadgeNumber(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = randomBytes(3).toString('hex').toUpperCase();
-    return `VIS-${timestamp}-${random}`;
+    return `${random}`;
   }
 
   /**
