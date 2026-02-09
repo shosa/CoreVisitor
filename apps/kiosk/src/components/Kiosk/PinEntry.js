@@ -170,6 +170,27 @@ const PinEntry = ({ onBack }) => {
             padding: 0 20px !important;
           }
         }
+
+        @media (max-width: 768px) {
+          .confirmation-card {
+            grid-template-columns: 1fr !important;
+            min-height: auto !important;
+          }
+          .confirmation-card .qr-section {
+            border-right: none !important;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 24px 20px !important;
+          }
+          .confirmation-card .details-section {
+            padding: 24px 20px !important;
+          }
+          .confirmation-buttons {
+            grid-template-columns: 1fr !important;
+          }
+          .confirmation-wrapper {
+            padding: 0 12px !important;
+          }
+        }
       `}</style>
 
       {/* Header */}
@@ -299,6 +320,7 @@ const PinEntry = ({ onBack }) => {
           <motion.div
             key="confirmation"
             style={styles.confirmationContainer}
+            className="confirmation-wrapper"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -311,9 +333,9 @@ const PinEntry = ({ onBack }) => {
           </div>
 
           {/* Main Card */}
-          <div style={styles.mainCard}>
+          <div style={styles.mainCard} className="confirmation-card">
             {/* Left Side - QR Code Badge */}
-            <div style={styles.qrCodeSection}>
+            <div style={styles.qrCodeSection} className="qr-section">
               <div style={styles.qrCodeContainer}>
                 <div style={styles.qrPlaceholder}>
                   <IoQrCode size={180} color="#1a1a1a" />
@@ -326,7 +348,7 @@ const PinEntry = ({ onBack }) => {
             </div>
 
             {/* Right Side - Details */}
-            <div style={styles.detailsSection}>
+            <div style={styles.detailsSection} className="details-section">
               {/* Visitor Info */}
               <div style={styles.visitorInfo}>
                 <h3 style={styles.visitorName}>{visitData.visitor.full_name}</h3>
@@ -372,8 +394,15 @@ const PinEntry = ({ onBack }) => {
             </div>
           </div>
 
+          {/* Privacy Disclaimer */}
+          <div style={styles.privacyDisclaimer}>
+            <p style={styles.privacyText}>
+              Proseguendo con la registrazione dichiaro di aver letto e compreso l'Informativa Privacy ai sensi del Regolamento UE 2016/679.
+            </p>
+          </div>
+
           {/* Confirmation Buttons */}
-          <div style={styles.buttonContainer}>
+          <div style={styles.buttonContainer} className="confirmation-buttons">
             <button
               onClick={handleCheckIn}
               disabled={loading}
@@ -789,6 +818,20 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     color: '#6b7280'
+  },
+  privacyDisclaimer: {
+    maxWidth: '900px',
+    margin: '0 auto 16px',
+    padding: '0 20px',
+    textAlign: 'center'
+  },
+  privacyText: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#6b7280',
+    lineHeight: '1.5',
+    margin: 0,
+    fontStyle: 'italic'
   },
   buttonContainer: {
     display: 'grid',
