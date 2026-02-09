@@ -93,7 +93,7 @@ export default function DashboardPage() {
   };
 
   const visitsByDepartment = currentVisits.reduce((acc, visit) => {
-    const dept = visit.department || 'Non specificato';
+    const dept = visit.department?.name || 'Non specificato';
     if (!acc[dept]) acc[dept] = [];
     acc[dept].push(visit);
     return acc;

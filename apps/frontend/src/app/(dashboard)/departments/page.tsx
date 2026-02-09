@@ -153,7 +153,7 @@ export default function DepartmentsPage() {
   };
 
   const getVisitorsInDepartment = (deptName: string) => {
-    return currentVisits.filter((v) => v.department === deptName);
+    return currentVisits.filter((v) => v.department?.name === deptName);
   };
 
   if (loading) {
