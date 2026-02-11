@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { visitorsApi } from '@/lib/api';
+import { visitorsApi, exportApi } from '@/lib/api';
 import { Visitor } from '@/types/visitor';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/Toast';
@@ -38,6 +38,12 @@ const TrashIcon = () => (
 const PersonIcon = () => (
   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
+const FileDownloadIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
   </svg>
 );
 
@@ -92,6 +98,21 @@ export default function VisitorsPage() {
     setFilteredVisitors(filtered);
   };
 
+  const handleExportPDF = async () => {
+    try {
+      const res = await exportApi.visitors();
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `elenco-visitatori-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.showError('Errore durante l\'esportazione PDF');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Sei sicuro di voler eliminare questo visitatore?\n\nVerranno eliminati permanentemente tutti i dati, documenti, foto e visite associati.\n\nQuesta azione è irreversibile.')) return;
 
@@ -123,13 +144,22 @@ export default function VisitorsPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Visitatori</h1>
-        <button
-          onClick={() => router.push('/visitors/new')}
-          className="btn btn-primary"
-        >
-          <PlusIcon />
-          Nuovo Visitatore
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportPDF}
+            className="btn btn-secondary"
+          >
+            <FileDownloadIcon />
+            Esporta PDF
+          </button>
+          <button
+            onClick={() => router.push('/visitors/new')}
+            className="btn btn-primary"
+          >
+            <PlusIcon />
+            Nuovo Visitatore
+          </button>
+        </div>
       </div>
 
       {/* Search Card */}

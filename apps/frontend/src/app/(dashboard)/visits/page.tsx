@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { visitsApi, departmentsApi } from '@/lib/api';
+import { visitsApi, departmentsApi, exportApi } from '@/lib/api';
 import { Visit, VisitStatus, Department } from '@/types/visitor';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { translateVisitStatus, translateVisitType } from '@/lib/translations';
@@ -206,6 +206,26 @@ export default function VisitsPage() {
     setExportMenuOpen(false);
   };
 
+  const handleExportPDF = async () => {
+    try {
+      const params: { dateFrom?: string; dateTo?: string; status?: string } = {};
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      if (statusFilter !== 'ALL') params.status = statusFilter;
+
+      const res = await exportApi.visits(params);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `registro-visite-${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+    }
+    setExportMenuOpen(false);
+  };
+
   const handleClearFilters = () => {
     setStatusFilter('ALL');
     setDepartmentFilter('ALL');
@@ -274,6 +294,13 @@ export default function VisitsPage() {
                   >
                     <FileDownloadIcon />
                     Esporta CSV
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <FileDownloadIcon />
+                    Esporta PDF
                   </button>
                 </motion.div>
               )}
