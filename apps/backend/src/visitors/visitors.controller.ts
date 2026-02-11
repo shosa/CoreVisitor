@@ -29,7 +29,6 @@ export class VisitorsController {
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'document', maxCount: 1 },
-      { name: 'photo', maxCount: 1 },
     ]),
   )
   create(
@@ -37,13 +36,11 @@ export class VisitorsController {
     @UploadedFiles()
     files: {
       document?: Express.Multer.File[];
-      photo?: Express.Multer.File[];
     },
   ) {
     return this.visitorsService.create(
       createVisitorDto,
       files?.document?.[0],
-      files?.photo?.[0],
     );
   }
 
@@ -63,12 +60,6 @@ export class VisitorsController {
   @Roles('admin', 'receptionist')
   getDocumentUrl(@Param('id') id: string) {
     return this.visitorsService.getDocumentUrl(id);
-  }
-
-  @Get(':id/photo-url')
-  @Roles('admin', 'receptionist', 'security')
-  getPhotoUrl(@Param('id') id: string) {
-    return this.visitorsService.getPhotoUrl(id);
   }
 
   @Patch(':id')

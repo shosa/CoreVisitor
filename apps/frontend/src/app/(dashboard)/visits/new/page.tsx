@@ -53,7 +53,6 @@ export default function NewVisitPage() {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   // State per visitatore
@@ -172,7 +171,6 @@ export default function NewVisitPage() {
             formData.append(key, value.toString());
           }
         });
-        if (photoFile) formData.append('photo', photoFile);
         if (documentFile) formData.append('document', documentFile);
 
         const visitorRes = await visitorsApi.create(formData);
@@ -393,22 +391,6 @@ export default function NewVisitPage() {
                     onChange={(e) => setNewVisitor({ ...newVisitor, licensePlate: e.target.value })}
                     disabled={!!selectedVisitor}
                   />
-                </div>
-                <div>
-                  <label className="label">Foto Visitatore</label>
-                  <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors">
-                    <UploadIcon />
-                    <span className="text-sm text-gray-600">
-                      {photoFile ? photoFile.name : 'Carica Foto'}
-                    </span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => setPhotoFile(e.target.files ? e.target.files[0] : null)}
-                      disabled={!!selectedVisitor}
-                    />
-                  </label>
                 </div>
                 <div>
                   <label className="label">Scansione Documento</label>

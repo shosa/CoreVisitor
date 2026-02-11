@@ -42,20 +42,18 @@ const schema = yup.object().shape({
   email: yup.string().email('Email non valida').optional(),
   phone: yup.string().max(20).optional(),
   company: yup.string().max(200).optional(),
-  documentType: yup.mixed<DocumentType>().oneOf(Object.values(DocumentType), 'Seleziona un tipo di documento').required('Il tipo di documento è obbligatorio'),
-  documentNumber: yup.string().max(50).required('Il numero di documento è obbligatorio'),
+  documentType: yup.mixed<DocumentType>().oneOf(Object.values(DocumentType), 'Seleziona un tipo di documento').optional(),
+  documentNumber: yup.string().max(50).optional(),
   documentExpiry: yup.string().optional(),
   licensePlate: yup.string().max(20).optional(),
   privacyConsent: yup.boolean().optional(),
   notes: yup.string().optional(),
-  photo: yup.mixed().optional(),
   document: yup.mixed().optional(),
 });
 
 export default function NewVisitorPage() {
   const router = useRouter();
   const toast = useToast();
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -86,9 +84,6 @@ export default function NewVisitorPage() {
     });
 
     // Append files
-    if (photoFile) {
-      formData.append('photo', photoFile);
-    }
     if (documentFile) {
       formData.append('document', documentFile);
     }
@@ -320,23 +315,6 @@ export default function NewVisitorPage() {
               {errors.licensePlate && (
                 <p className="text-red-500 text-sm mt-1">{errors.licensePlate.message}</p>
               )}
-            </div>
-
-            {/* Upload Foto */}
-            <div>
-              <label className="label">Foto Visitatore</label>
-              <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors">
-                <UploadIcon />
-                <span className="text-sm text-gray-600">
-                  {photoFile ? photoFile.name : 'Carica Foto'}
-                </span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={(e) => setPhotoFile(e.target.files ? e.target.files[0] : null)}
-                />
-              </label>
             </div>
 
             {/* Upload Documento */}

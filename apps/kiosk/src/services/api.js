@@ -122,9 +122,6 @@ export const kioskAPI = {
       badge_code: badgeCode
     }),
 
-  getCurrentVisitors: () =>
-    api.get('/api/kiosk/current-visitors'),
-
   getStats: () =>
     api.get('/api/kiosk/stats')
 };
@@ -183,9 +180,6 @@ export const visitorsAPI = {
 
   delete: (id) =>
     httpClient.delete(`/api/visitors/${id}`),
-
-  getPhotoUrl: (id) =>
-    httpClient.get(`/api/visitors/${id}/photo-url`),
 
   getDocumentUrl: (id) =>
     httpClient.get(`/api/visitors/${id}/document-url`)

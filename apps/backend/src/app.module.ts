@@ -14,6 +14,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { KioskModule } from './kiosk/kiosk.module';
 import { MobileModule } from './mobile/mobile.module';
 import { PrinterModule } from './printer/printer.module';
+import { ExportModule } from './export/export.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PrinterModule } from './printer/printer.module';
     KioskModule,
     MobileModule,
     PrinterModule,
+    ExportModule,
   ],
 })
 export class AppModule {}

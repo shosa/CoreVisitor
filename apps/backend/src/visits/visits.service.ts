@@ -331,7 +331,6 @@ export class VisitsService {
       visitor: {
         name: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
         company: visit.visitor.company,
-        photo: visit.visitor.photoPath,
       },
       host: visit.hostUser ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}` : visit.hostName || 'N/A',
       validUntil: this.badge.calculateBadgeExpiry(visit.scheduledTimeEnd),

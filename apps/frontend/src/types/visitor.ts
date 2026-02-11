@@ -25,9 +25,7 @@ export interface Visitor {
   documentType?: DocumentType;
   documentNumber?: string;
   documentExpiry?: string;
-  documentScanPath?: string;
   licensePlate?: string;
-  photoPath?: string;
   privacyConsent: boolean;
   privacyConsentDate?: string;
   notes?: string;

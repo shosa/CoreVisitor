@@ -16,12 +16,7 @@ export class VisitorsService {
   async create(
     createVisitorDto: CreateVisitorDto,
     documentFile?: Express.Multer.File,
-    photoFile?: Express.Multer.File,
   ) {
-    console.log('🔍 CREATE VISITOR - DTO:', createVisitorDto);
-    console.log('🔍 CREATE VISITOR - documentFile:', documentFile ? `${documentFile.originalname} (${documentFile.size} bytes)` : 'NULL');
-    console.log('🔍 CREATE VISITOR - photoFile:', photoFile ? `${photoFile.originalname} (${photoFile.size} bytes)` : 'NULL');
-
     // Crea visitatore
     const visitor = await this.prisma.visitor.create({
       data: {
@@ -32,19 +27,14 @@ export class VisitorsService {
       },
     });
 
-    console.log('✅ Visitor created:', visitor.id);
-
-    // Upload documenti se presenti
+    // Upload documento se presente
     if (documentFile) {
-      console.log('📄 Uploading document file...');
       const documentPath = await this.minio.uploadFile(
         documentFile,
         visitor.id,
         'document',
       );
-      console.log('📄 Document uploaded to MinIO:', documentPath);
 
-      // Create visitor document record
       await this.prisma.visitorDocument.create({
         data: {
           visitorId: visitor.id,
@@ -54,23 +44,6 @@ export class VisitorsService {
           mimeType: documentFile.mimetype,
         },
       });
-      console.log('✅ Document record created in DB');
-    }
-
-    if (photoFile) {
-      console.log('📷 Uploading photo file...');
-      const photoPath = await this.minio.uploadFile(
-        photoFile,
-        visitor.id,
-        'photo',
-      );
-      console.log('📷 Photo uploaded to MinIO:', photoPath);
-
-      await this.prisma.visitor.update({
-        where: { id: visitor.id },
-        data: { photoPath: photoPath },
-      });
-      console.log('✅ Photo path saved in DB');
     }
 
     // Indicizza in Meilisearch
@@ -151,15 +124,6 @@ export class VisitorsService {
       }
     }
 
-    // Elimina foto da MinIO
-    if (visitor.photoPath) {
-      try {
-        await this.minio.deleteFile(visitor.photoPath);
-      } catch (error) {
-        console.error(`Failed to delete photo ${visitor.photoPath}:`, error.message);
-      }
-    }
-
     // Elimina anche le visite correlate da Meilisearch
     if (visitor.visits && visitor.visits.length > 0) {
       for (const visit of visitor.visits) {
@@ -192,12 +156,4 @@ export class VisitorsService {
     return { url };
   }
 
-  async getPhotoUrl(id: string) {
-    const visitor = await this.findOne(id);
-    if (!visitor.photoPath) {
-      throw new NotFoundException('Photo not found');
-    }
-    const url = await this.minio.getFileUrl(visitor.photoPath);
-    return { url };
-  }
 }

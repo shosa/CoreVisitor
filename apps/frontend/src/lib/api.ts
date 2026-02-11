@@ -18,7 +18,6 @@ export const visitorsApi = {
     api.patch<Visitor>(`/visitors/${id}`, data),
   delete: (id: string) => api.delete(`/visitors/${id}`),
   getDocumentUrl: (id: string) => api.get<{ url: string }>(`/visitors/${id}/document-url`),
-  getPhotoUrl: (id: string) => api.get<{ url: string }>(`/visitors/${id}/photo-url`),
 };
 
 // Visits
@@ -98,6 +97,14 @@ export const auditLogsApi = {
     api.get<AuditLog[]>(`/audit-logs/user/${userId}`, { params: { limit } }),
   getByEntity: (entityType: string, entityId: string, limit?: number) =>
     api.get<AuditLog[]>(`/audit-logs/entity/${entityType}/${entityId}`, { params: { limit } }),
+};
+
+// Export PDF
+export const exportApi = {
+  visits: (params?: { dateFrom?: string; dateTo?: string; status?: string }) =>
+    api.get('/export/visits', { params, responseType: 'blob' }),
+  visitors: () =>
+    api.get('/export/visitors', { responseType: 'blob' }),
 };
 
 // Printer Types

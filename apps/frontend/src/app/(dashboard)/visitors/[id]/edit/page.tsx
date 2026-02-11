@@ -58,7 +58,6 @@ export default function EditVisitorPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [visitor, setVisitor] = useState<Visitor | null>(null);
 
@@ -364,23 +363,6 @@ export default function EditVisitorPage() {
               {errors.licensePlate && (
                 <p className="text-red-500 text-sm mt-1">{errors.licensePlate.message}</p>
               )}
-            </div>
-
-            {/* Upload Foto */}
-            <div>
-              <label className="label">Foto Visitatore</label>
-              <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors">
-                <UploadIcon />
-                <span className="text-sm text-gray-600">
-                  {photoFile ? photoFile.name : 'Carica Nuova Foto'}
-                </span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={(e) => setPhotoFile(e.target.files ? e.target.files[0] : null)}
-                />
-              </label>
             </div>
 
             {/* Upload Documento */}

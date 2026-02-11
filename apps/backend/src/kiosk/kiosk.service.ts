@@ -39,7 +39,6 @@ export class KioskService {
             email: true,
             phone: true,
             company: true,
-            photoPath: true,
           },
         },
         department: {
@@ -206,7 +205,6 @@ export class KioskService {
             email: true,
             phone: true,
             company: true,
-            photoPath: true,
           },
         },
         department: {
@@ -313,58 +311,6 @@ export class KioskService {
     }
 
     return updatedVisit;
-  }
-
-  /**
-   * Ottieni lista visitatori attualmente presenti
-   */
-  async getCurrentVisitors() {
-    const visits = await this.prisma.visit.findMany({
-      where: {
-        status: VisitStatus.checked_in,
-      },
-      include: {
-        visitor: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            company: true,
-            photoPath: true,
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            icon: true,
-          },
-        },
-        hostUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: {
-        actualCheckIn: 'desc',
-      },
-    });
-
-    // Aggiungi full_name ai visitors
-    return visits.map((visit) => ({
-      ...visit,
-      visitor: {
-        ...visit.visitor,
-        full_name: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
-      },
-    }));
   }
 
   /**

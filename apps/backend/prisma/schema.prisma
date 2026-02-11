@@ -89,7 +89,6 @@ model Visitor {
   documentType DocumentType? @map("document_type")
   documentNumber String? @map("document_number")
   documentExpiry DateTime? @map("document_expiry")
-  photoPath   String?  @map("photo_path")
   licensePlate String? @map("license_plate")
   privacyConsent Boolean @default(false) @map("privacy_consent")
   notes       String?  @db.Text

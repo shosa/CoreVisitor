@@ -150,27 +150,6 @@ export class KioskController {
   }
 
   /**
-   * Ottieni visitatori attualmente presenti
-   * GET /api/kiosk/current-visitors
-   */
-  @Get('current-visitors')
-  async getCurrentVisitors() {
-    try {
-      const visitors = await this.kioskService.getCurrentVisitors();
-
-      return {
-        status: 'success',
-        data: visitors,
-      };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Error fetching current visitors',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
    * Ottieni statistiche per dashboard kiosk
    * GET /api/kiosk/stats
    */

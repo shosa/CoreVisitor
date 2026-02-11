@@ -34,6 +34,7 @@ export class CreateVisitorDto {
   company?: string;
 
   @Transform(({ value }) => {
+    if (!value) return undefined;
     // Map Italian frontend values to English backend enum
     const mappings: Record<string, DocumentType> = {
       'CARTA_IDENTITA': DocumentType.id_card,
@@ -44,11 +45,13 @@ export class CreateVisitorDto {
     return mappings[value] || value;
   })
   @IsEnum(DocumentType)
-  documentType: DocumentType;
+  @IsOptional()
+  documentType?: DocumentType;
 
   @IsString()
+  @IsOptional()
   @MaxLength(50)
-  documentNumber: string;
+  documentNumber?: string;
 
   @IsDateString()
   @IsOptional()

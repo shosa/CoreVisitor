@@ -86,10 +86,6 @@ export default function VisitorDetailPage() {
   const [visitor, setVisitor] = useState<Visitor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [isThumbnailBlurred, setIsThumbnailBlurred] = useState(true);
-  const [isModalPhotoBlurred, setIsModalPhotoBlurred] = useState(false);
-  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [documentMimeType, setDocumentMimeType] = useState<string | null>(null);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
@@ -107,24 +103,6 @@ export default function VisitorDetailPage() {
     try {
       const res = await visitorsApi.getOne(id);
       setVisitor(res.data);
-      console.log('Visitor data:', res.data);
-      console.log('photoPath:', res.data.photoPath);
-      console.log('documents:', res.data.documents);
-      console.log('documentScanPath:', res.data.documentScanPath);
-
-      // Carica la foto se presente
-      if (res.data.photoPath) {
-        try {
-          console.log('Fetching photo URL...');
-          const photoRes = await visitorsApi.getPhotoUrl(id);
-          console.log('Photo URL response:', photoRes.data);
-          setPhotoUrl(photoRes.data.url);
-        } catch (err) {
-          console.error('Errore nel caricamento della foto:', err);
-        }
-      } else {
-        console.log('No photoPath found in visitor data');
-      }
     } catch (err) {
       setError('Impossibile caricare i dati del visitatore.');
       console.error(err);
@@ -158,14 +136,12 @@ export default function VisitorDetailPage() {
     if (!visitor) return;
 
     const hasDocuments = visitor.documents && visitor.documents.length > 0;
-    const hasPhoto = !!visitor.photoPath;
     const hasVisits = visitor.visits && visitor.visits.length > 0;
 
     let message = 'Sei sicuro di voler eliminare questo visitatore?\n\n';
-    if (hasDocuments || hasPhoto) {
+    if (hasDocuments) {
       message += 'Verranno eliminati permanentemente:\n';
-      if (hasPhoto) message += '- La foto del visitatore\n';
-      if (hasDocuments) message += `- ${visitor.documents.length} documento/i allegato/i\n`;
+      message += `- ${visitor.documents.length} documento/i allegato/i\n`;
     }
     if (hasVisits) {
       message += `- ${visitor.visits.length} visita/e associata/e\n`;
@@ -278,41 +254,9 @@ export default function VisitorDetailPage() {
         {/* Profile Card */}
         <div className="card p-6 flex flex-col items-center">
           <div className="relative mb-4">
-            {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt={`${visitor.firstName} ${visitor.lastName}`}
-                className={`w-32 h-32 rounded-full object-cover transition-all duration-300 ${
-                  isThumbnailBlurred ? 'blur-lg' : ''
-                }`}
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-blue-600 flex items-center justify-center">
-                <PersonIcon className="w-20 h-20 text-white" />
-              </div>
-            )}
-            {photoUrl && (
-              <div className="absolute -bottom-2 -right-2 flex gap-1 bg-white rounded-full shadow-lg p-1">
-                <button
-                  onClick={() => setIsThumbnailBlurred(!isThumbnailBlurred)}
-                  className="p-1.5 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-                  title={isThumbnailBlurred ? "Mostra foto" : "Nascondi foto"}
-                >
-                  {isThumbnailBlurred ? (
-                    <EyeIcon />
-                  ) : (
-                    <EyeOffIcon />
-                  )}
-                </button>
-                <button
-                  onClick={() => setIsPhotoModalOpen(true)}
-                  className="p-1.5 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-                  title="Ingrandisci"
-                >
-                  <ZoomInIcon />
-                </button>
-              </div>
-            )}
+            <div className="w-32 h-32 rounded-full bg-blue-600 flex items-center justify-center">
+              <PersonIcon className="w-20 h-20 text-white" />
+            </div>
           </div>
           <h2 className="text-xl font-bold text-gray-900">
             {visitor.firstName} {visitor.lastName}
@@ -426,66 +370,6 @@ export default function VisitorDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Photo Modal */}
-      <AnimatePresence>
-        {isPhotoModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-            onClick={() => setIsPhotoModalOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Foto di {visitor.firstName} {visitor.lastName}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsModalPhotoBlurred(!isModalPhotoBlurred)}
-                    className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    {isModalPhotoBlurred ? <EyeIcon /> : <EyeOffIcon />}
-                  </button>
-                  <button
-                    onClick={() => setIsPhotoModalOpen(false)}
-                    className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    <XIcon />
-                  </button>
-                </div>
-              </div>
-              <div className="p-4 flex justify-center items-center min-h-[400px]">
-                {photoUrl && (
-                  <img
-                    src={photoUrl}
-                    alt={`${visitor.firstName} ${visitor.lastName}`}
-                    className={`max-w-full max-h-[70vh] object-contain rounded-lg transition-all duration-300 ${
-                      isModalPhotoBlurred ? 'blur-lg' : ''
-                    }`}
-                  />
-                )}
-              </div>
-              <div className="flex justify-end p-4 border-t border-gray-200">
-                <button
-                  onClick={() => setIsPhotoModalOpen(false)}
-                  className="btn btn-secondary"
-                >
-                  Chiudi
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Document Modal */}
       <AnimatePresence>
