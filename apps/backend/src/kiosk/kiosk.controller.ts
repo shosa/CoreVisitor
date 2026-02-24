@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { KioskService } from './kiosk.service';
+import { SettingsService } from '../settings/settings.service';
 
 @Controller('kiosk')
 export class KioskController {
-  constructor(private readonly kioskService: KioskService) {}
+  constructor(
+    private readonly kioskService: KioskService,
+    private readonly settingsService: SettingsService,
+  ) {}
 
   /**
    * Verifica PIN per self check-in
@@ -147,6 +151,19 @@ export class KioskController {
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  /**
+   * Ottieni impostazioni pubbliche aziendali (nome azienda)
+   * GET /api/kiosk/settings
+   */
+  @Get('settings')
+  async getPublicSettings() {
+    const settings = await this.settingsService.getSettings();
+    return {
+      status: 'success',
+      data: { companyName: settings.companyName },
+    };
   }
 
   /**

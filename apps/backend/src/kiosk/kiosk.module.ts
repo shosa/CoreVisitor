@@ -5,9 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { BadgeModule } from '../badge/badge.module';
 import { PrinterModule } from '../printer/printer.module';
 import { MeilisearchModule } from '../meilisearch/meilisearch.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [PrismaModule, BadgeModule, PrinterModule, MeilisearchModule],
+  imports: [PrismaModule, BadgeModule, PrinterModule, MeilisearchModule, SettingsModule],
   controllers: [KioskController],
   providers: [KioskService],
   exports: [KioskService],

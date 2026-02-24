@@ -107,6 +107,25 @@ export const exportApi = {
     api.get('/export/visitors', { responseType: 'blob' }),
 };
 
+// Settings
+export interface CompanySettings {
+  id: string;
+  companyName: string;
+  gdprPdfPath: string | null;
+  updatedAt: string;
+}
+
+export const settingsApi = {
+  get: () => api.get<CompanySettings>('/settings'),
+  update: (data: { companyName: string }) => api.patch<CompanySettings>('/settings', data),
+  uploadGdprPdf: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<CompanySettings>('/settings/gdpr-pdf', formData);
+  },
+  getGdprPdfUrl: () => api.get<{ url: string }>('/settings/gdpr-pdf-url'),
+};
+
 // Printer Types
 export interface PrinterConfig {
   id: string;

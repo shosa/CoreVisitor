@@ -16,6 +16,16 @@ const PinEntry = ({ onBack }) => {
   const [visitData, setVisitData] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [companyName, setCompanyName] = useState('Calzaturificio Emmegiemme Shoes S.r.l.');
+
+  useEffect(() => {
+    fetch('/api/kiosk/settings')
+      .then(r => r.json())
+      .then(res => {
+        if (res.data?.companyName) setCompanyName(res.data.companyName);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Auto-verify quando il PIN è completo
@@ -88,7 +98,7 @@ const PinEntry = ({ onBack }) => {
 
         // Torna alla home dopo 5 secondi
         setTimeout(() => {
-          handleClear();
+          onBack();
         }, 5000);
       }
 
@@ -389,7 +399,7 @@ const PinEntry = ({ onBack }) => {
 
               {/* Company Footer */}
               <div style={styles.companyFooter}>
-                <p style={styles.companyFooterText}>Calzaturificio Emmegiemme Shoes Srl</p>
+                <p style={styles.companyFooterText}>{companyName}</p>
               </div>
             </div>
           </div>

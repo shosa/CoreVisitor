@@ -82,6 +82,23 @@ export class MinioService implements OnModuleInit {
   }
 
   /**
+   * Upload file generico da buffer (non legato a visitor)
+   */
+  async uploadRawFile(
+    buffer: Buffer,
+    filePath: string,
+    mimetype: string,
+  ): Promise<void> {
+    await this.minioClient.putObject(
+      this.bucketName,
+      filePath,
+      buffer,
+      buffer.length,
+      { 'Content-Type': mimetype },
+    );
+  }
+
+  /**
    * Download file come buffer
    */
   async downloadFile(filePath: string): Promise<Buffer> {

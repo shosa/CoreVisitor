@@ -128,6 +128,15 @@ export class KioskService {
       },
     });
 
+    // Aggiorna privacy consent se non già impostato (il visitatore ha letto la disclaimer al check-in)
+    if (!updatedVisit.visitor.privacyConsent) {
+      await this.prisma.visitor.update({
+        where: { id: updatedVisit.visitorId },
+        data: { privacyConsent: true },
+      });
+      updatedVisit.visitor.privacyConsent = true;
+    }
+
     // Aggiorna indice Meilisearch
     await this.meilisearch.indexVisit(updatedVisit);
 

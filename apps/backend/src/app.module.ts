@@ -15,6 +15,7 @@ import { KioskModule } from './kiosk/kiosk.module';
 import { MobileModule } from './mobile/mobile.module';
 import { PrinterModule } from './printer/printer.module';
 import { ExportModule } from './export/export.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ExportModule } from './export/export.module';
     MobileModule,
     PrinterModule,
     ExportModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

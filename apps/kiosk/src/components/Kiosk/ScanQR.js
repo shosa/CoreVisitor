@@ -110,10 +110,11 @@ const ScanQR = ({ onBack }) => {
 
         showMessage('success', `${visit.visitor?.full_name || 'Visitatore'} - Uscita registrata con successo`);
 
-        // Reset input e torna allo stato iniziale dopo 3 secondi
+        // Reset input e torna alla home dopo 3 secondi
         setBadgeInput('');
         setTimeout(() => {
           setResult(null);
+          onBack();
         }, 3000);
       } else {
         throw new Error(checkOutResponse.data.message || 'Errore durante il check-out');

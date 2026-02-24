@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { SettingsService } from "../settings/settings.service";
 import {
   ThermalPrinter,
   PrinterTypes,
@@ -32,7 +33,10 @@ export class PrinterService {
   private readonly logger = new Logger(PrinterService.name);
   private printer: ThermalPrinter;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private settingsService: SettingsService,
+  ) {}
 
   /**
    * Initialize printer connection
@@ -118,6 +122,10 @@ export class PrinterService {
         );
       }
 
+      // Leggi nome azienda da settings
+      const settings = await this.settingsService.getSettings();
+      const companyName = settings.companyName;
+
       this.printer.clear();
 
       // Header
@@ -128,7 +136,7 @@ export class PrinterService {
       this.printer.bold(false);
       this.printer.setTextNormal();
       this.printer.drawLine();
-      this.printer.println("Calzaturificio Emmegiemme Shoes S.r.l.");
+      this.printer.println(companyName);
       // Visitor info
       this.printer.alignLeft();
       this.printer.setTextNormal();
