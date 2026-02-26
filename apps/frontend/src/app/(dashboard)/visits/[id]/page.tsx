@@ -427,7 +427,7 @@ export default function VisitDetailPage() {
               <span className="font-medium">
                 {visit.host
                   ? `${visit.host.firstName} ${visit.host.lastName}`
-                  : visit.hostName || '-'}
+                  : '-'}
               </span>
             </p>
           </div>

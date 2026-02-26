@@ -123,7 +123,6 @@ model Visit {
   visitorId         String      @map("visitor_id")
   departmentId      String      @map("department_id")
   hostId            String?     @map("host_id")
-  hostName          String?     @map("host_name")
   visitType         VisitType   @default(business)
   purpose           String?     @db.Text
   scheduledDate     DateTime    @map("scheduled_date")

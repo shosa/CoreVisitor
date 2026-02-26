@@ -35,10 +35,6 @@ export class SelfRegisterDto {
 
   @IsString()
   @IsOptional()
-  hostName?: string;
-
-  @IsString()
-  @IsOptional()
   purpose?: string;
 
   @IsBoolean()

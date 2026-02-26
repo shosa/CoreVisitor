@@ -25,10 +25,6 @@ export class CreateVisitDto {
   @IsOptional()
   hostId?: string;
 
-  @IsString()
-  @IsOptional()
-  hostName?: string;
-
   @IsDateString()
   scheduledDate: string;
 

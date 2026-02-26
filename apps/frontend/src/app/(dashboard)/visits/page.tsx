@@ -154,8 +154,7 @@ export default function VisitsPage() {
           v.visitor?.firstName?.toLowerCase().includes(query) ||
           v.visitor?.lastName?.toLowerCase().includes(query) ||
           v.visitor?.company?.toLowerCase().includes(query) ||
-          v.hostName?.toLowerCase().includes(query) ||
-          (v.hostUser && `${v.hostUser.firstName} ${v.hostUser.lastName}`.toLowerCase().includes(query)) ||
+          (v.host && `${v.host.firstName} ${v.host.lastName}`.toLowerCase().includes(query)) ||
           v.badgeNumber?.toLowerCase().includes(query) ||
           v.department?.name?.toLowerCase().includes(query)
       );
@@ -183,7 +182,7 @@ export default function VisitsPage() {
       format(new Date(v.scheduledDate), 'dd/MM/yyyy HH:mm'),
       `${v.visitor?.firstName} ${v.visitor?.lastName}`,
       v.visitor?.company || '',
-      v.hostUser ? `${v.hostUser.firstName} ${v.hostUser.lastName}` : v.hostName || '',
+      v.host ? `${v.host.firstName} ${v.host.lastName}` : '',
       v.department?.name || '',
       v.department?.area || '',
       v.purpose,
@@ -472,9 +471,9 @@ export default function VisitsPage() {
                         {visit.visitor?.company || '-'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
-                        {visit.hostUser
-                          ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
-                          : visit.hostName || '-'}
+                        {visit.host
+                          ? `${visit.host.firstName} ${visit.host.lastName}`
+                          : '-'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm text-gray-700">{visit.department?.name || '-'}</div>

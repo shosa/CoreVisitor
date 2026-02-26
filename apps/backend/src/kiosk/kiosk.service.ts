@@ -152,7 +152,7 @@ export class KioskService {
         department: updatedVisit.department.name,
         host: updatedVisit.host
           ? `${updatedVisit.host.firstName} ${updatedVisit.host.lastName}`
-          : updatedVisit.hostName,
+          : null,
         qrCode: updatedVisit.badgeQRCode,
       };
       await this.printQueue.addBadgePrintJob({
@@ -391,17 +391,13 @@ export class KioskService {
 
     // Ricava departmentId dall'host se non fornito direttamente
     let departmentId = dto.departmentId;
-    let hostName = dto.hostName;
     if (dto.hostId) {
       const host = await this.prisma.host.findUnique({
         where: { id: dto.hostId },
-        select: { id: true, firstName: true, lastName: true, departmentId: true },
+        select: { id: true, departmentId: true },
       });
-      if (host) {
-        hostName = hostName || `${host.firstName} ${host.lastName}`;
-        if (!departmentId && host.departmentId) {
-          departmentId = host.departmentId;
-        }
+      if (host && !departmentId && host.departmentId) {
+        departmentId = host.departmentId;
       }
     }
 
@@ -460,7 +456,6 @@ export class KioskService {
         visitorId: visitor.id,
         departmentId,
         hostId: dto.hostId || null,
-        hostName: hostName || null,
         visitType: dto.visitType,
         purpose: dto.purpose || null,
         scheduledDate: todayStart,
@@ -505,7 +500,7 @@ export class KioskService {
     try {
       const hostLabel = updatedVisit.host
         ? `${updatedVisit.host.firstName} ${updatedVisit.host.lastName}`
-        : updatedVisit.hostName || null;
+        : null;
 
       const badgeData = {
         visitorName: `${visitor.firstName} ${visitor.lastName}`,

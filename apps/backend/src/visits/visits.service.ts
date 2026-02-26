@@ -345,7 +345,7 @@ export class VisitsService {
         name: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
         company: visit.visitor.company,
       },
-      host: visit.host ? `${visit.host.firstName} ${visit.host.lastName}` : visit.hostName || 'N/A',
+      host: visit.host ? `${visit.host.firstName} ${visit.host.lastName}` : 'N/A',
       validUntil: this.badge.calculateBadgeExpiry(visit.scheduledTimeEnd),
     };
   }
@@ -454,7 +454,6 @@ export class VisitsService {
         scheduledTimeStart: originalVisit.scheduledTimeStart,
         scheduledTimeEnd: originalVisit.scheduledTimeEnd,
         hostId: originalVisit.hostId,
-        hostName: originalVisit.hostName,
         notes: originalVisit.notes ? `[DUPLICATED] ${originalVisit.notes}` : '[DUPLICATED]',
         status: VisitStatus.pending,
         checkInPin,

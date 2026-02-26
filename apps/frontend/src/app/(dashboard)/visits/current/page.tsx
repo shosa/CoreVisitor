@@ -200,9 +200,9 @@ export default function CurrentVisitsPage() {
                       {visit.visitor?.company || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
-                      {visit.hostUser
-                        ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
-                        : visit.hostName || '-'}
+                      {visit.host
+                        ? `${visit.host.firstName} ${visit.host.lastName}`
+                        : '-'}
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-sm text-gray-700">{visit.department?.name || '-'}</p>

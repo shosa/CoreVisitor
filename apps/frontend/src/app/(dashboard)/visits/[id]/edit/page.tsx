@@ -35,7 +35,6 @@ const schema = yup.object().shape({
   visitType: yup.string().required('Il tipo di visita è obbligatorio'),
   departmentId: yup.string().required('Il reparto è obbligatorio'),
   hostId: yup.string().optional(),
-  hostName: yup.string().optional(),
   scheduledDate: yup.string().required('La data è obbligatoria'),
   scheduledTimeStart: yup.string().required('L\'ora di inizio è obbligatoria'),
   scheduledTimeEnd: yup.string().optional(),
@@ -90,7 +89,6 @@ export default function EditVisitPage() {
         visitType: visitData.visitType || 'business',
         departmentId: visitData.departmentId || '',
         hostId: visitData.hostId || '',
-        hostName: visitData.hostName || '',
         scheduledDate: visitData.scheduledDate ? new Date(visitData.scheduledDate).toISOString().split('T')[0] : '',
         scheduledTimeStart: visitData.scheduledTimeStart ? new Date(visitData.scheduledTimeStart).toISOString().slice(0, 16) : '',
         scheduledTimeEnd: visitData.scheduledTimeEnd ? new Date(visitData.scheduledTimeEnd).toISOString().slice(0, 16) : '',
@@ -110,7 +108,6 @@ export default function EditVisitPage() {
         visitType: data.visitType,
         departmentId: data.departmentId,
         hostId: data.hostId || undefined,
-        hostName: data.hostName || undefined,
         scheduledDate: data.scheduledDate,
         scheduledTimeStart: data.scheduledTimeStart,
         scheduledTimeEnd: data.scheduledTimeEnd || undefined,
@@ -255,18 +252,7 @@ export default function EditVisitPage() {
                     )}
                   />
                 ) : (
-                  <Controller
-                    name="hostName"
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        {...field}
-                        type="text"
-                        className="input"
-                        placeholder="Nome della persona da visitare"
-                      />
-                    )}
-                  />
+                  <p className="text-sm text-gray-500 py-2">Nessun referente disponibile</p>
                 )}
               </div>
 
@@ -327,7 +313,7 @@ export default function EditVisitPage() {
                 <p className="font-medium text-gray-900">
                   {visit?.host
                     ? `${visit.host.firstName} ${visit.host.lastName}`
-                    : visit?.hostName || 'N/A'}
+                    : 'N/A'}
                 </p>
               </div>
             </div>

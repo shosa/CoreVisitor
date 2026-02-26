@@ -90,7 +90,7 @@ export class MeilisearchService implements OnModuleInit {
           visitorName: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
           hostName: visit.host
             ? `${visit.host.firstName} ${visit.host.lastName}`
-            : visit.hostName || '',
+            : '',
           departmentName: visit.department?.name || '',
           departmentArea: visit.department?.area || '',
           purpose: visit.purpose,

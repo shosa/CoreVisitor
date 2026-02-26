@@ -89,7 +89,7 @@ export class PrinterController {
       department: visit.department.name,
       host: visit.host
         ? `${visit.host.firstName} ${visit.host.lastName}`
-        : visit.hostName,
+        : null,
       qrCode: visit.badgeQRCode,
     };
 

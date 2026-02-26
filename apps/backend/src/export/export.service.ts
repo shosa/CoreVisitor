@@ -191,7 +191,7 @@ export class ExportService {
           department: visit.department?.name || '-',
           host: visit.host
             ? `${visit.host.lastName} ${visit.host.firstName}`
-            : (visit.hostName || '-'),
+            : '-',
           purpose: visit.purpose || '-',
           status: statusMap[visit.status] || visit.status,
           checkin: visit.actualCheckIn

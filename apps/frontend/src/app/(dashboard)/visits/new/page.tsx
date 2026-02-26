@@ -78,7 +78,6 @@ export default function NewVisitPage() {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [visitData, setVisitData] = useState({
     hostId: '',
-    hostName: '',
     visitType: 'business',
     purpose: '',
     departmentId: '',
@@ -185,7 +184,6 @@ export default function NewVisitPage() {
         visitType: visitData.visitType,
         purpose: visitData.purpose || undefined,
         hostId: visitData.hostId || undefined,
-        hostName: visitData.hostName || undefined,
         scheduledDate: visitData.scheduledDate,
         scheduledTimeStart: visitData.scheduledTimeStart,
         notes: visitData.notes,
@@ -438,7 +436,6 @@ export default function NewVisitPage() {
                     setVisitData({
                       ...visitData,
                       hostId: e.target.value,
-                      hostName: selected ? `${selected.firstName} ${selected.lastName}` : '',
                       // Auto-imposta reparto dal referente se non già selezionato
                       departmentId: selected?.departmentId && !visitData.departmentId
                         ? selected.departmentId
@@ -454,13 +451,7 @@ export default function NewVisitPage() {
                   ))}
                 </select>
               ) : (
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Nome della persona da visitare"
-                  value={visitData.hostName}
-                  onChange={(e) => setVisitData({ ...visitData, hostName: e.target.value })}
-                />
+                <p className="text-sm text-gray-500 py-2">Nessun referente disponibile</p>
               )}
             </div>
             <div>
@@ -555,7 +546,7 @@ export default function NewVisitPage() {
             <div className="card p-4 border border-gray-200">
               <p className="text-sm text-gray-500 mb-2">Dettagli Visita</p>
               <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Host:</span> {visitData.hostName || '-'}</p>
+                <p><span className="font-medium">Host:</span> {hosts.find((h) => h.id === visitData.hostId) ? `${hosts.find((h) => h.id === visitData.hostId)!.firstName} ${hosts.find((h) => h.id === visitData.hostId)!.lastName}` : '-'}</p>
                 <p><span className="font-medium">Tipo:</span> {visitData.visitType}</p>
                 <p><span className="font-medium">Motivo:</span> {visitData.purpose}</p>
                 <p><span className="font-medium">Reparto:</span> {departments.find((d) => d.id === visitData.departmentId)?.name || '-'}</p>
