@@ -99,7 +99,7 @@ export class VisitsService {
 
     const where: any = {};
     if (status) where.status = status;
-    if (hostId) where.hostUserId = hostId;
+    if (hostId) where.hostId = hostId;
     if (date) {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
@@ -116,7 +116,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
@@ -130,7 +130,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
         createdBy: {
@@ -171,6 +171,9 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
+        host: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
     });
 
@@ -221,7 +224,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
@@ -267,7 +270,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
@@ -303,7 +306,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
@@ -320,7 +323,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
@@ -342,7 +345,7 @@ export class VisitsService {
         name: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
         company: visit.visitor.company,
       },
-      host: visit.hostUser ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}` : visit.hostName || 'N/A',
+      host: visit.host ? `${visit.host.firstName} ${visit.host.lastName}` : visit.hostName || 'N/A',
       validUntil: this.badge.calculateBadgeExpiry(visit.scheduledTimeEnd),
     };
   }
@@ -421,7 +424,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
@@ -450,7 +453,7 @@ export class VisitsService {
         scheduledDate: originalVisit.scheduledDate,
         scheduledTimeStart: originalVisit.scheduledTimeStart,
         scheduledTimeEnd: originalVisit.scheduledTimeEnd,
-        hostUserId: originalVisit.hostUserId,
+        hostId: originalVisit.hostId,
         hostName: originalVisit.hostName,
         notes: originalVisit.notes ? `[DUPLICATED] ${originalVisit.notes}` : '[DUPLICATED]',
         status: VisitStatus.pending,
@@ -460,7 +463,7 @@ export class VisitsService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { id: true, firstName: true, lastName: true },
         },
       },

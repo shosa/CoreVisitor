@@ -70,7 +70,9 @@ export class PrinterController {
       include: {
         visitor: true,
         department: true,
-        hostUser: true,
+        host: {
+          select: { firstName: true, lastName: true },
+        },
       },
     });
 
@@ -85,8 +87,8 @@ export class PrinterController {
       badgeNumber: visit.badgeNumber,
       visitDate: new Date(visit.scheduledDate).toLocaleDateString('it-IT'),
       department: visit.department.name,
-      host: visit.hostUser
-        ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+      host: visit.host
+        ? `${visit.host.firstName} ${visit.host.lastName}`
         : visit.hostName,
       qrCode: visit.badgeQRCode,
     };

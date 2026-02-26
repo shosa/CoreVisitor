@@ -325,8 +325,8 @@ export default function EditVisitPage() {
               <div>
                 <p className="text-sm text-gray-500">Ospite</p>
                 <p className="font-medium text-gray-900">
-                  {visit?.hostUser
-                    ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+                  {visit?.host
+                    ? `${visit.host.firstName} ${visit.host.lastName}`
                     : visit?.hostName || 'N/A'}
                 </p>
               </div>

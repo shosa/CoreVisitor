@@ -88,8 +88,8 @@ export class MeilisearchService implements OnModuleInit {
         {
           id: visit.id,
           visitorName: `${visit.visitor.firstName} ${visit.visitor.lastName}`,
-          hostName: visit.hostUser
-            ? `${visit.hostUser.firstName} ${visit.hostUser.lastName}`
+          hostName: visit.host
+            ? `${visit.host.firstName} ${visit.host.lastName}`
             : visit.hostName || '',
           departmentName: visit.department?.name || '',
           departmentArea: visit.department?.area || '',

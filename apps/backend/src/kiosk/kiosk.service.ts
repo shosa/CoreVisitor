@@ -50,12 +50,11 @@ export class KioskService {
             color: true,
           },
         },
-        hostUser: {
+        host: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true,
           },
         },
       },
@@ -126,7 +125,9 @@ export class KioskService {
       include: {
         visitor: true,
         department: true,
-        hostUser: true,
+        host: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
     });
 
@@ -150,8 +151,8 @@ export class KioskService {
         badgeNumber: updatedVisit.badgeNumber,
         visitDate: new Date(updatedVisit.scheduledDate).toLocaleDateString('it-IT'),
         department: updatedVisit.department.name,
-        host: updatedVisit.hostUser
-          ? `${updatedVisit.hostUser.firstName} ${updatedVisit.hostUser.lastName}`
+        host: updatedVisit.host
+          ? `${updatedVisit.host.firstName} ${updatedVisit.host.lastName}`
           : updatedVisit.hostName,
         qrCode: updatedVisit.badgeQRCode,
       };
@@ -225,12 +226,11 @@ export class KioskService {
             color: true,
           },
         },
-        hostUser: {
+        host: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true,
           },
         },
       },

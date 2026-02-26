@@ -52,7 +52,6 @@ model User {
   // Relations
   visitsCreated Visit[] @relation("VisitCreatedBy")
   visitsUpdated Visit[] @relation("VisitUpdatedBy")
-  visitsAsHost  Visit[] @relation("VisitHost")
   auditLogs     AuditLog[]
 
   @@map("users")
@@ -62,7 +61,6 @@ model Department {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?  @db.Text
-  floor       Int?
   area        String?  @db.VarChar(100)
   color       String?  @db.VarChar(7)
   icon        String?  @db.VarChar(50)
@@ -124,7 +122,6 @@ model Visit {
   id                String      @id @default(uuid())
   visitorId         String      @map("visitor_id")
   departmentId      String      @map("department_id")
-  hostUserId        String?     @map("host_user_id")
   hostId            String?     @map("host_id")
   hostName          String?     @map("host_name")
   visitType         VisitType   @default(business)
@@ -140,7 +137,6 @@ model Visit {
   badgeQRCode       String?     @map("badge_qr_code") @db.Text
   badgeIssued       Boolean     @default(false) @map("badge_issued")
   badgeIssuedAt     DateTime?   @map("badge_issued_at")
-  qrCode            String?     @map("qr_code") @db.Text
   checkInPin        String?     @map("check_in_pin") @db.VarChar(4)
   createdById       String      @map("created_by_id")
   updatedById       String?     @map("updated_by_id")
@@ -150,7 +146,6 @@ model Visit {
   // Relations
   visitor    Visitor    @relation(fields: [visitorId], references: [id], onDelete: Cascade)
   department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  hostUser   User?      @relation("VisitHost", fields: [hostUserId], references: [id], onDelete: SetNull)
   host       Host?      @relation(fields: [hostId], references: [id], onDelete: SetNull)
   createdBy  User       @relation("VisitCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy  User?      @relation("VisitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)

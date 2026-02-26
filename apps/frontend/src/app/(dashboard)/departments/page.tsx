@@ -227,9 +227,9 @@ export default function DepartmentsPage() {
                   )}
                 </div>
 
-                {dept.floor !== null && (
+                {dept.area && (
                   <p className="text-xs text-gray-400 mb-3">
-                    Piano {dept.floor} - {dept.area}
+                    {dept.area}
                   </p>
                 )}
 

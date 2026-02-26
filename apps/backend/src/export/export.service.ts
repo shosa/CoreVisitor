@@ -40,7 +40,7 @@ export class ExportService {
       include: {
         visitor: true,
         department: true,
-        hostUser: {
+        host: {
           select: { firstName: true, lastName: true },
         },
       },
@@ -189,8 +189,8 @@ export class ExportService {
           visitor: `${visit.visitor.lastName} ${visit.visitor.firstName}`,
           company: visit.visitor.company || '-',
           department: visit.department?.name || '-',
-          host: visit.hostUser
-            ? `${visit.hostUser.lastName} ${visit.hostUser.firstName}`
+          host: visit.host
+            ? `${visit.host.lastName} ${visit.host.firstName}`
             : (visit.hostName || '-'),
           purpose: visit.purpose || '-',
           status: statusMap[visit.status] || visit.status,

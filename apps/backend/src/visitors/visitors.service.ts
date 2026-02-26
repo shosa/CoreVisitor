@@ -63,6 +63,11 @@ export class VisitorsService {
     // Query normale
     return this.prisma.visitor.findMany({
       where: company ? { company } : undefined,
+      include: {
+        _count: {
+          select: { visits: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
@@ -74,8 +79,8 @@ export class VisitorsService {
       include: {
         visits: {
           include: {
-            hostUser: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+            host: {
+              select: { id: true, firstName: true, lastName: true },
             },
           },
           orderBy: { scheduledDate: 'desc' },

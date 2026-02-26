@@ -340,7 +340,7 @@ export default function VisitorDetailPage() {
                         {new Date(visit.scheduledDate).toLocaleString('it-IT')}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {visit.host?.name || '-'}
+                        {visit.host ? `${visit.host.firstName} ${visit.host.lastName}` : visit.hostName || '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         {visit.purpose}

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsHexColor, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsHexColor, MaxLength } from 'class-validator';
 
 export class CreateDepartmentDto {
   @IsString()
@@ -8,10 +8,6 @@ export class CreateDepartmentDto {
   @IsString()
   @IsOptional()
   description?: string;
-
-  @IsInt()
-  @IsOptional()
-  floor?: number;
 
   @IsString()
   @IsOptional()

@@ -108,7 +108,6 @@ const iconOptions = [
 const schema = yup.object().shape({
   name: yup.string().required('Il nome è obbligatorio'),
   description: yup.string().optional(),
-  floor: yup.number().optional(),
   area: yup.string().optional(),
   color: yup.string().matches(/^#[0-9a-fA-F]{6}$/, 'Formato colore non valido (es. #RRGGBB)').optional(),
   icon: yup.string().optional(),
@@ -124,7 +123,6 @@ export default function NewDepartmentPage() {
     defaultValues: {
       name: '',
       description: '',
-      floor: 0,
       area: '',
       color: '#607d8b',
       icon: 'Business',
@@ -223,26 +221,6 @@ export default function NewDepartmentPage() {
               />
               {errors.description && (
                 <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
-              )}
-            </div>
-
-            {/* Piano */}
-            <div>
-              <label className="label">Piano</label>
-              <Controller
-                name="floor"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="number"
-                    className={`input ${errors.floor ? 'border-red-500 focus:ring-red-500' : ''}`}
-                    placeholder="0"
-                  />
-                )}
-              />
-              {errors.floor && (
-                <p className="text-red-500 text-sm mt-1">{errors.floor.message}</p>
               )}
             </div>
 

@@ -256,10 +256,6 @@ export default function DepartmentDetailPage() {
               <p className="text-gray-900">{department.description || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Piano</p>
-              <p className="text-gray-900">{department.floor ?? 'N/A'}</p>
-            </div>
-            <div>
               <p className="text-sm text-gray-500">Area</p>
               <p className="text-gray-900">{department.area || 'N/A'}</p>
             </div>

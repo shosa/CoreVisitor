@@ -275,7 +275,7 @@ export default function VisitorsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="badge badge-blue">
-                          {visitor.visits?.length || 0}
+                          {(visitor as any)._count?.visits ?? visitor.visits?.length ?? 0}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
