@@ -5,7 +5,6 @@ import { PrintQueueService } from '../printer/print-queue.service';
 import { MeilisearchService } from '../meilisearch/meilisearch.service';
 import { VisitStatus } from '@prisma/client';
 import { SelfRegisterDto } from './dto/self-register.dto';
-import * as crypto from 'crypto';
 
 @Injectable()
 export class KioskService {
@@ -387,9 +386,6 @@ export class KioskService {
     // Genera PIN check-in a 4 cifre
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Genera QR code univoco
-    const qrCode = `VIS-SELF-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -471,7 +467,6 @@ export class KioskService {
         scheduledTimeStart: now,
         status: VisitStatus.pending,
         checkInPin: pin,
-        qrCode,
         createdById: systemUser.id,
       },
       include: {
