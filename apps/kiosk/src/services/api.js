@@ -123,7 +123,22 @@ export const kioskAPI = {
     }),
 
   getStats: () =>
-    api.get('/api/kiosk/stats')
+    api.get('/api/kiosk/stats'),
+
+  getSettings: () =>
+    api.get('/api/kiosk/settings'),
+
+  getDepartments: () =>
+    api.get('/api/kiosk/departments'),
+
+  getHosts: () =>
+    api.get('/api/kiosk/hosts'),
+
+  searchVisitors: (q) =>
+    api.get('/api/kiosk/visitors/search', { params: { q } }),
+
+  selfRegister: (data) =>
+    api.post('/api/kiosk/self-register', data),
 };
 
 /**

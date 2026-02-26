@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { visitsApi } from '@/lib/api';
+import { visitsApi, hostsApi, Host } from '@/lib/api';
 import { Visit } from '@/types/visitor';
 import { useToast } from '@/components/Toast';
 
@@ -31,9 +31,10 @@ const SaveIcon = () => (
 );
 
 const schema = yup.object().shape({
-  purpose: yup.string().required('Il motivo della visita è obbligatorio'),
+  purpose: yup.string().optional(),
   visitType: yup.string().required('Il tipo di visita è obbligatorio'),
   departmentId: yup.string().required('Il reparto è obbligatorio'),
+  hostId: yup.string().optional(),
   hostName: yup.string().optional(),
   scheduledDate: yup.string().required('La data è obbligatoria'),
   scheduledTimeStart: yup.string().required('L\'ora di inizio è obbligatoria'),
@@ -51,6 +52,7 @@ export default function EditVisitPage() {
   const [error, setError] = useState<string | null>(null);
   const [visit, setVisit] = useState<Visit | null>(null);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [hosts, setHosts] = useState<Host[]>([]);
 
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
@@ -66,10 +68,14 @@ export default function EditVisitPage() {
   const loadDepartments = async () => {
     try {
       const { departmentsApi } = await import('@/lib/api');
-      const res = await departmentsApi.getAll();
-      setDepartments(res.data);
+      const [depsRes, hostsRes] = await Promise.all([
+        departmentsApi.getAll(),
+        hostsApi.getAll(),
+      ]);
+      setDepartments(depsRes.data);
+      setHosts(hostsRes.data.filter((h) => h.isActive));
     } catch (err) {
-      console.error('Failed to load departments:', err);
+      console.error('Failed to load departments/hosts:', err);
     }
   };
 
@@ -83,6 +89,7 @@ export default function EditVisitPage() {
         purpose: visitData.purpose || '',
         visitType: visitData.visitType || 'business',
         departmentId: visitData.departmentId || '',
+        hostId: visitData.hostId || '',
         hostName: visitData.hostName || '',
         scheduledDate: visitData.scheduledDate ? new Date(visitData.scheduledDate).toISOString().split('T')[0] : '',
         scheduledTimeStart: visitData.scheduledTimeStart ? new Date(visitData.scheduledTimeStart).toISOString().slice(0, 16) : '',
@@ -99,9 +106,10 @@ export default function EditVisitPage() {
   const onSubmit = async (data: yup.InferType<typeof schema>) => {
     try {
       await visitsApi.update(id, {
-        purpose: data.purpose,
+        purpose: data.purpose || undefined,
         visitType: data.visitType,
         departmentId: data.departmentId,
+        hostId: data.hostId || undefined,
         hostName: data.hostName || undefined,
         scheduledDate: data.scheduledDate,
         scheduledTimeStart: data.scheduledTimeStart,
@@ -212,7 +220,7 @@ export default function EditVisitPage() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="label">Motivo della Visita *</label>
+                <label className="label">Motivo della Visita</label>
                 <Controller
                   name="purpose"
                   control={control}
@@ -231,18 +239,35 @@ export default function EditVisitPage() {
 
               <div className="md:col-span-2">
                 <label className="label">Host / Referente</label>
-                <Controller
-                  name="hostName"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      className="input"
-                      placeholder="Nome della persona da visitare"
-                    />
-                  )}
-                />
+                {hosts.length > 0 ? (
+                  <Controller
+                    name="hostId"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} className="input">
+                        <option value="">Seleziona referente (opzionale)</option>
+                        {hosts.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.firstName} {h.lastName}{h.department?.name ? ` — ${h.department.name}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                ) : (
+                  <Controller
+                    name="hostName"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="text"
+                        className="input"
+                        placeholder="Nome della persona da visitare"
+                      />
+                    )}
+                  />
+                )}
               </div>
 
               <div>

@@ -16,6 +16,7 @@ import { MobileModule } from './mobile/mobile.module';
 import { PrinterModule } from './printer/printer.module';
 import { ExportModule } from './export/export.module';
 import { SettingsModule } from './settings/settings.module';
+import { HostsModule } from './hosts/hosts.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SettingsModule } from './settings/settings.module';
     PrinterModule,
     ExportModule,
     SettingsModule,
+    HostsModule,
   ],
 })
 export class AppModule {}

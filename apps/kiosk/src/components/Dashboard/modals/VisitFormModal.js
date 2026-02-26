@@ -121,11 +121,6 @@ const VisitFormModal = ({ show, onClose, onSuccess }) => {
       return;
     }
 
-    if (!formData.purpose) {
-      showMessage('error', 'Inserisci il motivo della visita');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -292,7 +287,7 @@ const VisitFormModal = ({ show, onClose, onSuccess }) => {
 
               {/* Purpose */}
               <div style={styles.formGroup}>
-                <label style={styles.label}>Motivo della Visita *</label>
+                <label style={styles.label}>Motivo della Visita</label>
                 <div style={styles.inputWrapper}>
                   <IoText size={20} color="#666" />
                   <input
@@ -301,7 +296,6 @@ const VisitFormModal = ({ show, onClose, onSuccess }) => {
                     onChange={(e) => handleInputChange('purpose', e.target.value)}
                     style={styles.input}
                     placeholder="Es. Riunione, Consegna pacchi..."
-                    required
                   />
                 </div>
               </div>

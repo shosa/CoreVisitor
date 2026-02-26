@@ -15,6 +15,7 @@ import '@ionic/react/css/typography.css';
 import KioskHome from './components/Kiosk/KioskHome';
 import PinEntry from './components/Kiosk/PinEntry';
 import ScanQR from './components/Kiosk/ScanQR';
+import SelfRegister from './components/Kiosk/SelfRegister';
 
 // Setup Ionic
 setupIonicReact({
@@ -27,7 +28,7 @@ const App = () => {
   // Ripristina stato da localStorage al mount
   useEffect(() => {
     const savedScreen = localStorage.getItem('corevisitor_current_screen');
-    if (savedScreen && ['kiosk-home', 'pin-entry', 'scan-qr'].includes(savedScreen)) {
+    if (savedScreen && ['kiosk-home', 'pin-entry', 'scan-qr', 'self-register'].includes(savedScreen)) {
       setCurrentScreen(savedScreen);
     }
   }, []);
@@ -52,6 +53,8 @@ const App = () => {
       transitionToScreen('pin-entry');
     } else if (option === 'qr') {
       transitionToScreen('scan-qr');
+    } else if (option === 'self-register') {
+      transitionToScreen('self-register');
     }
   };
 
@@ -105,6 +108,9 @@ const App = () => {
 
       case 'scan-qr':
         return <ScanQR onBack={handleBackToKioskHome} />;
+
+      case 'self-register':
+        return <SelfRegister onBack={handleBackToKioskHome} />;
 
       default:
         return (

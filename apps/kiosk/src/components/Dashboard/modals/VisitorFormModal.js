@@ -98,16 +98,6 @@ const VisitorFormModal = ({ show, onClose, onSuccess }) => {
       return;
     }
 
-    if (!formData.documentType) {
-      showMessage('error', 'Seleziona un tipo di documento');
-      return;
-    }
-
-    if (!formData.documentNumber || !formData.documentNumber.trim()) {
-      showMessage('error', 'Inserisci il numero del documento');
-      return;
-    }
-
     if (!formData.privacyConsent) {
       showMessage('error', 'Devi accettare il consenso privacy');
       return;
@@ -318,12 +308,11 @@ const VisitorFormModal = ({ show, onClose, onSuccess }) => {
             {/* Document Info */}
             <div style={styles.row}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Tipo Documento *</label>
+                <label style={styles.label}>Tipo Documento</label>
                 <select
                   value={formData.documentType}
                   onChange={(e) => handleInputChange('documentType', e.target.value)}
                   style={styles.select}
-                  required
                 >
                   <option value="id_card">Carta d'Identità</option>
                   <option value="passport">Passaporto</option>
@@ -333,7 +322,7 @@ const VisitorFormModal = ({ show, onClose, onSuccess }) => {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Numero Documento *</label>
+                <label style={styles.label}>Numero Documento</label>
                 <input
                   type="text"
                   value={formData.documentNumber}

@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
   IoKeypad,
-  IoLogOut
+  IoLogOut,
+  IoPersonAdd
 } from 'react-icons/io5';
 
 const KioskHome = ({ onSelectOption }) => {
@@ -111,6 +112,23 @@ const KioskHome = ({ onSelectOption }) => {
             Scansiona o inserisci il numero badge per uscire
           </p>
         </motion.button>
+
+        {/* SELF-REGISTER Option */}
+        <motion.button
+          onClick={() => onSelectOption('self-register')}
+          style={styles.optionButton}
+          variants={buttonVariants}
+          whileHover="hover"
+          whileTap="tap"
+        >
+          <div style={styles.optionIconCoral}>
+            <IoPersonAdd size={64} color="#f4845f" />
+          </div>
+          <h3 style={styles.optionTitle}>REGISTRATI</h3>
+          <p style={styles.optionDescription}>
+            Prima visita? Registrati e stampa il tuo badge
+          </p>
+        </motion.button>
       </div>
 
       {/* Footer */}
@@ -176,9 +194,9 @@ const styles = {
   },
   optionsContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
     gap: '20px',
-    maxWidth: '800px',
+    maxWidth: '1100px',
     margin: '0 auto',
     width: '100%',
     padding: '0 20px'
@@ -213,6 +231,17 @@ const styles = {
     height: '100px',
     borderRadius: '12px',
     background: '#f0fdf4',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '24px',
+    transition: 'all 0.25s ease'
+  },
+  optionIconCoral: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '12px',
+    background: '#fff4f0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

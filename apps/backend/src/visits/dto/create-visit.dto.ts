@@ -18,7 +18,8 @@ export class CreateVisitDto {
   visitType: VisitType;
 
   @IsString()
-  purpose: string;
+  @IsOptional()
+  purpose?: string;
 
   @IsString()
   @IsOptional()

@@ -236,7 +236,7 @@ export default function NewVisitorPage() {
 
             {/* Tipo Documento */}
             <div>
-              <label className="label">Tipo Documento *</label>
+              <label className="label">Tipo Documento</label>
               <Controller
                 name="documentType"
                 control={control}
@@ -260,7 +260,7 @@ export default function NewVisitorPage() {
 
             {/* Numero Documento */}
             <div>
-              <label className="label">Numero Documento *</label>
+              <label className="label">Numero Documento</label>
               <Controller
                 name="documentNumber"
                 control={control}

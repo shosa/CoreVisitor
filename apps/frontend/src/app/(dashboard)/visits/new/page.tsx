@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { visitorsApi, visitsApi, departmentsApi } from '@/lib/api';
+import { visitorsApi, visitsApi, departmentsApi, hostsApi, Host } from '@/lib/api';
 import { Visitor, Department } from '@/types/visitor';
 import { useToast } from '@/components/Toast';
 
@@ -75,7 +75,9 @@ export default function NewVisitPage() {
 
   // State per visita
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [hosts, setHosts] = useState<Host[]>([]);
   const [visitData, setVisitData] = useState({
+    hostId: '',
     hostName: '',
     visitType: 'business',
     purpose: '',
@@ -92,12 +94,14 @@ export default function NewVisitPage() {
 
   const loadData = async () => {
     try {
-      const [visitorsRes, deptsRes] = await Promise.all([
+      const [visitorsRes, deptsRes, hostsRes] = await Promise.all([
         visitorsApi.getAll(),
         departmentsApi.getAll(),
+        hostsApi.getAll(),
       ]);
       setVisitors(visitorsRes.data);
       setDepartments(deptsRes.data);
+      setHosts(hostsRes.data.filter((h) => h.isActive));
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -117,10 +121,6 @@ export default function NewVisitPage() {
           setError('Nome e Cognome sono obbligatori');
           return false;
         }
-        if (!newVisitor.documentType || !newVisitor.documentNumber.trim()) {
-          setError('Tipo e Numero documento sono obbligatori');
-          return false;
-        }
         return true;
       case 1:
         if (!visitData.departmentId) {
@@ -129,10 +129,6 @@ export default function NewVisitPage() {
         }
         if (!visitData.visitType) {
           setError('Seleziona il tipo di visita');
-          return false;
-        }
-        if (!visitData.purpose.trim()) {
-          setError('Il motivo della visita è obbligatorio');
           return false;
         }
         if (!visitData.scheduledTimeStart) {
@@ -187,8 +183,9 @@ export default function NewVisitPage() {
         visitorId,
         departmentId: visitData.departmentId,
         visitType: visitData.visitType,
-        purpose: visitData.purpose,
-        hostName: visitData.hostName,
+        purpose: visitData.purpose || undefined,
+        hostId: visitData.hostId || undefined,
+        hostName: visitData.hostName || undefined,
         scheduledDate: visitData.scheduledDate,
         scheduledTimeStart: visitData.scheduledTimeStart,
         notes: visitData.notes,
@@ -348,7 +345,7 @@ export default function NewVisitPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">Tipo Documento *</label>
+                  <label className="label">Tipo Documento</label>
                   <select
                     className="input"
                     value={newVisitor.documentType}
@@ -363,7 +360,7 @@ export default function NewVisitPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="label">Numero Documento *</label>
+                  <label className="label">Numero Documento</label>
                   <input
                     type="text"
                     className="input"
@@ -432,13 +429,39 @@ export default function NewVisitPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className="label">Host / Referente</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="Nome della persona da visitare"
-                value={visitData.hostName}
-                onChange={(e) => setVisitData({ ...visitData, hostName: e.target.value })}
-              />
+              {hosts.length > 0 ? (
+                <select
+                  className="input"
+                  value={visitData.hostId}
+                  onChange={(e) => {
+                    const selected = hosts.find((h) => h.id === e.target.value);
+                    setVisitData({
+                      ...visitData,
+                      hostId: e.target.value,
+                      hostName: selected ? `${selected.firstName} ${selected.lastName}` : '',
+                      // Auto-imposta reparto dal referente se non già selezionato
+                      departmentId: selected?.departmentId && !visitData.departmentId
+                        ? selected.departmentId
+                        : visitData.departmentId,
+                    });
+                  }}
+                >
+                  <option value="">Seleziona referente (opzionale)</option>
+                  {hosts.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.firstName} {h.lastName}{h.department?.name ? ` — ${h.department.name}` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Nome della persona da visitare"
+                  value={visitData.hostName}
+                  onChange={(e) => setVisitData({ ...visitData, hostName: e.target.value })}
+                />
+              )}
             </div>
             <div>
               <label className="label">Tipo Visita *</label>
@@ -471,7 +494,7 @@ export default function NewVisitPage() {
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="label">Motivo della Visita *</label>
+              <label className="label">Motivo della Visita</label>
               <textarea
                 className="input resize-none"
                 rows={2}

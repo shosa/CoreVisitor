@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { KioskService } from './kiosk.service';
 import { SettingsService } from '../settings/settings.service';
+import { SelfRegisterDto } from './dto/self-register.dto';
 
 @Controller('kiosk')
 export class KioskController {
@@ -148,6 +149,88 @@ export class KioskController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Error during check-out',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Ottieni lista reparti attivi per kiosk
+   * GET /api/kiosk/departments
+   */
+  @Get('departments')
+  async getDepartments() {
+    try {
+      const departments = await this.kioskService.getDepartments();
+      return { status: 'success', data: departments };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error fetching departments',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Ottieni lista host attivi (referenti interni) per kiosk
+   * GET /api/kiosk/hosts
+   */
+  @Get('hosts')
+  async getHosts() {
+    try {
+      const hosts = await this.kioskService.getHosts();
+      return { status: 'success', data: hosts };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error fetching hosts',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Ricerca visitatori esistenti per nome/cognome (per self-registration kiosk)
+   * GET /api/kiosk/visitors/search?q=mario
+   */
+  @Get('visitors/search')
+  async searchVisitors(@Query('q') q: string) {
+    try {
+      if (!q || q.trim().length < 2) {
+        return { status: 'success', data: [] };
+      }
+      const visitors = await this.kioskService.searchVisitors(q.trim());
+      return { status: 'success', data: visitors };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error searching visitors',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Self-registration dal kiosk: crea visitatore + visita + stampa badge
+   * POST /api/kiosk/self-register
+   */
+  @Post('self-register')
+  async selfRegister(@Body() dto: SelfRegisterDto) {
+    try {
+      if (!dto.visitorId && (!dto.firstName || !dto.lastName)) {
+        throw new HttpException('Nome e cognome obbligatori per nuovo visitatore', HttpStatus.BAD_REQUEST);
+      }
+      if (!dto.privacyConsent) {
+        throw new HttpException('Consenso privacy obbligatorio', HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this.kioskService.selfRegister(dto);
+      return {
+        status: 'success',
+        message: 'Registrazione completata con successo',
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error during self-registration',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -4,6 +4,8 @@ import { BadgeService } from '../badge/badge.service';
 import { PrintQueueService } from '../printer/print-queue.service';
 import { MeilisearchService } from '../meilisearch/meilisearch.service';
 import { VisitStatus } from '@prisma/client';
+import { SelfRegisterDto } from './dto/self-register.dto';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class KioskService {
@@ -320,6 +322,238 @@ export class KioskService {
     }
 
     return updatedVisit;
+  }
+
+  /**
+   * Cerca visitatori esistenti per nome/cognome (per self-registration kiosk)
+   */
+  async searchVisitors(query: string) {
+    const terms = query.split(' ').filter(Boolean);
+    return this.prisma.visitor.findMany({
+      where: {
+        AND: terms.map((term) => ({
+          OR: [
+            { firstName: { contains: term } },
+            { lastName: { contains: term } },
+            { company: { contains: term } },
+          ],
+        })),
+        isActive: true,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        company: true,
+      },
+      take: 8,
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
+  /**
+   * Ottieni lista reparti attivi (per self-registration kiosk)
+   */
+  async getDepartments() {
+    return this.prisma.department.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, color: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * Ottieni lista host attivi (per self-registration kiosk)
+   */
+  async getHosts() {
+    return this.prisma.host.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        departmentId: true,
+        department: { select: { id: true, name: true } },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
+  /**
+   * Self-registration: crea visitatore + visita dal kiosk
+   */
+  async selfRegister(dto: SelfRegisterDto) {
+    // Genera PIN check-in a 4 cifre
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
+    // Genera QR code univoco
+    const qrCode = `VIS-SELF-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Ricava departmentId dall'host se non fornito direttamente
+    let departmentId = dto.departmentId;
+    let hostName = dto.hostName;
+    if (dto.hostId) {
+      const host = await this.prisma.host.findUnique({
+        where: { id: dto.hostId },
+        select: { id: true, firstName: true, lastName: true, departmentId: true },
+      });
+      if (host) {
+        hostName = hostName || `${host.firstName} ${host.lastName}`;
+        if (!departmentId && host.departmentId) {
+          departmentId = host.departmentId;
+        }
+      }
+    }
+
+    if (!departmentId) {
+      throw new HttpException(
+        'Impossibile determinare il reparto. Seleziona un referente con reparto assegnato.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Usa visitatore esistente o creane uno nuovo
+    let visitor: any;
+    if (dto.visitorId) {
+      visitor = await this.prisma.visitor.findUnique({ where: { id: dto.visitorId } });
+      if (!visitor) {
+        throw new HttpException('Visitatore non trovato', HttpStatus.NOT_FOUND);
+      }
+      // Aggiorna privacy consent se non già dato
+      if (!visitor.privacyConsent) {
+        visitor = await this.prisma.visitor.update({
+          where: { id: dto.visitorId },
+          data: { privacyConsent: dto.privacyConsent },
+        });
+      }
+    } else {
+      if (!dto.firstName || !dto.lastName) {
+        throw new HttpException('Nome e cognome obbligatori', HttpStatus.BAD_REQUEST);
+      }
+      visitor = await this.prisma.visitor.create({
+        data: {
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          email: dto.email || null,
+          company: dto.company || null,
+          privacyConsent: dto.privacyConsent,
+        },
+      });
+    }
+
+    // Trova un admin/system user per createdById (richiesto dallo schema)
+    const systemUser = await this.prisma.user.findFirst({
+      where: { role: 'admin', isActive: true },
+      select: { id: true },
+    });
+
+    if (!systemUser) {
+      throw new HttpException(
+        'Nessun utente di sistema configurato',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Crea visita
+    const visit = await this.prisma.visit.create({
+      data: {
+        visitorId: visitor.id,
+        departmentId,
+        hostId: dto.hostId || null,
+        hostName: hostName || null,
+        visitType: dto.visitType,
+        purpose: dto.purpose || null,
+        scheduledDate: todayStart,
+        scheduledTimeStart: now,
+        status: VisitStatus.pending,
+        checkInPin: pin,
+        qrCode,
+        createdById: systemUser.id,
+      },
+      include: {
+        visitor: true,
+        department: { select: { id: true, name: true, color: true } },
+        host: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+
+    // Genera badge
+    const badgeNumber = this.badge.generateBadgeNumber();
+    const badgeBarcode = await this.badge.generateBadgeBarcode(badgeNumber);
+
+    // Aggiorna visita con badge e stato checked_in (registrazione = check-in immediato)
+    const updatedVisit = await this.prisma.visit.update({
+      where: { id: visit.id },
+      data: {
+        status: VisitStatus.checked_in,
+        actualCheckIn: now,
+        badgeNumber,
+        badgeQRCode: badgeBarcode,
+        badgeIssued: true,
+        badgeIssuedAt: now,
+      },
+      include: {
+        visitor: true,
+        department: { select: { id: true, name: true, color: true } },
+        host: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+
+    // Indicizza in Meilisearch
+    await this.meilisearch.indexVisit(updatedVisit);
+
+    // Stampa badge
+    try {
+      const hostLabel = updatedVisit.host
+        ? `${updatedVisit.host.firstName} ${updatedVisit.host.lastName}`
+        : updatedVisit.hostName || null;
+
+      const badgeData = {
+        visitorName: `${visitor.firstName} ${visitor.lastName}`,
+        company: visitor.company,
+        badgeNumber,
+        visitDate: new Date().toLocaleDateString('it-IT'),
+        department: updatedVisit.department.name,
+        host: hostLabel,
+        qrCode: badgeBarcode,
+      };
+      await this.printQueue.addBadgePrintJob({
+        visitId: visit.id,
+        badgeData,
+        copies: 1,
+        priority: 1,
+      });
+    } catch (error) {
+      console.error('Badge print error:', error.message);
+    }
+
+    // Audit log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'check_in',
+          entityType: 'visit',
+          entityId: visit.id,
+          details: `Self-registration kiosk: ${visitor.firstName} ${visitor.lastName}`,
+          userId: null,
+          ipAddress: null,
+        },
+      });
+    } catch (error) {
+      console.log('Audit log error:', error.message);
+    }
+
+    return {
+      ...updatedVisit,
+      visitor: {
+        ...updatedVisit.visitor,
+        full_name: `${visitor.firstName} ${visitor.lastName}`,
+      },
+    };
   }
 
   /**

@@ -4,7 +4,7 @@
  */
 
 const getBaseURL = () => {
-  // Controlla se è salvato in localStorage
+  // Controlla se è salvato in localStorage (override manuale runtime)
   const savedServer = localStorage.getItem('corevisitor_server_url');
 
   if (savedServer) {
@@ -12,11 +12,18 @@ const getBaseURL = () => {
     return savedServer;
   }
 
-  // Auto-detect: usa lo stesso protocollo della pagina corrente
-  // Se il frontend è HTTPS, usa HTTPS anche per il backend (e viceversa)
-  const protocol = window.location.protocol; // 'http:' o 'https:'
+  // Usa variabile d'ambiente iniettata al build-time da REACT_APP_API_URL
+  // Se è un path relativo (es. '/api' o '') usa direttamente il proxy nginx
+  if (process.env.REACT_APP_API_URL !== undefined) {
+    const envUrl = process.env.REACT_APP_API_URL;
+    console.log('[CONSOLE]: Utilizzo REACT_APP_API_URL:', envUrl || '(path relativo)');
+    return envUrl;
+  }
+
+  // Fallback: auto-detect dal protocollo della pagina
+  const protocol = window.location.protocol;
   const defaultUrl = `${protocol}//192.168.3.40:3006`;
-  console.log('[CONSOLE]: Utilizzo server produzione: ', defaultUrl);
+  console.log('[CONSOLE]: Utilizzo fallback hardcoded:', defaultUrl);
   return defaultUrl;
 };
 

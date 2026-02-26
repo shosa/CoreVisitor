@@ -70,6 +70,40 @@ export const usersApi = {
   delete: (id: string) => api.delete(`/users/${id}`),
 };
 
+// Hosts (Referenti interni)
+export interface Host {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+  departmentId?: string | null;
+  department?: { id: string; name: string; color?: string | null } | null;
+  notes?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateHostDto = {
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+  departmentId?: string | null;
+  notes?: string | null;
+  isActive?: boolean;
+};
+export type UpdateHostDto = Partial<CreateHostDto>;
+
+export const hostsApi = {
+  getAll: () => api.get<Host[]>('/hosts'),
+  getOne: (id: string) => api.get<Host>(`/hosts/${id}`),
+  create: (data: CreateHostDto) => api.post<Host>('/hosts', data),
+  update: (id: string, data: UpdateHostDto) => api.patch<Host>(`/hosts/${id}`, data),
+  delete: (id: string) => api.delete(`/hosts/${id}`),
+};
+
 // Audit Logs
 export interface AuditLog {
   id: string;
