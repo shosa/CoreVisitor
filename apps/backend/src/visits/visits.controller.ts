@@ -102,8 +102,8 @@ export class VisitsController {
 
   @Patch(':id')
   @Roles('admin', 'receptionist')
-  update(@Param('id') id: string, @Body() updateVisitDto: UpdateVisitDto) {
-    return this.visitsService.update(id, updateVisitDto);
+  update(@Param('id') id: string, @Body() updateVisitDto: UpdateVisitDto, @CurrentUser() user: any) {
+    return this.visitsService.update(id, updateVisitDto, user.id);
   }
 
   @Delete(':id')

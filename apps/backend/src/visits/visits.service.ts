@@ -146,12 +146,14 @@ export class VisitsService {
     return visit;
   }
 
-  async update(id: string, updateVisitDto: UpdateVisitDto) {
-    const { hostId, ...rest } = updateVisitDto as any;
+  async update(id: string, updateVisitDto: UpdateVisitDto, updatedById?: string) {
+    const { hostId, visitorId, departmentId, ...rest } = updateVisitDto as any;
     const visit = await this.prisma.visit.update({
       where: { id },
       data: {
         ...rest,
+        ...(visitorId && { visitor: { connect: { id: visitorId } } }),
+        ...(departmentId && { department: { connect: { id: departmentId } } }),
         scheduledDate: rest.scheduledDate
           ? new Date(rest.scheduledDate)
           : undefined,
@@ -164,6 +166,7 @@ export class VisitsService {
         ...(hostId !== undefined && {
           host: hostId ? { connect: { id: hostId } } : { disconnect: true },
         }),
+        ...(updatedById && { updatedBy: { connect: { id: updatedById } } }),
       },
       include: {
         visitor: true,
