@@ -595,7 +595,8 @@ const SelfRegister = ({ onBack }) => {
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    height: '100vh',
+    overflow: 'hidden',
     background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)',
     display: 'flex',
     flexDirection: 'column',
@@ -853,6 +854,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     padding: '16px 24px',
+    paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 16px))',
     borderTop: '2px solid #e5e5e5',
     background: '#fff',
     gap: 12,

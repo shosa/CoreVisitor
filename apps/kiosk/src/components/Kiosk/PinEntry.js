@@ -487,6 +487,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     padding: '20px',
+    paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 16px))',
     position: 'relative'
   },
   header: {

@@ -8,12 +8,13 @@ export class BadgeService {
   constructor(private configService: ConfigService) {}
 
   /**
-   * Genera numero badge univoco
+   * Genera numero badge univoco a 6 cifre numeriche
    */
   generateBadgeNumber(): string {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = randomBytes(3).toString('hex').toUpperCase();
-    return `${random}`;
+    // Genera 6 cifre casuali: prime 2 dall'ora corrente, ultime 4 random
+    const hour = new Date().getHours().toString().padStart(2, '0');
+    const random = Math.floor(1000 + Math.random() * 9000).toString();
+    return `${hour}${random}`;
   }
 
   /**
@@ -49,9 +50,8 @@ export class BadgeService {
     badgeNumber?: string;
     reason?: string;
   } {
-    // Il codice a barre contiene il badge number (formato VIS-{timestamp}-{random})
-    // Verifica che sia nel formato corretto
-    const badgeRegex = /^VIS-[0-9A-Z]+-[0-9A-F]{6}$/i;
+    // Accetta numeri a 6 cifre
+    const badgeRegex = /^\d{6}$/;
 
     if (!badgeRegex.test(barcodeData)) {
       return { valid: false, reason: 'Invalid badge number format' };

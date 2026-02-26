@@ -19,6 +19,7 @@ export class CreateVisitorDto {
   @MaxLength(100)
   lastName: string;
 
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsEmail()
   @IsOptional()
   email?: string;
@@ -53,6 +54,7 @@ export class CreateVisitorDto {
   @MaxLength(50)
   documentNumber?: string;
 
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsDateString()
   @IsOptional()
   documentExpiry?: string;

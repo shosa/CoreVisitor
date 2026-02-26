@@ -1,164 +1,118 @@
 /**
- * BarcodeInput Component
- * Input manuale codice a barre per check-out visitatori in modalità kiosk
- * Ottimizzato per lettori barcode USB
- * CoreInWork Style - Clean, minimal, white design
+ * ScanQR / CheckOut Component
+ * Check-out visitatori tramite tastierino numerico (badge a 6 cifre)
+ * Stessa UX del check-in con PIN
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  IoBarcode,
-  IoArrowBack,
   IoCheckmarkCircle,
-  IoCloseCircle
+  IoCloseCircle,
+  IoBackspace,
+  IoArrowBack,
+  IoBarcode,
 } from 'react-icons/io5';
 import { kioskAPI } from '../../services/api';
 
 const ScanQR = ({ onBack }) => {
-  const [badgeInput, setBadgeInput] = useState('');
-  const [result, setResult] = useState(null);
+  const [badge, setBadge] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ show: false, type: 'info', text: '' });
-  const inputRef = useRef(null);
+  const [visitData, setVisitData] = useState(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
-  // Auto-focus sul campo input al mount
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
+    // Auto-verify quando il badge è completo (6 cifre)
+    if (badge.length === 6 && !loading && !visitData) {
+      verifyBadge();
     }
-  }, []);
+  }, [badge]);
 
-  // Re-focus dopo ogni operazione
-  useEffect(() => {
-    if (!loading && !result && inputRef.current) {
-      inputRef.current.focus();
+  const handleNumberClick = (num) => {
+    if (badge.length < 6 && !loading && !visitData) {
+      setBadge(badge + num);
+      setError('');
     }
-  }, [loading, result]);
-
-  const showMessage = (type, text) => {
-    setMessage({ show: true, type, text });
-    setTimeout(() => setMessage({ show: false, type: 'info', text: '' }), 4000);
   };
 
-  const handleInputChange = (e) => {
-    setBadgeInput(e.target.value.toUpperCase());
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!badgeInput.trim()) {
-      showMessage('error', 'Inserisci il numero badge');
-      return;
+  const handleBackspace = () => {
+    if (!loading && !visitData) {
+      setBadge(badge.slice(0, -1));
+      setError('');
     }
-
-    await processCheckOut(badgeInput.trim());
   };
 
-  const processCheckOut = async (badgeCode) => {
+  const handleClear = () => {
+    if (!loading) {
+      setBadge('');
+      setError('');
+      setVisitData(null);
+      setSuccess(false);
+    }
+  };
+
+  const verifyBadge = async () => {
     setLoading(true);
+    setError('');
+
     try {
-      console.log('🔍 Verifying badge:', badgeCode);
+      const response = await kioskAPI.verifyBadge(badge);
 
-      // Verifica badge
-      const verifyResponse = await kioskAPI.verifyBadge(badgeCode);
-      console.log('📋 Full verify response:', JSON.stringify(verifyResponse.data, null, 2));
-
-      // Gestisci diversi formati di risposta
-      let visit = null;
-      let visitId = null;
-
-      if (verifyResponse.data.status === 'error') {
-        throw new Error(verifyResponse.data.message || 'Badge non valido');
+      if (response.data.status === 'error') {
+        setError(response.data.message || 'Badge non valido');
+        setBadge('');
+        return;
       }
 
-      // Prova diversi formati di risposta
-      if (verifyResponse.data.data) {
-        visit = verifyResponse.data.data;
-        visitId = visit.id || visit.visit_id;
-      } else if (verifyResponse.data.visit) {
-        visit = verifyResponse.data.visit;
-        visitId = visit.id || visit.visit_id;
-      } else if (verifyResponse.data.id) {
-        // La risposta è direttamente la visita
-        visit = verifyResponse.data;
-        visitId = visit.id || visit.visit_id;
-      }
+      const visit = response.data.data;
+      setVisitData(visit);
 
-      // Validazione: assicurati che visitId esista
-      if (!visitId) {
-        console.error('❌ Invalid visit data:', verifyResponse.data);
-        console.error('❌ Parsed visit:', visit);
-        throw new Error('Nessuna visita trovata per questo badge. Verifica che la visita sia in stato checked-in.');
-      }
-
-      console.log('✅ Visit found:', visit);
-      console.log('✅ Visit ID:', visitId);
-
-      // Check-out
-      const checkOutResponse = await kioskAPI.checkOut(visitId, badgeCode);
-      console.log('📤 Check-out response:', checkOutResponse.data);
-
-      if (checkOutResponse.data.status === 'success') {
-        setResult({
-          success: true,
-          visitor: visit.visitor,
-          visitId: visit.id,
-          checkOutTime: new Date().toLocaleTimeString('it-IT')
-        });
-
-        showMessage('success', `${visit.visitor?.full_name || 'Visitatore'} - Uscita registrata con successo`);
-
-        // Reset input e torna alla home dopo 3 secondi
-        setBadgeInput('');
-        setTimeout(() => {
-          setResult(null);
-          onBack();
-        }, 3000);
-      } else {
-        throw new Error(checkOutResponse.data.message || 'Errore durante il check-out');
-      }
-    } catch (error) {
-      console.error('❌ Check-out error:', error);
-      setResult({
-        success: false,
-        error: error.message || 'Errore sconosciuto'
-      });
-
-      showMessage('error', error.response?.data?.message || error.message || 'Impossibile completare il check-out');
-
-      // Reset input e torna allo stato iniziale dopo 3 secondi
-      setBadgeInput('');
-      setTimeout(() => {
-        setResult(null);
-      }, 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Errore durante la verifica del badge');
+      setBadge('');
     } finally {
       setLoading(false);
     }
   };
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
+  const handleCheckOut = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const visitId = visitData.id || visitData.visit_id;
+      const response = await kioskAPI.checkOut(visitId, badge);
+
+      if (response.data.status === 'success') {
+        setSuccess(true);
+        setTimeout(() => {
+          onBack();
+        }, 3000);
       }
+
+    } catch (err) {
+      setError(err.response?.data?.message || 'Errore durante il check-out');
+      setVisitData(null);
+      setBadge('');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
+  };
+
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: [0.22, 1, 0.36, 1]
-      }
-    }
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const keypadButtonVariants = {
+    hover: { scale: 1.05, transition: { duration: 0.15 } },
+    tap: { scale: 0.95, transition: { duration: 0.1 } }
   };
 
   return (
@@ -168,138 +122,255 @@ const ScanQR = ({ onBack }) => {
       initial="hidden"
       animate="visible"
     >
+      <style>{`
+        @keyframes btnPress {
+          0% { background: #6ee7b7; transform: scale(1); }
+          50% { background: #d1fae5; transform: scale(0.95); }
+          100% { background: #f3f4f6; transform: scale(1); }
+        }
+        .keypad-btn:active:not(:disabled) {
+          animation: btnPress 0.5s ease !important;
+        }
+        @media (max-width: 1024px) {
+          .main-content-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+            padding: 0 20px !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <motion.div style={styles.header} variants={itemVariants}>
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
-        <h1 style={styles.title}>CHECK-OUT</h1>
-        <div style={{ width: '40px' }}></div>
+        <h1 style={styles.title}>Self Check-Out</h1>
+        <div style={{ width: 40 }} />
       </motion.div>
 
-      {/* Message */}
-      <AnimatePresence>
-        {message.show && (
+      <AnimatePresence mode="wait">
+        {!visitData && !success && (
           <motion.div
-            style={{
-              ...styles.message,
-              ...(message.type === 'success' ? styles.messageSuccess : styles.messageError)
-            }}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            key="badge-input"
+            style={styles.mainContent}
+            className="main-content-grid"
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            exit={{ opacity: 0, scale: 0.95 }}
           >
-            {message.type === 'success' ? (
-              <IoCheckmarkCircle size={20} style={{ marginRight: '8px' }} />
-            ) : (
-              <IoCloseCircle size={20} style={{ marginRight: '8px' }} />
+            {/* Left Column */}
+            <div style={styles.leftColumn}>
+              <div style={styles.infoCard}>
+                <div style={styles.iconContainer}>
+                  <IoBarcode size={80} color="#10b981" />
+                </div>
+                <h2 style={styles.infoTitle}>Check-Out con Badge</h2>
+                <p style={styles.infoDescription}>
+                  Inserisca il numero a 6 cifre del suo badge per registrare l'uscita
+                </p>
+
+                {/* Badge Display */}
+                <div style={styles.pinDisplay}>
+                  <p style={styles.pinLabel}>Il tuo numero badge</p>
+                  <div style={styles.pinDots}>
+                    {[0, 1, 2, 3, 4, 5].map((index) => (
+                      <div
+                        key={index}
+                        style={{
+                          ...styles.pinDot,
+                          ...(badge.length > index ? styles.pinDotFilled : {})
+                        }}
+                      >
+                        {badge.length > index && (
+                          <span style={styles.pinNumber}>{badge[index]}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {error && (
+                    <div style={styles.errorMessage}>
+                      <IoCloseCircle size={20} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column — Keypad */}
+            <div style={styles.rightColumn}>
+              <div style={styles.keypad}>
+                <div style={styles.keypadGrid}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <motion.button
+                      key={num}
+                      onClick={() => handleNumberClick(num.toString())}
+                      style={styles.keypadButton}
+                      className="keypad-btn"
+                      disabled={loading}
+                      variants={keypadButtonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
+                    >
+                      {num}
+                    </motion.button>
+                  ))}
+                  <motion.button
+                    onClick={handleClear}
+                    style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
+                    className="keypad-btn"
+                    disabled={loading}
+                    variants={keypadButtonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    C
+                  </motion.button>
+                  <motion.button
+                    onClick={() => handleNumberClick('0')}
+                    style={styles.keypadButton}
+                    className="keypad-btn"
+                    disabled={loading}
+                    variants={keypadButtonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    0
+                  </motion.button>
+                  <motion.button
+                    onClick={handleBackspace}
+                    style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
+                    className="keypad-btn"
+                    disabled={loading}
+                    variants={keypadButtonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    <IoBackspace size={24} />
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+
+            {loading && (
+              <div style={styles.loadingOverlay}>
+                <div style={styles.spinner} />
+                <p style={styles.loadingText}>Verifica in corso...</p>
+              </div>
             )}
-            <span>{message.text}</span>
           </motion.div>
         )}
-      </AnimatePresence>
 
-      {/* Result Display */}
-      <AnimatePresence>
-        {result && (
+        {visitData && !success && (
           <motion.div
-            style={{
-              ...styles.resultCard,
-              ...(result.success ? styles.resultSuccess : styles.resultError)
-            }}
-            initial={{ opacity: 0, scale: 0.8 }}
+            key="confirmation"
+            style={styles.confirmationContainer}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
+            <div style={styles.confirmationHeader}>
+              <h2 style={styles.confirmationTitle}>Conferma l'uscita</h2>
+              <p style={styles.confirmationSubtitle}>Verifica che le informazioni siano corrette prima di procedere</p>
+            </div>
+
+            <div style={styles.mainCard}>
+              {/* Left — Badge */}
+              <div style={styles.qrCodeSection}>
+                <div style={styles.qrCodeContainer}>
+                  <IoBarcode size={120} color="#10b981" />
+                </div>
+                <p style={styles.qrCodeLabel}>Badge Visitatore</p>
+                <p style={styles.badgeNumber}>{visitData.badgeNumber}</p>
+              </div>
+
+              {/* Right — Details */}
+              <div style={styles.detailsSection}>
+                <div style={styles.visitorInfo}>
+                  <h3 style={styles.visitorName}>{visitData.visitor?.full_name}</h3>
+                  {visitData.visitor?.company && (
+                    <p style={styles.companySubtitle}>{visitData.visitor.company}</p>
+                  )}
+                </div>
+
+                <div style={styles.detailsGrid}>
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>Check-in</span>
+                    <span style={styles.detailValue}>
+                      {visitData.actualCheckIn
+                        ? new Date(visitData.actualCheckIn).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                        : '—'}
+                    </span>
+                  </div>
+                  {visitData.department && (
+                    <div style={styles.detailRow}>
+                      <span style={styles.detailLabel}>Reparto</span>
+                      <span style={styles.detailValue}>{visitData.department.name}</span>
+                    </div>
+                  )}
+                  {visitData.hostUser && (
+                    <div style={styles.detailRow}>
+                      <span style={styles.detailLabel}>Referente</span>
+                      <span style={styles.detailValue}>
+                        {visitData.hostUser.firstName} {visitData.hostUser.lastName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.buttonContainer}>
+              <button
+                onClick={handleCheckOut}
+                disabled={loading}
+                style={{ ...styles.confirmButton, ...(loading ? styles.buttonDisabled : {}) }}
+              >
+                {loading ? (
+                  <><div style={styles.buttonSpinner} /><span>Check-out in corso...</span></>
+                ) : (
+                  <><IoCheckmarkCircle size={24} /><span>Conferma Check-Out</span></>
+                )}
+              </button>
+              <button onClick={handleClear} disabled={loading} style={styles.cancelButton}>
+                Annulla
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {success && (
+          <motion.div
+            key="success"
+            style={styles.successContainer}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
             <motion.div
-              style={styles.resultIcon}
+              style={styles.successIcon}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
+              transition={{ delay: 0.2, duration: 0.5, type: 'spring', stiffness: 200 }}
             >
-              {result.success ? (
-                <IoCheckmarkCircle size={80} color="#10b981" />
-              ) : (
-                <IoCloseCircle size={80} color="#ef4444" />
-              )}
+              <IoCheckmarkCircle size={120} color="#10b981" />
             </motion.div>
-            {result.success ? (
-              <>
-                <h2 style={styles.resultTitle}>Check-out Effettuato!</h2>
-                <p style={styles.resultText}>{result.visitor?.full_name}</p>
-                <p style={styles.resultTime}>Uscita: {result.checkOutTime}</p>
-              </>
-            ) : (
-              <>
-                <h2 style={styles.resultTitle}>Errore</h2>
-                <p style={styles.resultText}>{result.error}</p>
-              </>
-            )}
+            <h2 style={styles.successTitle}>Check-Out Completato!</h2>
+            <p style={styles.successMessage}>
+              Arrivederci, {visitData?.visitor?.full_name}!
+            </p>
+            <p style={styles.successSubMessage}>
+              La tua uscita è stata registrata con successo.
+            </p>
+            <div style={styles.autoCloseMessage}>
+              Reindirizzamento automatico in 3 secondi...
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Main Content */}
-      {!result && (
-        <motion.div style={styles.mainContent} variants={itemVariants}>
-          {/* Icon Container */}
-          <div style={styles.iconContainer}>
-            <div style={styles.barcodeIcon}>
-              <IoBarcode size={120} color="#10b981" />
-            </div>
-          </div>
-
-          {/* Instructions */}
-          <p style={styles.instructions}>
-            Scansiona il codice a barre del badge o inserisci manualmente il numero
-          </p>
-
-          {/* Input Form */}
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={badgeInput}
-              onChange={handleInputChange}
-              placeholder="Numero Badge (es. VIS-XXX-XXX)"
-              style={styles.input}
-              disabled={loading}
-              autoComplete="off"
-              autoCapitalize="characters"
-            />
-
-            <motion.button
-              type="submit"
-              disabled={loading || !badgeInput.trim()}
-              style={{
-                ...styles.submitButton,
-                ...(loading || !badgeInput.trim() ? styles.submitButtonDisabled : {})
-              }}
-              whileHover={!loading && badgeInput.trim() ? { scale: 1.02 } : {}}
-              whileTap={!loading && badgeInput.trim() ? { scale: 0.98 } : {}}
-            >
-              {loading ? (
-                <>
-                  <div style={styles.spinner}></div>
-                  <span>Elaborazione...</span>
-                </>
-              ) : (
-                <>
-                  <IoCheckmarkCircle size={24} style={{ marginRight: '12px' }} />
-                  <span>Conferma Check-Out</span>
-                </>
-              )}
-            </motion.button>
-          </form>
-
-          {/* Help Text */}
-          <p style={styles.helpText}>
-            Il lettore barcode inserirà automaticamente il codice nel campo
-          </p>
-        </motion.div>
-      )}
     </motion.div>
   );
 };
@@ -307,15 +378,19 @@ const ScanQR = ({ onBack }) => {
 const styles = {
   container: {
     minHeight: '100vh',
-    padding: '24px',
     background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '20px',
+    paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 16px))',
+    position: 'relative',
   },
   header: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: '40px'
+    marginBottom: '40px',
+    padding: '0 20px',
   },
   backButton: {
     width: '40px',
@@ -323,180 +398,385 @@ const styles = {
     borderRadius: '50%',
     border: '2px solid #e5e5e5',
     background: '#fff',
-    cursor: 'pointer',
+    color: '#1a1a1a',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#1a1a1a',
+    cursor: 'pointer',
     transition: 'all 0.2s ease',
-    fontSize: '0'
   },
   title: {
-    margin: 0,
-    fontSize: '32px',
+    fontSize: '24px',
     fontWeight: '700',
-    color: '#1a1a1a'
-  },
-  message: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '16px',
-    borderRadius: '12px',
-    marginBottom: '24px',
-    fontSize: '15px',
-    fontWeight: '500'
-  },
-  messageSuccess: {
-    background: '#f0fdf4',
-    color: '#10b981',
-    border: '2px solid #10b981'
-  },
-  messageError: {
-    background: '#fef2f2',
-    color: '#ef4444',
-    border: '2px solid #ef4444'
-  },
-  resultCard: {
-    padding: '48px 32px',
-    borderRadius: '16px',
-    textAlign: 'center',
-    marginBottom: '24px',
-    background: '#fff',
-    border: '2px solid #e5e5e5',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-    maxWidth: '600px',
-    margin: '0 auto'
-  },
-  resultSuccess: {
-    borderColor: '#10b981',
-    background: '#f0fdf4'
-  },
-  resultError: {
-    borderColor: '#ef4444',
-    background: '#fef2f2'
-  },
-  resultIcon: {
-    marginBottom: '16px'
-  },
-  resultTitle: {
-    margin: '0 0 12px 0',
-    fontSize: '28px',
-    fontWeight: '600',
-    color: '#1a1a1a'
-  },
-  resultText: {
-    margin: '0 0 8px 0',
-    fontSize: '18px',
-    color: '#666'
-  },
-  resultTime: {
+    color: '#1a1a1a',
     margin: 0,
-    fontSize: '16px',
-    color: '#999'
+    textAlign: 'center',
   },
   mainContent: {
-    maxWidth: '600px',
-    margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: '1fr 400px',
+    gap: '40px',
+    alignItems: 'center',
+    minHeight: 'calc(100vh - 200px)',
+    padding: '0 40px',
+  },
+  leftColumn: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    paddingTop: '40px'
+    justifyContent: 'center',
+  },
+  rightColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoCard: {
+    width: '100%',
+    maxWidth: '500px',
+    background: '#fff',
+    borderRadius: '24px',
+    padding: '48px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    textAlign: 'center',
   },
   iconContainer: {
-    marginBottom: '40px'
-  },
-  barcodeIcon: {
-    width: '160px',
-    height: '160px',
-    borderRadius: '20px',
+    width: '140px',
+    height: '140px',
+    borderRadius: '16px',
     background: '#f0fdf4',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    margin: '0 auto',
-    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)'
+    margin: '0 auto 32px',
   },
-  instructions: {
-    fontSize: '18px',
+  infoTitle: {
+    fontSize: '28px',
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: '16px',
+    letterSpacing: '-0.5px',
+  },
+  infoDescription: {
+    fontSize: '16px',
     color: '#666',
-    textAlign: 'center',
-    marginBottom: '32px',
+    lineHeight: '1.6',
+    marginBottom: '40px',
     fontWeight: '500',
-    lineHeight: '1.6'
   },
-  form: {
+  pinDisplay: {
+    padding: '32px 0 0',
+    borderTop: '2px solid #f3f4f6',
+    textAlign: 'center',
+  },
+  pinLabel: {
+    fontSize: '14px',
+    fontWeight: '700',
+    color: '#6b7280',
+    marginBottom: '20px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  pinDots: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '10px',
+    marginBottom: '10px',
+  },
+  pinDot: {
+    width: '48px',
+    height: '58px',
+    borderRadius: '12px',
+    border: '3px solid #e5e5e5',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '26px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    transition: 'all 0.2s ease',
+    background: '#f9f9f9',
+  },
+  pinDotFilled: {
+    borderColor: '#10b981',
+    background: '#f0fdf4',
+  },
+  pinNumber: {
+    fontSize: '26px',
+    fontWeight: '700',
+    color: '#10b981',
+  },
+  errorMessage: {
+    marginTop: '20px',
+    padding: '12px 20px',
+    background: '#fee2e2',
+    border: '2px solid #ef4444',
+    borderRadius: '8px',
+    color: '#dc2626',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    justifyContent: 'center',
+    fontSize: '14px',
+    fontWeight: '600',
+  },
+  keypad: {
     width: '100%',
+    maxWidth: '400px',
+  },
+  keypadGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '16px',
+  },
+  keypadButton: {
+    height: '90px',
+    fontSize: '32px',
+    fontWeight: '700',
+    border: '2px solid #e5e7eb',
+    borderRadius: '16px',
+    background: '#fff',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+    cursor: 'pointer',
+    transition: 'none',
+    color: '#1a1a1a',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    letterSpacing: '0.5px',
+    position: 'relative',
+  },
+  keypadButtonSecondary: {
+    background: '#e5e7eb',
+    borderColor: '#d1d5db',
+    color: '#6b7280',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.5)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px'
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
   },
-  input: {
-    width: '100%',
-    height: '70px',
-    fontSize: '20px',
-    padding: '0 24px',
-    borderRadius: '12px',
-    border: '3px solid #e5e7eb',
-    background: '#fff',
-    color: '#1a1a1a',
+  spinner: {
+    width: '50px',
+    height: '50px',
+    border: '5px solid rgba(255, 255, 255, 0.3)',
+    borderTop: '5px solid #fff',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loadingText: {
+    marginTop: '20px',
+    color: '#fff',
+    fontSize: '18px',
     fontWeight: '600',
-    textAlign: 'center',
-    letterSpacing: '1px',
-    fontFamily: 'monospace',
-    transition: 'all 0.2s ease',
-    outline: 'none'
   },
-  submitButton: {
+  confirmationContainer: {
+    maxWidth: '900px',
+    margin: '0 auto',
     width: '100%',
-    height: '80px',
+    padding: '0 20px',
+  },
+  confirmationHeader: {
+    textAlign: 'center',
+    marginBottom: '32px',
+  },
+  confirmationTitle: {
+    fontSize: '32px',
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: '8px',
+    letterSpacing: '-0.5px',
+  },
+  confirmationSubtitle: {
+    fontSize: '16px',
+    color: '#666',
+    fontWeight: '500',
+  },
+  mainCard: {
+    background: '#fff',
+    borderRadius: '20px',
+    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.15)',
+    overflow: 'hidden',
+    display: 'grid',
+    gridTemplateColumns: '280px 1fr',
+    marginBottom: '24px',
+    minHeight: '300px',
+  },
+  qrCodeSection: {
+    background: '#f0fdf4',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '32px 24px',
+    borderRight: '2px solid #d1fae5',
+  },
+  qrCodeContainer: {
+    marginBottom: '16px',
+  },
+  qrCodeLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    margin: '0 0 8px 0',
+  },
+  badgeNumber: {
+    fontSize: '28px',
+    fontWeight: '800',
+    color: '#10b981',
+    margin: 0,
+    letterSpacing: '6px',
+    fontFamily: 'monospace',
+  },
+  detailsSection: {
+    padding: '32px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+  },
+  visitorInfo: {
+    borderBottom: '2px solid #f3f4f6',
+    paddingBottom: '16px',
+  },
+  visitorName: {
+    fontSize: '28px',
+    fontWeight: '800',
+    color: '#1a1a1a',
+    margin: '0 0 8px 0',
+    letterSpacing: '-0.5px',
+  },
+  companySubtitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#6b7280',
+    margin: 0,
+  },
+  detailsGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  detailRow: {
+    display: 'grid',
+    gridTemplateColumns: '120px 1fr',
+    gap: '12px',
+    alignItems: 'center',
+    padding: '10px 0',
+    borderBottom: '1px solid #f3f4f6',
+  },
+  detailLabel: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  detailValue: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  buttonContainer: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    maxWidth: '900px',
+    margin: '0 auto',
+    padding: '0 20px',
+  },
+  confirmButton: {
+    height: '64px',
     borderRadius: '16px',
     border: 'none',
     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     color: '#fff',
-    fontSize: '20px',
+    fontSize: '18px',
     fontWeight: '700',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    gap: '12px',
     boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)',
-    letterSpacing: '0.5px'
+    letterSpacing: '0.5px',
   },
-  submitButtonDisabled: {
+  cancelButton: {
+    height: '64px',
+    borderRadius: '16px',
+    border: '3px solid #e5e7eb',
+    background: '#fff',
+    color: '#6b7280',
+    fontSize: '18px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    letterSpacing: '0.5px',
+  },
+  buttonDisabled: {
     opacity: 0.6,
-    cursor: 'not-allowed'
+    cursor: 'not-allowed',
   },
-  helpText: {
-    fontSize: '14px',
-    color: '#999',
-    textAlign: 'center',
-    marginTop: '24px',
-    fontWeight: '500'
-  },
-  spinner: {
+  buttonSpinner: {
     width: '20px',
     height: '20px',
     border: '3px solid rgba(255, 255, 255, 0.3)',
     borderTop: '3px solid #fff',
     borderRadius: '50%',
-    animation: 'spin 0.8s linear infinite',
-    marginRight: '12px'
-  }
+    animation: 'spin 1s linear infinite',
+  },
+  successContainer: {
+    background: '#fff',
+    borderRadius: '20px',
+    padding: '60px 40px',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+    maxWidth: '500px',
+    margin: '0 auto',
+    textAlign: 'center',
+  },
+  successIcon: {
+    marginBottom: '30px',
+  },
+  successTitle: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: '#10b981',
+    marginBottom: '16px',
+  },
+  successMessage: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: '16px',
+  },
+  successSubMessage: {
+    fontSize: '16px',
+    color: '#666',
+    lineHeight: '1.6',
+    marginBottom: '30px',
+  },
+  autoCloseMessage: {
+    fontSize: '14px',
+    color: '#999',
+    fontStyle: 'italic',
+  },
 };
 
-// Add animation to document head
 if (typeof document !== 'undefined') {
   const styleSheet = document.createElement('style');
   styleSheet.textContent = `
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
-    }
-
-    input:focus {
-      border-color: #10b981 !important;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
     }
   `;
   if (!document.head.querySelector('style[data-checkout-animation]')) {
