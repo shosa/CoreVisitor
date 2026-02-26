@@ -44,9 +44,6 @@ async function main() {
       create: {
         name: 'Amministrazione',
         description: 'Ufficio amministrativo',
-        contactPerson: 'Mario Rossi',
-        contactEmail: 'admin@company.com',
-        contactPhone: '+39 123 456 7890',
       },
     }),
     prisma.department.upsert({
@@ -55,9 +52,6 @@ async function main() {
       create: {
         name: 'IT',
         description: 'Dipartimento Informatica',
-        contactPerson: 'Luca Bianchi',
-        contactEmail: 'it@company.com',
-        contactPhone: '+39 123 456 7891',
       },
     }),
     prisma.department.upsert({
@@ -66,9 +60,6 @@ async function main() {
       create: {
         name: 'Vendite',
         description: 'Dipartimento commerciale',
-        contactPerson: 'Giulia Verdi',
-        contactEmail: 'sales@company.com',
-        contactPhone: '+39 123 456 7892',
       },
     }),
   ]);

@@ -21,6 +21,10 @@ export class CreateVisitDto {
   @IsOptional()
   purpose?: string;
 
+  @IsUUID()
+  @IsOptional()
+  hostId?: string;
+
   @IsString()
   @IsOptional()
   hostName?: string;

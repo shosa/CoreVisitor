@@ -53,17 +53,20 @@ export class VisitsService {
     // Generate unique 4-digit PIN for self check-in
     const checkInPin = await this.generateUniquePin();
 
+    const { hostId, ...rest } = createVisitDto as any;
+
     const visit = await this.prisma.visit.create({
       data: {
-        ...createVisitDto,
-        scheduledDate: new Date(createVisitDto.scheduledDate),
-        scheduledTimeStart: new Date(createVisitDto.scheduledTimeStart),
-        scheduledTimeEnd: createVisitDto.scheduledTimeEnd
-          ? new Date(createVisitDto.scheduledTimeEnd)
+        ...rest,
+        scheduledDate: new Date(rest.scheduledDate),
+        scheduledTimeStart: new Date(rest.scheduledTimeStart),
+        scheduledTimeEnd: rest.scheduledTimeEnd
+          ? new Date(rest.scheduledTimeEnd)
           : undefined,
         status: VisitStatus.pending,
         checkInPin,
         createdById,
+        ...(hostId && { host: { connect: { id: hostId } } }),
       },
       include: {
         visitor: true,
@@ -144,19 +147,23 @@ export class VisitsService {
   }
 
   async update(id: string, updateVisitDto: UpdateVisitDto) {
+    const { hostId, ...rest } = updateVisitDto as any;
     const visit = await this.prisma.visit.update({
       where: { id },
       data: {
-        ...updateVisitDto,
-        scheduledDate: updateVisitDto.scheduledDate
-          ? new Date(updateVisitDto.scheduledDate)
+        ...rest,
+        scheduledDate: rest.scheduledDate
+          ? new Date(rest.scheduledDate)
           : undefined,
-        scheduledTimeStart: updateVisitDto.scheduledTimeStart
-          ? new Date(updateVisitDto.scheduledTimeStart)
+        scheduledTimeStart: rest.scheduledTimeStart
+          ? new Date(rest.scheduledTimeStart)
           : undefined,
-        scheduledTimeEnd: updateVisitDto.scheduledTimeEnd
-          ? new Date(updateVisitDto.scheduledTimeEnd)
+        scheduledTimeEnd: rest.scheduledTimeEnd
+          ? new Date(rest.scheduledTimeEnd)
           : undefined,
+        ...(hostId !== undefined && {
+          host: hostId ? { connect: { id: hostId } } : { disconnect: true },
+        }),
       },
       include: {
         visitor: true,
