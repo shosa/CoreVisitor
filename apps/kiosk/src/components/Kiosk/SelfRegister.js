@@ -161,12 +161,6 @@ const SelfRegister = ({ onBack }) => {
         return false;
       }
     }
-    if (step === 2) {
-      if (!formData.privacyConsent) {
-        setError('Devi accettare il consenso privacy per procedere');
-        return false;
-      }
-    }
     return true;
   };
 
@@ -191,7 +185,7 @@ const SelfRegister = ({ onBack }) => {
             hostId: formData.hostId,
             hostName: selectedHost ? `${selectedHost.firstName} ${selectedHost.lastName}` : undefined,
             purpose: formData.purpose.trim() || undefined,
-            privacyConsent: formData.privacyConsent,
+            privacyConsent: true,
           }
         : {
             firstName: formData.firstName.trim(),
@@ -202,7 +196,7 @@ const SelfRegister = ({ onBack }) => {
             hostId: formData.hostId,
             hostName: selectedHost ? `${selectedHost.firstName} ${selectedHost.lastName}` : undefined,
             purpose: formData.purpose.trim() || undefined,
-            privacyConsent: formData.privacyConsent,
+            privacyConsent: true,
           };
 
       const res = await kioskAPI.selfRegister(payload);
@@ -529,17 +523,9 @@ const SelfRegister = ({ onBack }) => {
                     </p>
                   </div>
 
-                  <label style={styles.consentRow}>
-                    <input
-                      type="checkbox"
-                      checked={formData.privacyConsent}
-                      onChange={(e) => handleChange('privacyConsent', e.target.checked)}
-                      style={styles.checkbox}
-                    />
-                    <span style={styles.consentText}>
-                      Ho letto e accetto il trattamento dei dati personali ai sensi del GDPR *
-                    </span>
-                  </label>
+                  <p style={styles.consentImplicit}>
+                    Premendo <strong>Conferma e Stampa Badge</strong> dichiari di aver letto e accettato il trattamento dei dati personali ai sensi del GDPR.
+                  </p>
                 </div>
               )}
             </motion.div>
@@ -814,29 +800,13 @@ const styles = {
     lineHeight: '1.6',
     margin: 0,
   },
-  consentRow: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 12,
-    cursor: 'pointer',
-    width: '100%',
-    background: '#fff',
-    padding: '16px',
-    borderRadius: 12,
-    border: '2px solid #e5e5e5',
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    cursor: 'pointer',
-    flexShrink: 0,
-    marginTop: 2,
-  },
-  consentText: {
-    fontSize: 14,
-    color: '#1a1a1a',
+  consentImplicit: {
+    fontSize: 13,
+    color: '#6b7280',
     lineHeight: '1.5',
-    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   errorBox: {
     display: 'flex',
