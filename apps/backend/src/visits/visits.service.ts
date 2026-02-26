@@ -66,7 +66,7 @@ export class VisitsService {
         status: VisitStatus.pending,
         checkInPin,
         createdById,
-        ...(hostId && { host: { connect: { id: hostId } } }),
+        hostId: hostId || null,
       },
       include: {
         visitor: true,
