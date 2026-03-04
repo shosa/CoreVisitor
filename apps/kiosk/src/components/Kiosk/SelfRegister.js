@@ -18,19 +18,22 @@ import {
   IoClose,
 } from 'react-icons/io5';
 import { kioskAPI } from '../../services/api';
-
-const STEPS = ['Dati Personali', 'Dettagli Visita', 'Riepilogo'];
-
-const VISIT_TYPES = [
-  { value: 'business', label: 'Business' },
-  { value: 'personal', label: 'Personale' },
-  { value: 'delivery', label: 'Consegna' },
-  { value: 'maintenance', label: 'Manutenzione' },
-  { value: 'interview', label: 'Colloquio' },
-  { value: 'other', label: 'Altro' },
-];
+import { useTranslation } from '../../context/LanguageContext';
 
 const SelfRegister = ({ onBack }) => {
+  const { t } = useTranslation();
+
+  const STEPS = [t('step_personal'), t('step_details'), t('step_summary')];
+
+  const VISIT_TYPES = [
+    { value: 'business', label: t('visit_type_business') },
+    { value: 'personal', label: t('visit_type_personal') },
+    { value: 'delivery', label: t('visit_type_delivery') },
+    { value: 'maintenance', label: t('visit_type_maintenance') },
+    { value: 'interview', label: t('visit_type_interview') },
+    { value: 'other', label: t('visit_type_other') },
+  ];
+
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -142,22 +145,22 @@ const SelfRegister = ({ onBack }) => {
   const validateStep = () => {
     if (step === 0) {
       if (!selectedVisitor && (!formData.firstName.trim() || !formData.lastName.trim())) {
-        setError('Inserisci nome e cognome oppure cerca il tuo nome nel campo di ricerca');
+        setError(t('sr_err_name'));
         return false;
       }
     }
     if (step === 1) {
       if (!formData.visitType) {
-        setError('Seleziona il tipo di visita');
+        setError(t('sr_err_visit_type'));
         return false;
       }
       if (!formData.hostId) {
-        setError('Seleziona il referente da incontrare');
+        setError(t('sr_err_host'));
         return false;
       }
       const host = hosts.find((h) => h.id === formData.hostId);
       if (!host?.departmentId) {
-        setError('Il referente selezionato non ha un reparto assegnato. Contatta la reception.');
+        setError(t('sr_err_dept'));
         return false;
       }
     }
@@ -203,14 +206,17 @@ const SelfRegister = ({ onBack }) => {
       setBadgeInfo(res.data?.data || res.data);
       setSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Errore durante la registrazione. Riprova.');
+      setError(err.response?.data?.message || t('sr_err_submit'));
     } finally {
       setLoading(false);
     }
   };
 
   const selectedHost = hosts.find((h) => h.id === formData.hostId);
-  const selectedVisitType = VISIT_TYPES.find((t) => t.value === formData.visitType);
+  const selectedVisitType = VISIT_TYPES.find((t_) => t_.value === formData.visitType);
+
+  const displayFirstName = selectedVisitor ? selectedVisitor.firstName : formData.firstName;
+  const displayLastName = selectedVisitor ? selectedVisitor.lastName : formData.lastName;
 
   // --- SUCCESS SCREEN ---
   if (success) {
@@ -225,20 +231,20 @@ const SelfRegister = ({ onBack }) => {
           <div style={styles.successIcon}>
             <IoCheckmarkCircle size={80} color="#10b981" />
           </div>
-          <h2 style={styles.successTitle}>Registrazione completata!</h2>
+          <h2 style={styles.successTitle}>{t('sr_success_title')}</h2>
           <p style={styles.successSubtitle}>
-            Benvenuto, {formData.firstName} {formData.lastName}!
+            {t('sr_success_subtitle')}, {displayFirstName} {displayLastName}!
           </p>
           {badgeInfo?.badgeNumber && (
             <div style={styles.badgeBox}>
-              <p style={styles.badgeLabel}>Il tuo numero badge</p>
+              <p style={styles.badgeLabel}>{t('sr_badge_label')}</p>
               <p style={styles.badgeNumber}>{badgeInfo.badgeNumber}</p>
-              <p style={styles.badgeNote}>Il badge è in fase di stampa</p>
+              <p style={styles.badgeNote}>{t('sr_badge_note')}</p>
             </div>
           )}
-          <p style={styles.countdownText}>Ritorno alla home in {countdown}s...</p>
+          <p style={styles.countdownText}>{t('sr_countdown').replace('{n}', countdown)}</p>
           <button onClick={onBack} style={styles.homeButton}>
-            Torna alla home
+            {t('sr_btn_home')}
           </button>
         </motion.div>
       </div>
@@ -254,7 +260,7 @@ const SelfRegister = ({ onBack }) => {
         </button>
         <div style={styles.headerCenter}>
           <img src="/img/logo.png" alt={companyName} style={styles.logoImage} />
-          <p style={styles.headerTitle}>Registrazione Visitatore</p>
+          <p style={styles.headerTitle}>{t('sr_header_title')}</p>
         </div>
         <div style={{ width: 44 }} />
       </div>
@@ -286,7 +292,7 @@ const SelfRegister = ({ onBack }) => {
         {loadingData ? (
           <div style={styles.loadingContainer}>
             <div style={styles.spinner} />
-            <p style={{ color: '#666', marginTop: 16 }}>Caricamento...</p>
+            <p style={{ color: '#666', marginTop: 16 }}>{t('sr_loading')}</p>
           </div>
         ) : (
           <AnimatePresence mode="wait">
@@ -303,12 +309,12 @@ const SelfRegister = ({ onBack }) => {
                   <div style={styles.stepIcon}>
                     <IoPerson size={32} color="#3b82f6" />
                   </div>
-                  <h3 style={styles.stepTitle}>I tuoi dati</h3>
-                  <p style={styles.stepSubtitle}>Sei già stato qui? Cerca il tuo nome, altrimenti compilare i campi</p>
+                  <h3 style={styles.stepTitle}>{t('sr_step0_title')}</h3>
+                  <p style={styles.stepSubtitle}>{t('sr_step0_subtitle')}</p>
 
                   {/* Ricerca visitatore esistente */}
                   <div style={{ ...styles.formGroup, width: '100%', marginBottom: 24, position: 'relative' }}>
-                    <label style={styles.label}>Cerca il tuo nome (se sei già stato registrato)</label>
+                    <label style={styles.label}>{t('sr_search_label')}</label>
                     <div style={styles.searchWrapper}>
                       <IoSearch size={20} color="#999" style={styles.searchIcon} />
                       <input
@@ -316,7 +322,7 @@ const SelfRegister = ({ onBack }) => {
                         type="text"
                         value={visitorSearch}
                         onChange={(e) => handleVisitorSearchChange(e.target.value)}
-                        placeholder="Inizia a digitare nome o cognome..."
+                        placeholder={t('sr_search_placeholder')}
                         disabled={!!selectedVisitor}
                       />
                       {selectedVisitor && (
@@ -344,7 +350,7 @@ const SelfRegister = ({ onBack }) => {
                       <div style={styles.selectedVisitorBadge}>
                         <IoCheckmarkCircle size={18} color="#10b981" />
                         <span style={{ marginLeft: 8, fontSize: 14, color: '#166534', fontWeight: '600' }}>
-                          Visitatore trovato: {selectedVisitor.firstName} {selectedVisitor.lastName}
+                          {t('sr_visitor_found')}: {selectedVisitor.firstName} {selectedVisitor.lastName}
                           {selectedVisitor.company ? ` (${selectedVisitor.company})` : ''}
                         </span>
                       </div>
@@ -354,52 +360,52 @@ const SelfRegister = ({ onBack }) => {
                   {/* Divisore */}
                   <div style={styles.divider}>
                     <div style={styles.dividerLine} />
-                    <span style={styles.dividerText}>oppure inserisci i tuoi dati</span>
+                    <span style={styles.dividerText}>{t('sr_divider')}</span>
                     <div style={styles.dividerLine} />
                   </div>
 
                   <div style={{ ...styles.formGrid, opacity: selectedVisitor ? 0.4 : 1, pointerEvents: selectedVisitor ? 'none' : 'auto' }}>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Nome *</label>
+                      <label style={styles.label}>{t('sr_field_firstname')}</label>
                       <input
                         style={styles.input}
                         type="text"
                         value={formData.firstName}
                         onChange={(e) => handleChange('firstName', e.target.value)}
-                        placeholder="Es. Mario"
+                        placeholder={t('sr_placeholder_firstname')}
                         disabled={!!selectedVisitor}
                       />
                     </div>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Cognome *</label>
+                      <label style={styles.label}>{t('sr_field_lastname')}</label>
                       <input
                         style={styles.input}
                         type="text"
                         value={formData.lastName}
                         onChange={(e) => handleChange('lastName', e.target.value)}
-                        placeholder="Es. Rossi"
+                        placeholder={t('sr_placeholder_lastname')}
                         disabled={!!selectedVisitor}
                       />
                     </div>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Azienda</label>
+                      <label style={styles.label}>{t('sr_field_company')}</label>
                       <input
                         style={styles.input}
                         type="text"
                         value={formData.company}
                         onChange={(e) => handleChange('company', e.target.value)}
-                        placeholder="Nome azienda (opzionale)"
+                        placeholder={t('sr_placeholder_company')}
                         disabled={!!selectedVisitor}
                       />
                     </div>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Email</label>
+                      <label style={styles.label}>{t('sr_field_email')}</label>
                       <input
                         style={styles.input}
                         type="email"
                         value={formData.email}
                         onChange={(e) => handleChange('email', e.target.value)}
-                        placeholder="email@esempio.it (opzionale)"
+                        placeholder={t('sr_placeholder_email')}
                         disabled={!!selectedVisitor}
                       />
                     </div>
@@ -413,18 +419,18 @@ const SelfRegister = ({ onBack }) => {
                   <div style={styles.stepIcon}>
                     <IoBusiness size={32} color="#f4845f" />
                   </div>
-                  <h3 style={styles.stepTitle}>Dettagli visita</h3>
-                  <p style={styles.stepSubtitle}>Seleziona il referente e il tipo di visita</p>
+                  <h3 style={styles.stepTitle}>{t('sr_step1_title')}</h3>
+                  <p style={styles.stepSubtitle}>{t('sr_step1_subtitle')}</p>
 
                   <div style={styles.formGrid}>
                     <div style={{ ...styles.formGroup, gridColumn: '1 / -1' }}>
-                      <label style={styles.label}>Referente da incontrare *</label>
+                      <label style={styles.label}>{t('sr_host_label')}</label>
                       <select
                         style={styles.select}
                         value={formData.hostId}
                         onChange={(e) => handleChange('hostId', e.target.value)}
                       >
-                        <option value="">Seleziona il referente...</option>
+                        <option value="">{t('sr_host_placeholder')}</option>
                         {hosts.map((h) => (
                           <option key={h.id} value={h.id}>
                             {h.firstName} {h.lastName}{h.department?.name ? ` — ${h.department.name}` : ''}
@@ -433,31 +439,31 @@ const SelfRegister = ({ onBack }) => {
                       </select>
                       {selectedHost?.department?.name && (
                         <div style={styles.deptBadge}>
-                          Reparto: <strong>{selectedHost.department.name}</strong>
+                          {t('sr_dept_prefix')} <strong>{selectedHost.department.name}</strong>
                         </div>
                       )}
                     </div>
 
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Tipo di Visita *</label>
+                      <label style={styles.label}>{t('sr_visit_type_label')}</label>
                       <select
                         style={styles.select}
                         value={formData.visitType}
                         onChange={(e) => handleChange('visitType', e.target.value)}
                       >
-                        {VISIT_TYPES.map((t) => (
-                          <option key={t.value} value={t.value}>{t.label}</option>
+                        {VISIT_TYPES.map((vt) => (
+                          <option key={vt.value} value={vt.value}>{vt.label}</option>
                         ))}
                       </select>
                     </div>
 
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Motivo visita</label>
+                      <label style={styles.label}>{t('sr_purpose_label')}</label>
                       <textarea
                         style={styles.textarea}
                         value={formData.purpose}
                         onChange={(e) => handleChange('purpose', e.target.value)}
-                        placeholder="Motivo (opzionale)"
+                        placeholder={t('sr_purpose_placeholder')}
                         rows={3}
                       />
                     </div>
@@ -471,13 +477,13 @@ const SelfRegister = ({ onBack }) => {
                   <div style={styles.stepIcon}>
                     <IoDocumentText size={32} color="#10b981" />
                   </div>
-                  <h3 style={styles.stepTitle}>Riepilogo e conferma</h3>
-                  <p style={styles.stepSubtitle}>Verifica i tuoi dati prima di procedere</p>
+                  <h3 style={styles.stepTitle}>{t('sr_step2_title')}</h3>
+                  <p style={styles.stepSubtitle}>{t('sr_step2_subtitle')}</p>
 
                   {/* Summary */}
                   <div style={styles.summaryBox}>
                     <div style={styles.summaryRow}>
-                      <span style={styles.summaryLabel}>Visitatore</span>
+                      <span style={styles.summaryLabel}>{t('sr_summary_visitor')}</span>
                       <span style={styles.summaryValue}>
                         {selectedVisitor
                           ? `${selectedVisitor.firstName} ${selectedVisitor.lastName}`
@@ -486,25 +492,25 @@ const SelfRegister = ({ onBack }) => {
                     </div>
                     {(selectedVisitor?.company || formData.company) && (
                       <div style={styles.summaryRow}>
-                        <span style={styles.summaryLabel}>Azienda</span>
+                        <span style={styles.summaryLabel}>{t('sr_summary_company')}</span>
                         <span style={styles.summaryValue}>{selectedVisitor?.company || formData.company}</span>
                       </div>
                     )}
                     <div style={styles.summaryRow}>
-                      <span style={styles.summaryLabel}>Referente</span>
+                      <span style={styles.summaryLabel}>{t('sr_summary_host')}</span>
                       <span style={styles.summaryValue}>{selectedHost ? `${selectedHost.firstName} ${selectedHost.lastName}` : '—'}</span>
                     </div>
                     <div style={styles.summaryRow}>
-                      <span style={styles.summaryLabel}>Reparto</span>
+                      <span style={styles.summaryLabel}>{t('sr_summary_dept')}</span>
                       <span style={styles.summaryValue}>{selectedHost?.department?.name || '—'}</span>
                     </div>
                     <div style={styles.summaryRow}>
-                      <span style={styles.summaryLabel}>Tipo visita</span>
+                      <span style={styles.summaryLabel}>{t('sr_summary_visit_type')}</span>
                       <span style={styles.summaryValue}>{selectedVisitType?.label}</span>
                     </div>
                     {formData.purpose && (
                       <div style={styles.summaryRow}>
-                        <span style={styles.summaryLabel}>Motivo</span>
+                        <span style={styles.summaryLabel}>{t('sr_summary_reason')}</span>
                         <span style={styles.summaryValue}>{formData.purpose}</span>
                       </div>
                     )}
@@ -514,17 +520,24 @@ const SelfRegister = ({ onBack }) => {
                   <div style={styles.gdprBox}>
                     <IoShield size={20} color="#6366f1" style={{ flexShrink: 0 }} />
                     <p style={styles.gdprText}>
-                      Ai sensi del Regolamento UE 2016/679 (GDPR), i tuoi dati personali
-                      saranno trattati da <strong>{companyName}</strong> esclusivamente
-                      per la gestione degli accessi e la sicurezza aziendale. I dati non
-                      saranno ceduti a terzi e saranno conservati per il tempo strettamente
-                      necessario. Hai diritto di accesso, rettifica e cancellazione dei
-                      tuoi dati contattando la reception.
+                      {t('sr_gdpr_text').replace('{company}', companyName).split(companyName).reduce((acc, part, i, arr) => {
+                        if (i < arr.length - 1) {
+                          return [...acc, part, <strong key={i}>{companyName}</strong>];
+                        }
+                        return [...acc, part];
+                      }, [])}
                     </p>
                   </div>
 
                   <p style={styles.consentImplicit}>
-                    Premendo <strong>Conferma e Stampa Badge</strong> dichiari di aver letto e accettato il trattamento dei dati personali ai sensi del GDPR.
+                    {t('sr_consent').split('Conferma e Stampa Badge').join('').split('Confirm & Print Badge').join('')
+                      ? <>{t('sr_consent').split(/Conferma e Stampa Badge|Confirm & Print Badge/).map((part, i, arr) =>
+                          i < arr.length - 1
+                            ? <React.Fragment key={i}>{part}<strong>{t('sr_btn_submit')}</strong></React.Fragment>
+                            : <React.Fragment key={i}>{part}</React.Fragment>
+                        )}</>
+                      : t('sr_consent')
+                    }
                   </p>
                 </div>
               )}
@@ -550,13 +563,13 @@ const SelfRegister = ({ onBack }) => {
         {step > 0 && (
           <button onClick={() => { setStep((p) => p - 1); setError(''); }} style={styles.backNavButton}>
             <IoArrowBack size={20} style={{ marginRight: 8 }} />
-            Indietro
+            {t('sr_btn_back')}
           </button>
         )}
         <div style={{ flex: 1 }} />
         {step < STEPS.length - 1 ? (
           <button onClick={handleNext} style={styles.nextButton} disabled={loadingData}>
-            Avanti
+            {t('sr_btn_next')}
             <IoChevronForward size={20} style={{ marginLeft: 8 }} />
           </button>
         ) : (
@@ -564,12 +577,12 @@ const SelfRegister = ({ onBack }) => {
             {loading ? (
               <>
                 <div style={styles.spinner} />
-                <span style={{ marginLeft: 10 }}>Registrazione...</span>
+                <span style={{ marginLeft: 10 }}>{t('sr_btn_submitting')}</span>
               </>
             ) : (
               <>
                 <IoCheckmarkCircle size={22} style={{ marginRight: 8 }} />
-                Conferma e Stampa Badge
+                {t('sr_btn_submit')}
               </>
             )}
           </button>

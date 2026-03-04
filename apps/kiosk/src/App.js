@@ -16,6 +16,7 @@ import KioskHome from './components/Kiosk/KioskHome';
 import PinEntry from './components/Kiosk/PinEntry';
 import ScanQR from './components/Kiosk/ScanQR';
 import SelfRegister from './components/Kiosk/SelfRegister';
+import { LanguageProvider } from './context/LanguageContext';
 
 // Setup Ionic
 setupIonicReact({
@@ -122,20 +123,22 @@ const App = () => {
   };
 
   return (
-    <div style={styles.app}>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentScreen}
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          style={styles.screenContainer}
-        >
-          {renderScreen()}
-        </motion.div>
-      </AnimatePresence>
-    </div>
+    <LanguageProvider>
+      <div style={styles.app}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentScreen}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            style={styles.screenContainer}
+          >
+            {renderScreen()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </LanguageProvider>
   );
 };
 

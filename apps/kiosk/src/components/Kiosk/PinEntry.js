@@ -9,8 +9,10 @@ import {
   IoQrCode
 } from 'react-icons/io5';
 import { kioskAPI } from '../../services/api';
+import { useTranslation } from '../../context/LanguageContext';
 
 const PinEntry = ({ onBack }) => {
+  const { lang, t } = useTranslation();
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [visitData, setVisitData] = useState(null);
@@ -146,6 +148,8 @@ const PinEntry = ({ onBack }) => {
     }
   };
 
+  const dateLocale = lang === 'en' ? 'en-GB' : 'it-IT';
+
   return (
     <motion.div
       style={styles.container}
@@ -208,7 +212,7 @@ const PinEntry = ({ onBack }) => {
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
-        <h1 style={styles.title}>Self Check-In</h1>
+        <h1 style={styles.title}>{t('pin_page_title')}</h1>
         <div style={{ width: 40 }}></div>
       </motion.div>
 
@@ -229,14 +233,14 @@ const PinEntry = ({ onBack }) => {
               <div style={styles.iconContainer}>
                 <IoKeypad size={80} color="#3b82f6" />
               </div>
-              <h2 style={styles.infoTitle}>Check-In con PIN</h2>
+              <h2 style={styles.infoTitle}>{t('pin_card_title')}</h2>
               <p style={styles.infoDescription}>
-                Inserisca il codice PIN a 4 cifre che le è stato comunicato
+                {t('pin_card_desc')}
               </p>
 
               {/* PIN Display */}
               <div style={styles.pinDisplay}>
-                <p style={styles.pinLabel}>Il tuo PIN</p>
+                <p style={styles.pinLabel}>{t('pin_label')}</p>
                 <div style={styles.pinDots}>
                   {[0, 1, 2, 3].map((index) => (
                     <div
@@ -320,7 +324,7 @@ const PinEntry = ({ onBack }) => {
           {loading && (
             <div style={styles.loadingOverlay}>
               <div style={styles.spinner}></div>
-              <p style={styles.loadingText}>Verifica in corso...</p>
+              <p style={styles.loadingText}>{t('pin_loading_verify')}</p>
             </div>
           )}
           </motion.div>
@@ -338,8 +342,8 @@ const PinEntry = ({ onBack }) => {
           >
           {/* Header */}
           <div style={styles.confirmationHeader}>
-            <h2 style={styles.confirmationTitle}>Conferma i tuoi dati</h2>
-            <p style={styles.confirmationSubtitle}>Verifica che le informazioni siano corrette prima di procedere</p>
+            <h2 style={styles.confirmationTitle}>{t('pin_confirm_title')}</h2>
+            <p style={styles.confirmationSubtitle}>{t('pin_confirm_subtitle')}</p>
           </div>
 
           {/* Main Card */}
@@ -351,7 +355,7 @@ const PinEntry = ({ onBack }) => {
                   <IoQrCode size={180} color="#1a1a1a" />
                 </div>
               </div>
-              <p style={styles.qrCodeLabel}>Badge Visitatore</p>
+              <p style={styles.qrCodeLabel}>{t('pin_badge_label')}</p>
               {visitData.badgeNumber && (
                 <p style={styles.badgeNumber}>{visitData.badgeNumber}</p>
               )}
@@ -370,9 +374,9 @@ const PinEntry = ({ onBack }) => {
               {/* Details Grid */}
               <div style={styles.detailsGrid}>
                 <div style={styles.detailRow}>
-                  <span style={styles.detailLabel}>Data</span>
+                  <span style={styles.detailLabel}>{t('pin_field_date')}</span>
                   <span style={styles.detailValue}>
-                    {new Date(visitData.scheduledDate).toLocaleDateString('it-IT', {
+                    {new Date(visitData.scheduledDate).toLocaleDateString(dateLocale, {
                       day: '2-digit',
                       month: '2-digit',
                       year: 'numeric'
@@ -380,16 +384,16 @@ const PinEntry = ({ onBack }) => {
                   </span>
                 </div>
                 <div style={styles.detailRow}>
-                  <span style={styles.detailLabel}>Dipartimento</span>
+                  <span style={styles.detailLabel}>{t('pin_field_dept')}</span>
                   <span style={styles.detailValue}>{visitData.department.name}</span>
                 </div>
                 <div style={styles.detailRow}>
-                  <span style={styles.detailLabel}>Motivo</span>
+                  <span style={styles.detailLabel}>{t('pin_field_reason')}</span>
                   <span style={styles.detailValue}>{visitData.purpose}</span>
                 </div>
                 {visitData.hostUser && (
                   <div style={styles.detailRow}>
-                    <span style={styles.detailLabel}>Referente</span>
+                    <span style={styles.detailLabel}>{t('pin_field_host')}</span>
                     <span style={styles.detailValue}>
                       {visitData.hostUser.firstName} {visitData.hostUser.lastName}
                     </span>
@@ -407,7 +411,7 @@ const PinEntry = ({ onBack }) => {
           {/* Privacy Disclaimer */}
           <div style={styles.privacyDisclaimer}>
             <p style={styles.privacyText}>
-              Proseguendo con la registrazione dichiaro di aver letto e compreso l'Informativa Privacy ai sensi del Regolamento UE 2016/679.
+              {t('pin_privacy')}
             </p>
           </div>
 
@@ -424,12 +428,12 @@ const PinEntry = ({ onBack }) => {
               {loading ? (
                 <>
                   <div style={styles.buttonSpinner}></div>
-                  <span>Check-in in corso...</span>
+                  <span>{t('pin_btn_confirming')}</span>
                 </>
               ) : (
                 <>
                   <IoCheckmarkCircle size={24} />
-                  <span>Conferma Check-In</span>
+                  <span>{t('pin_btn_confirm')}</span>
                 </>
               )}
             </button>
@@ -439,7 +443,7 @@ const PinEntry = ({ onBack }) => {
               disabled={loading}
               style={styles.cancelButton}
             >
-              Annulla
+              {t('pin_btn_cancel')}
             </button>
           </div>
           </motion.div>
@@ -461,17 +465,17 @@ const PinEntry = ({ onBack }) => {
             >
               <IoCheckmarkCircle size={120} color="#10b981" />
             </motion.div>
-            <h2 style={styles.successTitle}>Check-In Completato!</h2>
+            <h2 style={styles.successTitle}>{t('pin_success_title')}</h2>
             <p style={styles.successMessage}>
-              Benvenuto {visitData?.visitor.full_name}
+              {t('pin_success_msg')} {visitData?.visitor.full_name}
             </p>
             <p style={styles.successSubMessage}>
-              Il tuo badge sta per essere stampato.
-              <br />
-              Ritiralo presso la reception.
+              {t('pin_success_sub').split('\n').map((line, i) => (
+                <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
+              ))}
             </p>
             <div style={styles.autoCloseMessage}>
-              Reindirizzamento automatico in 5 secondi...
+              {t('pin_redirect')}
             </div>
           </motion.div>
         )}
@@ -944,7 +948,10 @@ if (typeof document !== 'undefined') {
       100% { transform: scale(1); }
     }
   `;
-  document.head.appendChild(styleSheet);
+  if (!document.head.querySelector('style[data-checkin-animation]')) {
+    styleSheet.setAttribute('data-checkin-animation', 'true');
+    document.head.appendChild(styleSheet);
+  }
 }
 
 export default PinEntry;

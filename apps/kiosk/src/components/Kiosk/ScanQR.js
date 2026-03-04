@@ -14,8 +14,10 @@ import {
   IoBarcode,
 } from 'react-icons/io5';
 import { kioskAPI } from '../../services/api';
+import { useTranslation } from '../../context/LanguageContext';
 
 const ScanQR = ({ onBack }) => {
+  const { t } = useTranslation();
   const [badge, setBadge] = useState('');
   const [loading, setLoading] = useState(false);
   const [visitData, setVisitData] = useState(null);
@@ -145,7 +147,7 @@ const ScanQR = ({ onBack }) => {
         <button onClick={onBack} style={styles.backButton}>
           <IoArrowBack size={24} />
         </button>
-        <h1 style={styles.title}>Self Check-Out</h1>
+        <h1 style={styles.title}>{t('qr_page_title')}</h1>
         <div style={{ width: 40 }} />
       </motion.div>
 
@@ -166,14 +168,14 @@ const ScanQR = ({ onBack }) => {
                 <div style={styles.iconContainer}>
                   <IoBarcode size={80} color="#10b981" />
                 </div>
-                <h2 style={styles.infoTitle}>Check-Out con Badge</h2>
+                <h2 style={styles.infoTitle}>{t('qr_card_title')}</h2>
                 <p style={styles.infoDescription}>
-                  Inserisca il numero a 6 cifre del suo badge per registrare l'uscita
+                  {t('qr_card_desc')}
                 </p>
 
                 {/* Badge Display */}
                 <div style={styles.pinDisplay}>
-                  <p style={styles.pinLabel}>Il tuo numero badge</p>
+                  <p style={styles.pinLabel}>{t('qr_badge_label')}</p>
                   <div style={styles.pinDots}>
                     {[0, 1, 2, 3, 4, 5].map((index) => (
                       <div
@@ -257,7 +259,7 @@ const ScanQR = ({ onBack }) => {
             {loading && (
               <div style={styles.loadingOverlay}>
                 <div style={styles.spinner} />
-                <p style={styles.loadingText}>Verifica in corso...</p>
+                <p style={styles.loadingText}>{t('qr_loading_verify')}</p>
               </div>
             )}
           </motion.div>
@@ -273,8 +275,8 @@ const ScanQR = ({ onBack }) => {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
             <div style={styles.confirmationHeader}>
-              <h2 style={styles.confirmationTitle}>Conferma l'uscita</h2>
-              <p style={styles.confirmationSubtitle}>Verifica che le informazioni siano corrette prima di procedere</p>
+              <h2 style={styles.confirmationTitle}>{t('qr_confirm_title')}</h2>
+              <p style={styles.confirmationSubtitle}>{t('qr_confirm_subtitle')}</p>
             </div>
 
             <div style={styles.mainCard}>
@@ -283,7 +285,7 @@ const ScanQR = ({ onBack }) => {
                 <div style={styles.qrCodeContainer}>
                   <IoBarcode size={120} color="#10b981" />
                 </div>
-                <p style={styles.qrCodeLabel}>Badge Visitatore</p>
+                <p style={styles.qrCodeLabel}>{t('qr_badge_section_label')}</p>
                 <p style={styles.badgeNumber}>{visitData.badgeNumber}</p>
               </div>
 
@@ -298,7 +300,7 @@ const ScanQR = ({ onBack }) => {
 
                 <div style={styles.detailsGrid}>
                   <div style={styles.detailRow}>
-                    <span style={styles.detailLabel}>Check-in</span>
+                    <span style={styles.detailLabel}>{t('qr_field_checkin')}</span>
                     <span style={styles.detailValue}>
                       {visitData.actualCheckIn
                         ? new Date(visitData.actualCheckIn).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
@@ -307,13 +309,13 @@ const ScanQR = ({ onBack }) => {
                   </div>
                   {visitData.department && (
                     <div style={styles.detailRow}>
-                      <span style={styles.detailLabel}>Reparto</span>
+                      <span style={styles.detailLabel}>{t('qr_field_dept')}</span>
                       <span style={styles.detailValue}>{visitData.department.name}</span>
                     </div>
                   )}
                   {visitData.hostUser && (
                     <div style={styles.detailRow}>
-                      <span style={styles.detailLabel}>Referente</span>
+                      <span style={styles.detailLabel}>{t('qr_field_host')}</span>
                       <span style={styles.detailValue}>
                         {visitData.hostUser.firstName} {visitData.hostUser.lastName}
                       </span>
@@ -330,13 +332,13 @@ const ScanQR = ({ onBack }) => {
                 style={{ ...styles.confirmButton, ...(loading ? styles.buttonDisabled : {}) }}
               >
                 {loading ? (
-                  <><div style={styles.buttonSpinner} /><span>Check-out in corso...</span></>
+                  <><div style={styles.buttonSpinner} /><span>{t('qr_btn_confirming')}</span></>
                 ) : (
-                  <><IoCheckmarkCircle size={24} /><span>Conferma Check-Out</span></>
+                  <><IoCheckmarkCircle size={24} /><span>{t('qr_btn_confirm')}</span></>
                 )}
               </button>
               <button onClick={handleClear} disabled={loading} style={styles.cancelButton}>
-                Annulla
+                {t('qr_btn_cancel')}
               </button>
             </div>
           </motion.div>
@@ -358,15 +360,15 @@ const ScanQR = ({ onBack }) => {
             >
               <IoCheckmarkCircle size={120} color="#10b981" />
             </motion.div>
-            <h2 style={styles.successTitle}>Check-Out Completato!</h2>
+            <h2 style={styles.successTitle}>{t('qr_success_title')}</h2>
             <p style={styles.successMessage}>
-              Arrivederci, {visitData?.visitor?.full_name}!
+              {t('qr_success_msg')}, {visitData?.visitor?.full_name}!
             </p>
             <p style={styles.successSubMessage}>
-              La tua uscita è stata registrata con successo.
+              {t('qr_success_sub')}
             </p>
             <div style={styles.autoCloseMessage}>
-              Reindirizzamento automatico in 3 secondi...
+              {t('qr_redirect')}
             </div>
           </motion.div>
         )}

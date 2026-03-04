@@ -5,8 +5,11 @@ import {
   IoLogOut,
   IoPersonAdd
 } from 'react-icons/io5';
+import { useTranslation } from '../../context/LanguageContext';
 
 const KioskHome = ({ onSelectOption }) => {
+  const { lang, setLanguage, t } = useTranslation();
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -59,6 +62,30 @@ const KioskHome = ({ onSelectOption }) => {
       initial="hidden"
       animate="visible"
     >
+      {/* Language Switcher */}
+      <div style={styles.langSwitcher}>
+        <button
+          onClick={() => setLanguage('it')}
+          style={{
+            ...styles.langBtn,
+            ...(lang === 'it' ? styles.langBtnActive : {})
+          }}
+          title="Italiano"
+        >
+          🇮🇹
+        </button>
+        <button
+          onClick={() => setLanguage('en')}
+          style={{
+            ...styles.langBtn,
+            ...(lang === 'en' ? styles.langBtnActive : {})
+          }}
+          title="English"
+        >
+          🇬🇧
+        </button>
+      </div>
+
       {/* Logo / Header */}
       <motion.div style={styles.header} variants={itemVariants}>
         <div style={styles.logo}>
@@ -73,8 +100,7 @@ const KioskHome = ({ onSelectOption }) => {
 
       {/* Welcome Message */}
       <motion.div style={styles.welcomeContainer} variants={itemVariants}>
-        <h2 style={styles.welcomeTitle}>Benvenuto</h2>
-     
+        <h2 style={styles.welcomeTitle}>{t('welcome')}</h2>
       </motion.div>
 
       {/* Options */}
@@ -90,9 +116,9 @@ const KioskHome = ({ onSelectOption }) => {
           <div style={styles.optionIconBlue}>
             <IoKeypad size={64} color="#3b82f6" />
           </div>
-          <h3 style={styles.optionTitle}>CHECK-IN</h3>
+          <h3 style={styles.optionTitle}>{t('checkin_title')}</h3>
           <p style={styles.optionDescription}>
-            Inserisci il PIN a 4 cifre ricevuto via email
+            {t('checkin_desc')}
           </p>
         </motion.button>
 
@@ -107,9 +133,9 @@ const KioskHome = ({ onSelectOption }) => {
           <div style={styles.optionIconGreen}>
             <IoLogOut size={64} color="#10b981" />
           </div>
-          <h3 style={styles.optionTitle}>CHECK-OUT</h3>
+          <h3 style={styles.optionTitle}>{t('checkout_title')}</h3>
           <p style={styles.optionDescription}>
-            Scansiona o inserisci il numero badge per uscire
+            {t('checkout_desc')}
           </p>
         </motion.button>
 
@@ -124,9 +150,9 @@ const KioskHome = ({ onSelectOption }) => {
           <div style={styles.optionIconCoral}>
             <IoPersonAdd size={64} color="#f4845f" />
           </div>
-          <h3 style={styles.optionTitle}>REGISTRATI</h3>
+          <h3 style={styles.optionTitle}>{t('register_title')}</h3>
           <p style={styles.optionDescription}>
-            Prima visita? Registrati e stampa il tuo badge
+            {t('register_desc')}
           </p>
         </motion.button>
       </div>
@@ -134,7 +160,7 @@ const KioskHome = ({ onSelectOption }) => {
       {/* Footer */}
       <motion.div style={styles.footer} variants={itemVariants}>
         <p style={styles.footerText}>
-          Non hai ricevuto il PIN? Contatta la reception
+          {t('footer_pin_help')}
         </p>
       </motion.div>
     </motion.div>
@@ -147,7 +173,35 @@ const styles = {
     background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)',
     display: 'flex',
     flexDirection: 'column',
-    padding: '40px 20px'
+    padding: '40px 20px',
+    position: 'relative'
+  },
+  langSwitcher: {
+    position: 'absolute',
+    top: '20px',
+    right: '20px',
+    display: 'flex',
+    gap: '8px',
+    zIndex: 10
+  },
+  langBtn: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '12px',
+    border: '2px solid transparent',
+    background: 'rgba(255,255,255,0.8)',
+    fontSize: '24px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+  },
+  langBtnActive: {
+    border: '2px solid #3b82f6',
+    background: '#eff6ff',
+    boxShadow: '0 2px 12px rgba(59,130,246,0.25)'
   },
   header: {
     display: 'flex',
