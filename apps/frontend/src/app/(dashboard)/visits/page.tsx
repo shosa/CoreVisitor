@@ -179,7 +179,7 @@ export default function VisitsPage() {
     ];
 
     const rows = filteredVisits.map((v) => [
-      format(new Date(v.scheduledDate), 'dd/MM/yyyy'),
+      format(new Date(v.scheduledTimeStart), 'dd/MM/yyyy'),
       `${v.visitor?.firstName} ${v.visitor?.lastName}`,
       v.visitor?.company || '',
       v.host ? `${v.host.firstName} ${v.host.lastName}` : '',
@@ -458,7 +458,7 @@ export default function VisitsPage() {
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-4 py-3 text-sm text-gray-700">
-                        {format(new Date(visit.scheduledDate), 'dd/MM/yyyy', {
+                        {format(new Date(visit.scheduledTimeStart), 'dd/MM/yyyy', {
                           locale: it,
                         })}
                       </td>
