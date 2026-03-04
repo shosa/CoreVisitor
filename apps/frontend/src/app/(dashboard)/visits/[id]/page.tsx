@@ -463,7 +463,7 @@ export default function VisitDetailPage() {
             )}
             <div>
               <p className="text-sm text-gray-500">Data Programmata</p>
-              <p className="font-medium text-gray-900">{new Date(visit.scheduledDate).toLocaleString('it-IT')}</p>
+              <p className="font-medium text-gray-900">{new Date(visit.scheduledDate).toLocaleDateString('it-IT')}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Check-In</p>

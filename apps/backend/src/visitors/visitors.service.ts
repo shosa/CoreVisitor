@@ -103,7 +103,8 @@ export class VisitorsService {
       where: { id },
       data: {
         ...updateVisitorDto,
-        documentExpiry: updateVisitorDto.documentExpiry
+        email: updateVisitorDto.email || undefined,
+        documentExpiry: updateVisitorDto.documentExpiry && updateVisitorDto.documentExpiry !== ''
           ? new Date(updateVisitorDto.documentExpiry)
           : undefined,
       },

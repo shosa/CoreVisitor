@@ -113,7 +113,11 @@ export default function EditVisitorPage() {
 
   const onSubmit = async (data: yup.InferType<typeof schema>) => {
     try {
-      await visitorsApi.update(id, data);
+      // Converte le stringhe vuote in undefined (il backend si aspetta null/omesso, non "")
+      const payload = Object.fromEntries(
+        Object.entries(data).map(([k, v]) => [k, v === '' ? undefined : v])
+      );
+      await visitorsApi.update(id, payload);
       toast.showSuccess('Visitatore aggiornato con successo');
       router.push(`/visitors/${id}`);
     } catch (error) {

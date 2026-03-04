@@ -337,7 +337,7 @@ export default function VisitorDetailPage() {
                   visitor.visits.map((visit) => (
                     <tr key={visit.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(visit.scheduledDate).toLocaleString('it-IT')}
+                        {new Date(visit.scheduledDate).toLocaleDateString('it-IT')}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         {visit.host ? `${visit.host.firstName} ${visit.host.lastName}` : '-'}
