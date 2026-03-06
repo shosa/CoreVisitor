@@ -424,55 +424,58 @@ const PinEntry = ({ onBack }) => {
         {step === 'signature' && visitData && (
           <motion.div
             key="signature"
-            style={styles.fullPageStep}
+            style={styles.sigStep}
             initial={{ opacity: 0, x: 60 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -60 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div style={styles.confirmationHeader}>
-              <div style={styles.sigIconWrap}>
-                <IoPencil size={40} color="#3b82f6" />
-              </div>
-              <h2 style={styles.confirmationTitle}>
-                {t('pin_sig_title') || 'Firma richiesta'}
-              </h2>
-              <p style={styles.confirmationSubtitle}>
-                {t('pin_sig_subtitle') || 'Firmare nello spazio sottostante per procedere con il check-in'}
-              </p>
-            </div>
-
-            <div style={styles.sigCard}>
-              <p style={styles.sigVisitorName}>{visitData.visitor.full_name}</p>
-              <div style={styles.sigCanvasWrap}>
-                <SignatureCanvas
-                  ref={sigCanvasRef}
-                  canvasProps={{ className: 'sig-canvas', style: { width: '100%', height: '100%' } }}
-                  backgroundColor="#fff"
-                  penColor="#1a1a1a"
-                />
+            {/* Compact header row */}
+            <div style={styles.sigHeader}>
+              <div style={styles.sigHeaderLeft}>
+                <div style={styles.sigHeaderIcon}>
+                  <IoPencil size={22} color="#3b82f6" />
+                </div>
+                <div>
+                  <h2 style={styles.sigTitle}>{t('pin_sig_title') || 'Firma richiesta'}</h2>
+                  <p style={styles.sigSubtitle}>{visitData.visitor.full_name}</p>
+                </div>
               </div>
               <button
                 onClick={() => sigCanvasRef.current?.clear()}
                 style={styles.clearSigButton}
               >
-                <IoRefresh size={18} />
+                <IoRefresh size={16} />
                 <span>{t('pin_sig_clear') || 'Cancella'}</span>
               </button>
             </div>
 
+            {/* Canvas — massima espansione */}
+            <div style={styles.sigCanvasWrap}>
+              <SignatureCanvas
+                ref={sigCanvasRef}
+                canvasProps={{ className: 'sig-canvas', style: { width: '100%', height: '100%' } }}
+                backgroundColor="#fafafa"
+                penColor="#1a1a1a"
+              />
+              <div style={styles.sigWatermark}>
+                <IoPencil size={48} color="rgba(0,0,0,0.04)" />
+              </div>
+            </div>
+
             {error && (
-              <div style={{ ...styles.errorMessage, maxWidth: 700, margin: '0 auto 16px', padding: '12px 20px' }}>
-                <IoCloseCircle size={20} />
+              <div style={{ ...styles.errorMessage, margin: '8px 0' }}>
+                <IoCloseCircle size={18} />
                 <span>{error}</span>
               </div>
             )}
 
-            <div style={{ ...styles.buttonContainer, maxWidth: 700 }} className="confirmation-buttons">
+            {/* Buttons inline sotto canvas */}
+            <div style={styles.sigButtons} className="confirmation-buttons">
               <button
                 onClick={handleSignatureSubmit}
                 disabled={loading}
-                style={{ ...styles.confirmButton, ...(loading ? styles.buttonDisabled : {}) }}
+                style={{ ...styles.confirmButton, height: '56px', ...(loading ? styles.buttonDisabled : {}) }}
               >
                 {loading ? (
                   <>
@@ -481,12 +484,12 @@ const PinEntry = ({ onBack }) => {
                   </>
                 ) : (
                   <>
-                    <IoCheckmarkCircle size={24} />
+                    <IoCheckmarkCircle size={22} />
                     <span>{t('pin_btn_confirm')}</span>
                   </>
                 )}
               </button>
-              <button onClick={() => setStep('confirm')} disabled={loading} style={styles.cancelButton}>
+              <button onClick={() => setStep('confirm')} disabled={loading} style={{ ...styles.cancelButton, height: '56px' }}>
                 {t('pin_btn_cancel')}
               </button>
             </div>
@@ -933,54 +936,89 @@ const styles = {
     animation: 'spin 1s linear infinite'
   },
   // Signature step
-  sigIconWrap: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
+  sigStep: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    maxWidth: '960px',
+    margin: '0 auto',
+    padding: '0 20px',
+    gap: '12px'
+  },
+  sigHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    background: '#fff',
+    borderRadius: '16px',
+    padding: '16px 20px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+  },
+  sigHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  sigHeaderIcon: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '12px',
     background: '#eff6ff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    margin: '0 auto 20px'
+    flexShrink: 0
   },
-  sigCard: {
-    background: '#fff',
-    borderRadius: '20px',
-    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.12)',
-    padding: '32px',
-    marginBottom: '20px',
-    maxWidth: '700px',
-    width: '100%',
-    alignSelf: 'center'
-  },
-  sigVisitorName: {
-    fontSize: '20px',
-    fontWeight: '700',
+  sigTitle: {
+    fontSize: '18px',
+    fontWeight: '800',
     color: '#1a1a1a',
-    textAlign: 'center',
-    marginBottom: '20px'
+    margin: 0,
+    letterSpacing: '-0.3px'
+  },
+  sigSubtitle: {
+    fontSize: '14px',
+    color: '#6b7280',
+    margin: 0,
+    fontWeight: '600'
   },
   sigCanvasWrap: {
-    border: '2px solid #e5e7eb',
-    borderRadius: '12px',
-    height: '240px',
+    flex: 1,
+    border: '2.5px solid #3b82f6',
+    borderRadius: '16px',
     overflow: 'hidden',
-    background: '#fff',
-    touchAction: 'none'
+    background: '#fafafa',
+    touchAction: 'none',
+    position: 'relative',
+    minHeight: '280px',
+    boxShadow: '0 4px 16px rgba(59, 130, 246, 0.12)'
+  },
+  sigWatermark: {
+    position: 'absolute',
+    bottom: '12px',
+    right: '12px',
+    pointerEvents: 'none'
   },
   clearSigButton: {
-    marginTop: '12px',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
     background: 'none',
     border: '1.5px solid #d1d5db',
     borderRadius: '8px',
-    padding: '6px 14px',
+    padding: '8px 16px',
     fontSize: '14px',
     color: '#6b7280',
     cursor: 'pointer',
-    fontWeight: '600'
+    fontWeight: '600',
+    flexShrink: 0
+  },
+  sigButtons: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    width: '100%'
   },
   // Success
   successContainer: {
