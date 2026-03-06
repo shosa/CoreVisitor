@@ -122,9 +122,10 @@ export default function VisitorDetailPage() {
 
     setLoadingDocument(true);
     try {
-      const docRes = await visitorsApi.getDocumentUrl(id);
-      setDocumentUrl(docRes.data.url);
-      // Salva il mimeType dal documento più recente
+      const res = await visitorsApi.getDocumentFile(id);
+      const blob = new Blob([res.data], { type: visitor.documents[0].mimeType });
+      const objectUrl = URL.createObjectURL(blob);
+      setDocumentUrl(objectUrl);
       setDocumentMimeType(visitor.documents[0].mimeType);
       setIsDocumentModalOpen(true);
     } catch (err) {
@@ -138,8 +139,10 @@ export default function VisitorDetailPage() {
   const handleViewSignature = async () => {
     setLoadingSignature(true);
     try {
-      const res = await visitorsApi.getSignatureUrl(id);
-      setSignatureUrl(res.data.url);
+      const res = await visitorsApi.getSignatureFile(id);
+      const blob = new Blob([res.data], { type: 'image/png' });
+      const objectUrl = URL.createObjectURL(blob);
+      setSignatureUrl(objectUrl);
       setIsSignatureModalOpen(true);
     } catch (err) {
       toast.showError('Errore nel caricamento della firma');

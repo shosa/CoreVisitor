@@ -10,7 +10,9 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { VisitorsService } from './visitors.service';
 import { CreateVisitorDto } from './dto/create-visitor.dto';
@@ -66,6 +68,24 @@ export class VisitorsController {
   @Roles('admin', 'receptionist', 'security')
   getSignatureUrl(@Param('id') id: string) {
     return this.visitorsService.getSignatureUrl(id);
+  }
+
+  @Get(':id/signature-file')
+  @Roles('admin', 'receptionist', 'security')
+  async getSignatureFile(@Param('id') id: string, @Res() res: Response) {
+    const buffer = await this.visitorsService.getSignatureBuffer(id);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.send(buffer);
+  }
+
+  @Get(':id/document-file')
+  @Roles('admin', 'receptionist', 'security')
+  async getDocumentFile(@Param('id') id: string, @Res() res: Response) {
+    const { buffer, mimeType } = await this.visitorsService.getDocumentBuffer(id);
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.send(buffer);
   }
 
   @Patch(':id')

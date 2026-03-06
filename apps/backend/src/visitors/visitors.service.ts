@@ -182,4 +182,27 @@ export class VisitorsService {
     const url = await this.minio.getFileUrl(visitor.signaturePath);
     return { url };
   }
+
+  async getSignatureBuffer(id: string): Promise<Buffer> {
+    const visitor = await this.prisma.visitor.findUnique({
+      where: { id },
+      select: { signaturePath: true },
+    });
+    if (!visitor?.signaturePath) {
+      throw new NotFoundException('Firma non trovata');
+    }
+    return this.minio.downloadFile(visitor.signaturePath);
+  }
+
+  async getDocumentBuffer(id: string): Promise<{ buffer: Buffer; mimeType: string }> {
+    const document = await this.prisma.visitorDocument.findFirst({
+      where: { visitorId: id },
+      orderBy: { uploadedAt: 'desc' },
+    });
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+    const buffer = await this.minio.downloadFile(document.filePath);
+    return { buffer, mimeType: document.mimeType };
+  }
 }

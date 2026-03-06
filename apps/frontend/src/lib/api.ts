@@ -19,6 +19,8 @@ export const visitorsApi = {
   delete: (id: string) => api.delete(`/visitors/${id}`),
   getDocumentUrl: (id: string) => api.get<{ url: string }>(`/visitors/${id}/document-url`),
   getSignatureUrl: (id: string) => api.get<{ url: string }>(`/visitors/${id}/signature-url`),
+  getSignatureFile: (id: string) => api.get(`/visitors/${id}/signature-file`, { responseType: 'blob' }),
+  getDocumentFile: (id: string) => api.get(`/visitors/${id}/document-file`, { responseType: 'blob' }),
 };
 
 // Visits
