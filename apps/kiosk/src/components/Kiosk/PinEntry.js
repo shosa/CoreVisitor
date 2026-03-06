@@ -364,9 +364,9 @@ const PinEntry = ({ onBack }) => {
                     <span style={styles.detailLabel}>{t('pin_field_dept')}</span>
                     <span style={styles.detailValue}>
                       {visitData.department?.name}
-                      {visitData.hostUser && (
+                      {visitData.host && (
                         <span style={{ color: '#6b7280', fontWeight: '500' }}>
-                          {' '}({visitData.hostUser.firstName} {visitData.hostUser.lastName})
+                          {' '}({visitData.host.firstName} {visitData.host.lastName})
                         </span>
                       )}
                     </span>
