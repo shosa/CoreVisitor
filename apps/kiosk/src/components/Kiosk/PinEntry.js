@@ -362,20 +362,19 @@ const PinEntry = ({ onBack }) => {
                   </div>
                   <div style={styles.detailRow}>
                     <span style={styles.detailLabel}>{t('pin_field_dept')}</span>
-                    <span style={styles.detailValue}>{visitData.department?.name}</span>
+                    <span style={styles.detailValue}>
+                      {visitData.department?.name}
+                      {visitData.hostUser && (
+                        <span style={{ color: '#6b7280', fontWeight: '500' }}>
+                          {' '}({visitData.hostUser.firstName} {visitData.hostUser.lastName})
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div style={styles.detailRow}>
                     <span style={styles.detailLabel}>{t('pin_field_reason')}</span>
                     <span style={styles.detailValue}>{visitData.purpose}</span>
                   </div>
-                  {visitData.hostUser && (
-                    <div style={styles.detailRow}>
-                      <span style={styles.detailLabel}>{t('pin_field_host')}</span>
-                      <span style={styles.detailValue}>
-                        {visitData.hostUser.firstName} {visitData.hostUser.lastName}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 <div style={styles.companyFooter}>
@@ -450,11 +449,15 @@ const PinEntry = ({ onBack }) => {
               </button>
             </div>
 
-            {/* Canvas — massima espansione */}
+            {/* Canvas — altezza fissa esplicita per iPad */}
             <div style={styles.sigCanvasWrap}>
               <SignatureCanvas
                 ref={sigCanvasRef}
-                canvasProps={{ className: 'sig-canvas', style: { width: '100%', height: '100%' } }}
+                canvasProps={{
+                  style: { display: 'block', width: '100%', height: '320px' },
+                  width: 900,
+                  height: 320,
+                }}
                 backgroundColor="#fafafa"
                 penColor="#1a1a1a"
               />
@@ -984,14 +987,12 @@ const styles = {
     fontWeight: '600'
   },
   sigCanvasWrap: {
-    flex: 1,
     border: '2.5px solid #3b82f6',
     borderRadius: '16px',
     overflow: 'hidden',
     background: '#fafafa',
     touchAction: 'none',
     position: 'relative',
-    minHeight: '280px',
     boxShadow: '0 4px 16px rgba(59, 130, 246, 0.12)'
   },
   sigWatermark: {
