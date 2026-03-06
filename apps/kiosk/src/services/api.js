@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getApiBaseUrl } from '../config/api';
+import { getServerURL as getApiBaseUrl } from '../config/api';
 
 /**
  * HTTP Client con gestione auth token
