@@ -130,6 +130,15 @@ export class VisitorsService {
       }
     }
 
+    // Elimina firma da MinIO se presente
+    if ((visitor as any).signaturePath) {
+      try {
+        await this.minio.deleteFile((visitor as any).signaturePath);
+      } catch (error) {
+        console.error(`Failed to delete signature file:`, error.message);
+      }
+    }
+
     // Elimina anche le visite correlate da Meilisearch
     if (visitor.visits && visitor.visits.length > 0) {
       for (const visit of visitor.visits) {
@@ -162,4 +171,15 @@ export class VisitorsService {
     return { url };
   }
 
+  async getSignatureUrl(id: string) {
+    const visitor = await this.prisma.visitor.findUnique({
+      where: { id },
+      select: { signaturePath: true },
+    });
+    if (!visitor?.signaturePath) {
+      throw new NotFoundException('Firma non trovata');
+    }
+    const url = await this.minio.getFileUrl(visitor.signaturePath);
+    return { url };
+  }
 }

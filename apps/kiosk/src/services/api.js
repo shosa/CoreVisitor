@@ -1,106 +1,104 @@
-/**
- * API Service
- * Gestisce tutte le chiamate al backend con autenticazione JWT
- */
-
 import axios from 'axios';
-import capacitorHttp from './capacitorHttp';
-import { apiConfig } from '../config/api';
-
-// Rileva se siamo in ambiente Capacitor
-const isCapacitor = typeof window !== 'undefined' && window.Capacitor !== undefined;
-
-// Seleziona il client HTTP appropriato
-let api;
-
-if (isCapacitor) {
-  console.log('📱 Using Capacitor HTTP for mobile app');
-  api = capacitorHttp;
-} else {
-  console.log('🌐 Using Axios for web app');
-  api = axios.create({
-    baseURL: apiConfig.baseURL,
-    timeout: apiConfig.timeout,
-    headers: apiConfig.headers
-  });
-}
-
-// Add auth interceptor for Axios (web)
-if (!isCapacitor && api.interceptors) {
-  api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
-}
-
-// Wrap capacitorHttp to add auth headers
-const apiWithAuth = {
-  get: async (url, options = {}) => {
-    const token = localStorage.getItem('auth_token');
-    if (token && isCapacitor) {
-      options.headers = {
-        ...options.headers,
-        Authorization: `Bearer ${token}`
-      };
-    }
-    return api.get(url, options);
-  },
-  post: async (url, data, options = {}) => {
-    const token = localStorage.getItem('auth_token');
-    if (token && isCapacitor) {
-      options.headers = {
-        ...options.headers,
-        Authorization: `Bearer ${token}`
-      };
-    }
-    return api.post(url, data, options);
-  },
-  patch: async (url, data, options = {}) => {
-    const token = localStorage.getItem('auth_token');
-    if (token && isCapacitor) {
-      options.headers = {
-        ...options.headers,
-        Authorization: `Bearer ${token}`
-      };
-    }
-    return api.patch(url, data, options);
-  },
-  delete: async (url, options = {}) => {
-    const token = localStorage.getItem('auth_token');
-    if (token && isCapacitor) {
-      options.headers = {
-        ...options.headers,
-        Authorization: `Bearer ${token}`
-      };
-    }
-    return api.delete(url, options);
-  }
-};
-
-const httpClient = isCapacitor ? apiWithAuth : api;
+import { getApiBaseUrl } from '../config/api';
 
 /**
- * Mobile API - Autenticazione
+ * HTTP Client con gestione auth token
+ */
+const api = axios.create({
+  baseURL: getApiBaseUrl(),
+  timeout: 15000,
+  headers: {
+    'Content-Type': 'application/json',
+    'X-App-Type': 'visitor-kiosk',
+  }
+});
+
+// Interceptor per aggiungere token JWT
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Interceptor risposta
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Mobile Auth API
  */
 export const mobileAPI = {
-  /**
-   * Login utente - USA L'ENDPOINT STANDARD /api/auth/login
-   * Salva il token JWT per le richieste successive
-   */
-  login: async (email, password) => {
-    const response = await api.post('/api/auth/login', { email, password });
+  login: (email, password) =>
+    api.post('/api/mobile/login', { email, password }),
+};
 
-    // Salva il token JWT
-    if (response.data.access_token) {
-      localStorage.setItem('auth_token', response.data.access_token);
-      console.log('✅ Auth token saved');
-    }
+/**
+ * Visits API - Endpoint per visite (AUTH REQUIRED)
+ */
+export const visitsAPI = {
+  getAll: (params) => api.get('/api/visits', { params }),
+  getOne: (id) => api.get(`/api/visits/${id}`),
+  create: (data) => api.post('/api/visits', data),
+  update: (id, data) => api.patch(`/api/visits/${id}`, data),
+  delete: (id) => api.delete(`/api/visits/${id}`),
+  checkIn: (id) => api.post(`/api/visits/${id}/check-in`),
+  checkOut: (id) => api.post(`/api/visits/${id}/check-out`),
+  cancel: (id) => api.post(`/api/visits/${id}/cancel`),
+  getStats: () => api.get('/api/visits/stats'),
+  getCurrent: () => api.get('/api/visits/current'),
+};
 
-    return response;
-  }
+/**
+ * Visitors API - Endpoint per visitatori (AUTH REQUIRED)
+ */
+export const visitorsAPI = {
+  getAll: (params) => api.get('/api/visitors', { params }),
+  getOne: (id) => api.get(`/api/visitors/${id}`),
+  create: (data) => api.post('/api/visitors', data),
+  update: (id, data) => api.patch(`/api/visitors/${id}`, data),
+  delete: (id) => api.delete(`/api/visitors/${id}`),
+  getDocumentUrl: (id) => api.get(`/api/visitors/${id}/document-url`),
+};
+
+/**
+ * Departments API (AUTH REQUIRED)
+ */
+export const departmentsAPI = {
+  getAll: () => api.get('/api/departments'),
+  getOne: (id) => api.get(`/api/departments/${id}`),
+  create: (data) => api.post('/api/departments', data),
+  update: (id, data) => api.patch(`/api/departments/${id}`, data),
+  delete: (id) => api.delete(`/api/departments/${id}`),
+};
+
+/**
+ * Users API (AUTH REQUIRED)
+ */
+export const usersAPI = {
+  getAll: () => api.get('/api/users'),
+  getOne: (id) => api.get(`/api/users/${id}`),
+  create: (data) => api.post('/api/users', data),
+  update: (id, data) => api.patch(`/api/users/${id}`, data),
+  delete: (id) => api.delete(`/api/users/${id}`),
+};
+
+/**
+ * Printer API (AUTH REQUIRED)
+ */
+export const printerAPI = {
+  printBadge: (visitId, copies) => api.post('/api/printer/print-badge', { visitId, copies }),
+  getQueueStatus: () => api.get('/api/printer/queue-status'),
+  getJobs: () => api.get('/api/printer/jobs'),
 };
 
 /**
@@ -122,6 +120,9 @@ export const kioskAPI = {
       badge_code: badgeCode
     }),
 
+  uploadSignature: (visitorId, signatureBase64) =>
+    api.post('/api/kiosk/upload-signature', { visitorId, signatureBase64 }),
+
   getStats: () =>
     api.get('/api/kiosk/stats'),
 
@@ -140,98 +141,3 @@ export const kioskAPI = {
   selfRegister: (data) =>
     api.post('/api/kiosk/self-register', data),
 };
-
-/**
- * Visits API - Endpoint per visite (AUTH REQUIRED)
- */
-export const visitsAPI = {
-  getAll: (params) =>
-    httpClient.get('/api/visits', { params }),
-
-  getById: (id) =>
-    httpClient.get(`/api/visits/${id}`),
-
-  getCurrent: () =>
-    httpClient.get('/api/visits/current'),
-
-  getStats: () =>
-    httpClient.get('/api/visits/stats'),
-
-  create: (data) =>
-    httpClient.post('/api/visits', data),
-
-  update: (id, data) =>
-    httpClient.patch(`/api/visits/${id}`, data),
-
-  checkIn: (id) =>
-    httpClient.post(`/api/visits/${id}/check-in`),
-
-  checkOut: (id) =>
-    httpClient.post(`/api/visits/${id}/check-out`),
-
-  cancel: (id) =>
-    httpClient.post(`/api/visits/${id}/cancel`)
-};
-
-/**
- * Visitors API - Gestione visitatori (AUTH REQUIRED)
- */
-export const visitorsAPI = {
-  getAll: (params) =>
-    httpClient.get('/api/visitors', { params }),
-
-  getById: (id) =>
-    httpClient.get(`/api/visitors/${id}`),
-
-  create: (formData) =>
-    httpClient.post('/api/visitors', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }),
-
-  update: (id, data) =>
-    httpClient.patch(`/api/visitors/${id}`, data),
-
-  delete: (id) =>
-    httpClient.delete(`/api/visitors/${id}`),
-
-  getDocumentUrl: (id) =>
-    httpClient.get(`/api/visitors/${id}/document-url`)
-};
-
-/**
- * Departments API
- */
-export const departmentsAPI = {
-  getAll: () => httpClient.get('/api/departments'),
-  getById: (id) => httpClient.get(`/api/departments/${id}`)
-};
-
-/**
- * Users API - Per lista host
- */
-export const usersAPI = {
-  getAll: () => httpClient.get('/api/users'),
-  getById: (id) => httpClient.get(`/api/users/${id}`)
-};
-
-/**
- * Printer API - Gestione stampa badge (AUTH REQUIRED)
- */
-export const printerAPI = {
-  printBadge: (visitId, options = {}) =>
-    httpClient.post(`/api/printer/badge/${visitId}`, {
-      copies: options.copies || 1,
-      priority: options.priority || 0,
-      printerName: options.printerName
-    }),
-
-  getQueueStatus: () =>
-    httpClient.get('/api/printer/queue/status'),
-
-  getJobs: (params) =>
-    httpClient.get('/api/printer/jobs', { params })
-};
-
-export default api;

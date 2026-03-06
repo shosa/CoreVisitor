@@ -1,24 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SignatureCanvas from 'react-signature-canvas';
 import {
   IoCheckmarkCircle,
   IoCloseCircle,
   IoBackspace,
   IoArrowBack,
   IoKeypad,
-  IoQrCode
+  IoQrCode,
+  IoPencil,
+  IoRefresh,
 } from 'react-icons/io5';
 import { kioskAPI } from '../../services/api';
 import { useTranslation } from '../../context/LanguageContext';
 
+// step: 'pin' | 'confirm' | 'signature' | 'success'
 const PinEntry = ({ onBack }) => {
   const { lang, t } = useTranslation();
+  const [step, setStep] = useState('pin');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [visitData, setVisitData] = useState(null);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [companyName, setCompanyName] = useState('Calzaturificio Emmegiemme Shoes S.r.l.');
+  const [companyName, setCompanyName] = useState('');
+  const sigCanvasRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/kiosk/settings')
@@ -30,83 +35,64 @@ const PinEntry = ({ onBack }) => {
   }, []);
 
   useEffect(() => {
-    // Auto-verify quando il PIN è completo
-    if (pin.length === 4 && !loading && !visitData) {
+    if (pin.length === 4 && step === 'pin' && !loading) {
       verifyPin();
     }
   }, [pin]);
 
   const handleNumberClick = (num) => {
-    if (pin.length < 4 && !loading && !visitData) {
-      setPin(pin + num);
+    if (pin.length < 4 && step === 'pin' && !loading) {
+      setPin(prev => prev + num);
       setError('');
     }
   };
 
   const handleBackspace = () => {
-    if (!loading && !visitData) {
-      setPin(pin.slice(0, -1));
+    if (step === 'pin' && !loading) {
+      setPin(prev => prev.slice(0, -1));
       setError('');
     }
   };
 
-  const handleClear = () => {
-    if (!loading) {
-      setPin('');
-      setError('');
-      setVisitData(null);
-      setSuccess(false);
-    }
+  const handleReset = () => {
+    setPin('');
+    setError('');
+    setVisitData(null);
+    setStep('pin');
   };
 
   const verifyPin = async () => {
     setLoading(true);
     setError('');
-
     try {
-      console.log('🔍 Verifying PIN:', pin);
       const response = await kioskAPI.verifyPin(pin);
-
       if (response.data.status === 'error') {
-        setError(response.data.message || 'PIN non valido');
+        setError(response.data.message || t('pin_err_invalid_pin'));
         setPin('');
         return;
       }
-
-      const visit = response.data.data;
-      console.log('✅ Visit found:', visit);
-
-      setVisitData(visit);
-
-    } catch (error) {
-      console.error('❌ Error verifying PIN:', error);
-      setError(error.response?.data?.message || 'Errore durante la verifica del PIN');
+      setVisitData(response.data.data);
+      setStep('confirm');
+    } catch (err) {
+      setError(err.response?.data?.message || t('pin_err_verify'));
       setPin('');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCheckIn = async () => {
+  const doCheckIn = async () => {
     setLoading(true);
     setError('');
-
     try {
-      console.log('✅ Processing check-in with PIN:', pin);
       const response = await kioskAPI.checkIn(pin);
-
       if (response.data.status === 'success') {
-        setSuccess(true);
-
-        // Torna alla home dopo 5 secondi
-        setTimeout(() => {
-          onBack();
-        }, 5000);
+        setStep('success');
+        setTimeout(() => onBack(), 5000);
       }
-
-    } catch (error) {
-      console.error('❌ Check-in error:', error);
-      setError(error.response?.data?.message || 'Errore durante il check-in');
+    } catch (err) {
+      setError(err.response?.data?.message || t('pin_err_checkin'));
+      setStep('pin');
       setVisitData(null);
       setPin('');
     } finally {
@@ -114,41 +100,48 @@ const PinEntry = ({ onBack }) => {
     }
   };
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08
-      }
+  const handleConfirm = () => {
+    // Check if visitor has a signature
+    if (!visitData?.visitor?.signaturePath) {
+      setStep('signature');
+    } else {
+      doCheckIn();
     }
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.4,
-        ease: [0.22, 1, 0.36, 1]
-      }
+  const handleSignatureSubmit = async () => {
+    if (!sigCanvasRef.current || sigCanvasRef.current.isEmpty()) {
+      setError(t('pin_err_signature_required') || 'Firma obbligatoria');
+      return;
     }
-  };
-
-  const keypadButtonVariants = {
-    hover: {
-      scale: 1.05,
-      transition: { duration: 0.15 }
-    },
-    tap: {
-      scale: 0.95,
-      transition: { duration: 0.1 }
+    setLoading(true);
+    setError('');
+    try {
+      const signatureBase64 = sigCanvasRef.current.toDataURL('image/png');
+      await kioskAPI.uploadSignature(visitData.visitor.id, signatureBase64);
+      await doCheckIn();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Errore durante il salvataggio della firma');
+      setLoading(false);
     }
   };
 
   const dateLocale = lang === 'en' ? 'en-GB' : 'it-IT';
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const keypadButtonVariants = {
+    hover: { scale: 1.05, transition: { duration: 0.15 } },
+    tap: { scale: 0.95, transition: { duration: 0.1 } }
+  };
 
   return (
     <motion.div
@@ -159,24 +152,17 @@ const PinEntry = ({ onBack }) => {
     >
       <style>{`
         @keyframes btnPress {
-          0% {
-            background: #9ab3e7ff;
-            transform: scale(1);
-          }
-          50% {
-            background: #dbeafe;
-            transform: scale(0.95);
-          }
-          100% {
-            background: #f3f4f6;
-            transform: scale(1);
-          }
+          0% { background: #9ab3e7ff; transform: scale(1); }
+          50% { background: #dbeafe; transform: scale(0.95); }
+          100% { background: #f3f4f6; transform: scale(1); }
         }
-
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         .keypad-btn:active:not(:disabled) {
           animation: btnPress 0.5s ease !important;
         }
-
         @media (max-width: 1024px) {
           .main-content-grid {
             grid-template-columns: 1fr !important;
@@ -184,40 +170,40 @@ const PinEntry = ({ onBack }) => {
             padding: 0 20px !important;
           }
         }
-
         @media (max-width: 768px) {
           .confirmation-card {
             grid-template-columns: 1fr !important;
-            min-height: auto !important;
           }
           .confirmation-card .qr-section {
             border-right: none !important;
             border-bottom: 2px solid #e5e7eb;
-            padding: 24px 20px !important;
-          }
-          .confirmation-card .details-section {
-            padding: 24px 20px !important;
           }
           .confirmation-buttons {
             grid-template-columns: 1fr !important;
           }
-          .confirmation-wrapper {
-            padding: 0 12px !important;
-          }
+        }
+        .sig-canvas {
+          width: 100% !important;
+          height: 100% !important;
         }
       `}</style>
 
       {/* Header */}
       <motion.div style={styles.header} variants={itemVariants}>
-        <button onClick={onBack} style={styles.backButton}>
+        <button
+          onClick={step === 'pin' ? onBack : handleReset}
+          style={styles.backButton}
+        >
           <IoArrowBack size={24} />
         </button>
         <h1 style={styles.title}>{t('pin_page_title')}</h1>
-        <div style={{ width: 40 }}></div>
+        <div style={{ width: 40 }} />
       </motion.div>
 
       <AnimatePresence mode="wait">
-        {!visitData && !success && (
+
+        {/* ── STEP: PIN ── */}
+        {step === 'pin' && (
           <motion.div
             key="pin-input"
             style={styles.mainContent}
@@ -227,53 +213,73 @@ const PinEntry = ({ onBack }) => {
             animate="visible"
             exit={{ opacity: 0, scale: 0.95 }}
           >
-            {/* Left Column - Info Area */}
+            {/* Left: info + display */}
             <div style={styles.leftColumn}>
-            <div style={styles.infoCard}>
-              <div style={styles.iconContainer}>
-                <IoKeypad size={80} color="#3b82f6" />
-              </div>
-              <h2 style={styles.infoTitle}>{t('pin_card_title')}</h2>
-              <p style={styles.infoDescription}>
-                {t('pin_card_desc')}
-              </p>
-
-              {/* PIN Display */}
-              <div style={styles.pinDisplay}>
-                <p style={styles.pinLabel}>{t('pin_label')}</p>
-                <div style={styles.pinDots}>
-                  {[0, 1, 2, 3].map((index) => (
-                    <div
-                      key={index}
-                      style={{
-                        ...styles.pinDot,
-                        ...(pin.length > index ? styles.pinDotFilled : {})
-                      }}
-                    >
-                      {pin.length > index && (
-                        <span style={styles.pinNumber}>{pin[index]}</span>
-                      )}
-                    </div>
-                  ))}
+              <div style={styles.infoCard}>
+                <div style={styles.iconContainer}>
+                  <IoKeypad size={80} color="#3b82f6" />
                 </div>
-                {error && (
-                  <div style={styles.errorMessage}>
-                    <IoCloseCircle size={20} />
-                    <span>{error}</span>
+                <h2 style={styles.infoTitle}>{t('pin_card_title')}</h2>
+                <p style={styles.infoDescription}>{t('pin_card_desc')}</p>
+
+                <div style={styles.pinDisplay}>
+                  <p style={styles.pinLabel}>{t('pin_label')}</p>
+                  <div style={styles.pinDots}>
+                    {[0, 1, 2, 3].map((index) => (
+                      <div
+                        key={index}
+                        style={{
+                          ...styles.pinDot,
+                          ...(pin.length > index ? styles.pinDotFilled : {})
+                        }}
+                      >
+                        {pin.length > index && (
+                          <span style={styles.pinNumber}>{pin[index]}</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
+                  {error && (
+                    <div style={styles.errorMessage}>
+                      <IoCloseCircle size={20} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Column - Numeric Keypad */}
-          <div style={styles.rightColumn}>
-            <div style={styles.keypad}>
-              <div style={styles.keypadGrid}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+            {/* Right: keypad */}
+            <div style={styles.rightColumn}>
+              <div style={styles.keypad}>
+                <div style={styles.keypadGrid}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <motion.button
+                      key={num}
+                      onClick={() => handleNumberClick(num.toString())}
+                      style={styles.keypadButton}
+                      className="keypad-btn"
+                      disabled={loading}
+                      variants={keypadButtonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
+                    >
+                      {num}
+                    </motion.button>
+                  ))}
                   <motion.button
-                    key={num}
-                    onClick={() => handleNumberClick(num.toString())}
+                    onClick={handleReset}
+                    style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
+                    className="keypad-btn"
+                    disabled={loading}
+                    variants={keypadButtonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    C
+                  </motion.button>
+                  <motion.button
+                    onClick={() => handleNumberClick('0')}
                     style={styles.keypadButton}
                     className="keypad-btn"
                     disabled={loading}
@@ -281,175 +287,214 @@ const PinEntry = ({ onBack }) => {
                     whileHover="hover"
                     whileTap="tap"
                   >
-                    {num}
+                    0
                   </motion.button>
-                ))}
-                <motion.button
-                  onClick={handleClear}
-                  style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
-                  className="keypad-btn"
-                  disabled={loading}
-                  variants={keypadButtonVariants}
-                  whileHover="hover"
-                  whileTap="tap"
-                >
-                  C
-                </motion.button>
-                <motion.button
-                  onClick={() => handleNumberClick('0')}
-                  style={styles.keypadButton}
-                  className="keypad-btn"
-                  disabled={loading}
-                  variants={keypadButtonVariants}
-                  whileHover="hover"
-                  whileTap="tap"
-                >
-                  0
-                </motion.button>
-                <motion.button
-                  onClick={handleBackspace}
-                  style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
-                  className="keypad-btn"
-                  disabled={loading}
-                  variants={keypadButtonVariants}
-                  whileHover="hover"
-                  whileTap="tap"
-                >
-                  <IoBackspace size={24} />
-                </motion.button>
+                  <motion.button
+                    onClick={handleBackspace}
+                    style={{ ...styles.keypadButton, ...styles.keypadButtonSecondary }}
+                    className="keypad-btn"
+                    disabled={loading}
+                    variants={keypadButtonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    <IoBackspace size={24} />
+                  </motion.button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {loading && (
-            <div style={styles.loadingOverlay}>
-              <div style={styles.spinner}></div>
-              <p style={styles.loadingText}>{t('pin_loading_verify')}</p>
-            </div>
-          )}
+            {loading && (
+              <div style={styles.loadingOverlay}>
+                <div style={styles.spinner} />
+                <p style={styles.loadingText}>{t('pin_loading_verify')}</p>
+              </div>
+            )}
           </motion.div>
         )}
 
-        {visitData && !success && (
+        {/* ── STEP: CONFIRM ── */}
+        {step === 'confirm' && visitData && (
           <motion.div
             key="confirmation"
-            style={styles.confirmationContainer}
-            className="confirmation-wrapper"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            style={styles.fullPageStep}
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -60 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
-          {/* Header */}
-          <div style={styles.confirmationHeader}>
-            <h2 style={styles.confirmationTitle}>{t('pin_confirm_title')}</h2>
-            <p style={styles.confirmationSubtitle}>{t('pin_confirm_subtitle')}</p>
-          </div>
-
-          {/* Main Card */}
-          <div style={styles.mainCard} className="confirmation-card">
-            {/* Left Side - QR Code Badge */}
-            <div style={styles.qrCodeSection} className="qr-section">
-              <div style={styles.qrCodeContainer}>
-                <div style={styles.qrPlaceholder}>
-                  <IoQrCode size={180} color="#1a1a1a" />
-                </div>
-              </div>
-              <p style={styles.qrCodeLabel}>{t('pin_badge_label')}</p>
-              {visitData.badgeNumber && (
-                <p style={styles.badgeNumber}>{visitData.badgeNumber}</p>
-              )}
+            <div style={styles.confirmationHeader}>
+              <h2 style={styles.confirmationTitle}>{t('pin_confirm_title')}</h2>
+              <p style={styles.confirmationSubtitle}>{t('pin_confirm_subtitle')}</p>
             </div>
 
-            {/* Right Side - Details */}
-            <div style={styles.detailsSection} className="details-section">
-              {/* Visitor Info */}
-              <div style={styles.visitorInfo}>
-                <h3 style={styles.visitorName}>{visitData.visitor.full_name}</h3>
-                {visitData.visitor.company && (
-                  <p style={styles.companySubtitle}>{visitData.visitor.company}</p>
+            <div style={styles.mainCard} className="confirmation-card">
+              {/* QR side */}
+              <div style={styles.qrCodeSection} className="qr-section">
+                <div style={styles.qrCodeContainer}>
+                  <div style={styles.qrPlaceholder}>
+                    <IoQrCode size={180} color="#1a1a1a" />
+                  </div>
+                </div>
+                <p style={styles.qrCodeLabel}>{t('pin_badge_label')}</p>
+                {visitData.badgeNumber && (
+                  <p style={styles.badgeNumber}>{visitData.badgeNumber}</p>
                 )}
               </div>
 
-              {/* Details Grid */}
-              <div style={styles.detailsGrid}>
-                <div style={styles.detailRow}>
-                  <span style={styles.detailLabel}>{t('pin_field_date')}</span>
-                  <span style={styles.detailValue}>
-                    {new Date(visitData.scheduledDate).toLocaleDateString(dateLocale, {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    })}
-                  </span>
+              {/* Details side */}
+              <div style={styles.detailsSection}>
+                <div style={styles.visitorInfo}>
+                  <h3 style={styles.visitorName}>{visitData.visitor.full_name}</h3>
+                  {visitData.visitor.company && (
+                    <p style={styles.companySubtitle}>{visitData.visitor.company}</p>
+                  )}
                 </div>
-                <div style={styles.detailRow}>
-                  <span style={styles.detailLabel}>{t('pin_field_dept')}</span>
-                  <span style={styles.detailValue}>{visitData.department.name}</span>
-                </div>
-                <div style={styles.detailRow}>
-                  <span style={styles.detailLabel}>{t('pin_field_reason')}</span>
-                  <span style={styles.detailValue}>{visitData.purpose}</span>
-                </div>
-                {visitData.hostUser && (
+
+                <div style={styles.detailsGrid}>
                   <div style={styles.detailRow}>
-                    <span style={styles.detailLabel}>{t('pin_field_host')}</span>
+                    <span style={styles.detailLabel}>{t('pin_field_date')}</span>
                     <span style={styles.detailValue}>
-                      {visitData.hostUser.firstName} {visitData.hostUser.lastName}
+                      {new Date(visitData.scheduledDate).toLocaleDateString(dateLocale, {
+                        day: '2-digit', month: '2-digit', year: 'numeric'
+                      })}
                     </span>
                   </div>
-                )}
-              </div>
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>{t('pin_field_dept')}</span>
+                    <span style={styles.detailValue}>{visitData.department?.name}</span>
+                  </div>
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>{t('pin_field_reason')}</span>
+                    <span style={styles.detailValue}>{visitData.purpose}</span>
+                  </div>
+                  {visitData.hostUser && (
+                    <div style={styles.detailRow}>
+                      <span style={styles.detailLabel}>{t('pin_field_host')}</span>
+                      <span style={styles.detailValue}>
+                        {visitData.hostUser.firstName} {visitData.hostUser.lastName}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-              {/* Company Footer */}
-              <div style={styles.companyFooter}>
-                <p style={styles.companyFooterText}>{companyName}</p>
+                <div style={styles.companyFooter}>
+                  <p style={styles.companyFooterText}>{companyName}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Privacy Disclaimer */}
-          <div style={styles.privacyDisclaimer}>
-            <p style={styles.privacyText}>
-              {t('pin_privacy')}
-            </p>
-          </div>
+            <div style={styles.privacyDisclaimer}>
+              <p style={styles.privacyText}>{t('pin_privacy')}</p>
+            </div>
 
-          {/* Confirmation Buttons */}
-          <div style={styles.buttonContainer} className="confirmation-buttons">
-            <button
-              onClick={handleCheckIn}
-              disabled={loading}
-              style={{
-                ...styles.confirmButton,
-                ...(loading ? styles.buttonDisabled : {})
-              }}
-            >
-              {loading ? (
-                <>
-                  <div style={styles.buttonSpinner}></div>
-                  <span>{t('pin_btn_confirming')}</span>
-                </>
-              ) : (
-                <>
-                  <IoCheckmarkCircle size={24} />
-                  <span>{t('pin_btn_confirm')}</span>
-                </>
-              )}
-            </button>
+            {error && (
+              <div style={{ ...styles.errorMessage, maxWidth: 860, margin: '0 auto 16px', padding: '12px 20px' }}>
+                <IoCloseCircle size={20} />
+                <span>{error}</span>
+              </div>
+            )}
 
-            <button
-              onClick={handleClear}
-              disabled={loading}
-              style={styles.cancelButton}
-            >
-              {t('pin_btn_cancel')}
-            </button>
-          </div>
+            <div style={styles.buttonContainer} className="confirmation-buttons">
+              <button
+                onClick={handleConfirm}
+                disabled={loading}
+                style={{ ...styles.confirmButton, ...(loading ? styles.buttonDisabled : {}) }}
+              >
+                {loading ? (
+                  <>
+                    <div style={styles.buttonSpinner} />
+                    <span>{t('pin_btn_confirming')}</span>
+                  </>
+                ) : (
+                  <>
+                    <IoCheckmarkCircle size={24} />
+                    <span>{t('pin_btn_confirm')}</span>
+                  </>
+                )}
+              </button>
+              <button onClick={handleReset} disabled={loading} style={styles.cancelButton}>
+                {t('pin_btn_cancel')}
+              </button>
+            </div>
           </motion.div>
         )}
 
-        {success && (
+        {/* ── STEP: SIGNATURE ── */}
+        {step === 'signature' && visitData && (
+          <motion.div
+            key="signature"
+            style={styles.fullPageStep}
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -60 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div style={styles.confirmationHeader}>
+              <div style={styles.sigIconWrap}>
+                <IoPencil size={40} color="#3b82f6" />
+              </div>
+              <h2 style={styles.confirmationTitle}>
+                {t('pin_sig_title') || 'Firma richiesta'}
+              </h2>
+              <p style={styles.confirmationSubtitle}>
+                {t('pin_sig_subtitle') || 'Firmare nello spazio sottostante per procedere con il check-in'}
+              </p>
+            </div>
+
+            <div style={styles.sigCard}>
+              <p style={styles.sigVisitorName}>{visitData.visitor.full_name}</p>
+              <div style={styles.sigCanvasWrap}>
+                <SignatureCanvas
+                  ref={sigCanvasRef}
+                  canvasProps={{ className: 'sig-canvas', style: { width: '100%', height: '100%' } }}
+                  backgroundColor="#fff"
+                  penColor="#1a1a1a"
+                />
+              </div>
+              <button
+                onClick={() => sigCanvasRef.current?.clear()}
+                style={styles.clearSigButton}
+              >
+                <IoRefresh size={18} />
+                <span>{t('pin_sig_clear') || 'Cancella'}</span>
+              </button>
+            </div>
+
+            {error && (
+              <div style={{ ...styles.errorMessage, maxWidth: 700, margin: '0 auto 16px', padding: '12px 20px' }}>
+                <IoCloseCircle size={20} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div style={{ ...styles.buttonContainer, maxWidth: 700 }} className="confirmation-buttons">
+              <button
+                onClick={handleSignatureSubmit}
+                disabled={loading}
+                style={{ ...styles.confirmButton, ...(loading ? styles.buttonDisabled : {}) }}
+              >
+                {loading ? (
+                  <>
+                    <div style={styles.buttonSpinner} />
+                    <span>{t('pin_btn_confirming')}</span>
+                  </>
+                ) : (
+                  <>
+                    <IoCheckmarkCircle size={24} />
+                    <span>{t('pin_btn_confirm')}</span>
+                  </>
+                )}
+              </button>
+              <button onClick={() => setStep('confirm')} disabled={loading} style={styles.cancelButton}>
+                {t('pin_btn_cancel')}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── STEP: SUCCESS ── */}
+        {step === 'success' && (
           <motion.div
             key="success"
             style={styles.successContainer}
@@ -461,7 +506,7 @@ const PinEntry = ({ onBack }) => {
               style={styles.successIcon}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
+              transition={{ delay: 0.2, duration: 0.5, type: 'spring', stiffness: 200 }}
             >
               <IoCheckmarkCircle size={120} color="#10b981" />
             </motion.div>
@@ -479,6 +524,7 @@ const PinEntry = ({ onBack }) => {
             </div>
           </motion.div>
         )}
+
       </AnimatePresence>
     </motion.div>
   );
@@ -527,7 +573,8 @@ const styles = {
     gap: '40px',
     alignItems: 'center',
     minHeight: 'calc(100vh - 200px)',
-    padding: '0 40px'
+    padding: '0 40px',
+    position: 'relative'
   },
   leftColumn: {
     display: 'flex',
@@ -617,7 +664,6 @@ const styles = {
     color: '#3b82f6'
   },
   errorMessage: {
-    marginTop: '20px',
     padding: '12px 20px',
     background: '#fee2e2',
     border: '2px solid #ef4444',
@@ -628,7 +674,8 @@ const styles = {
     gap: '8px',
     justifyContent: 'center',
     fontSize: '14px',
-    fontWeight: '600'
+    fontWeight: '600',
+    marginTop: '20px'
   },
   keypad: {
     width: '100%',
@@ -672,7 +719,8 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000
+    zIndex: 1000,
+    borderRadius: '12px'
   },
   spinner: {
     width: '50px',
@@ -688,15 +736,19 @@ const styles = {
     fontSize: '18px',
     fontWeight: '600'
   },
-  confirmationContainer: {
-    maxWidth: '900px',
-    margin: '0 auto',
+  // Full page step wrapper (confirm + signature)
+  fullPageStep: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    maxWidth: '960px',
     width: '100%',
+    margin: '0 auto',
     padding: '0 20px'
   },
   confirmationHeader: {
     textAlign: 'center',
-    marginBottom: '32px'
+    marginBottom: '28px'
   },
   confirmationTitle: {
     fontSize: '32px',
@@ -717,8 +769,8 @@ const styles = {
     overflow: 'hidden',
     display: 'grid',
     gridTemplateColumns: '280px 1fr',
-    marginBottom: '24px',
-    minHeight: '380px'
+    marginBottom: '20px',
+    minHeight: '360px'
   },
   qrCodeSection: {
     background: '#f9fafb',
@@ -763,8 +815,7 @@ const styles = {
     padding: '32px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px',
-    position: 'relative'
+    gap: '24px'
   },
   visitorInfo: {
     borderBottom: '2px solid #f3f4f6',
@@ -781,13 +832,12 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: '#6b7280',
-    margin: 0,
-    letterSpacing: '0.2px'
+    margin: 0
   },
   detailsGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px'
+    gap: '4px'
   },
   detailRow: {
     display: 'grid',
@@ -811,7 +861,7 @@ const styles = {
   },
   companyFooter: {
     marginTop: 'auto',
-    paddingTop: '20px',
+    paddingTop: '16px',
     borderTop: '2px solid #f3f4f6',
     textAlign: 'center'
   },
@@ -819,26 +869,11 @@ const styles = {
     fontSize: '13px',
     fontWeight: '600',
     color: '#999',
-    margin: 0,
-    letterSpacing: '0.3px'
-  },
-  qrSection: {
-    marginTop: 'auto',
-    padding: '20px',
-    background: '#f9fafb',
-    borderRadius: '12px',
-    textAlign: 'center'
-  },
-  qrLabel: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#6b7280'
+    margin: 0
   },
   privacyDisclaimer: {
-    maxWidth: '900px',
-    margin: '0 auto 16px',
-    padding: '0 20px',
-    textAlign: 'center'
+    textAlign: 'center',
+    marginBottom: '16px'
   },
   privacyText: {
     fontSize: '13px',
@@ -852,9 +887,9 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '16px',
-    maxWidth: '900px',
+    maxWidth: '960px',
     margin: '0 auto',
-    padding: '0 20px'
+    width: '100%'
   },
   confirmButton: {
     height: '64px',
@@ -897,6 +932,57 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 1s linear infinite'
   },
+  // Signature step
+  sigIconWrap: {
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    background: '#eff6ff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 20px'
+  },
+  sigCard: {
+    background: '#fff',
+    borderRadius: '20px',
+    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.12)',
+    padding: '32px',
+    marginBottom: '20px',
+    maxWidth: '700px',
+    width: '100%',
+    alignSelf: 'center'
+  },
+  sigVisitorName: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginBottom: '20px'
+  },
+  sigCanvasWrap: {
+    border: '2px solid #e5e7eb',
+    borderRadius: '12px',
+    height: '240px',
+    overflow: 'hidden',
+    background: '#fff',
+    touchAction: 'none'
+  },
+  clearSigButton: {
+    marginTop: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    background: 'none',
+    border: '1.5px solid #d1d5db',
+    borderRadius: '8px',
+    padding: '6px 14px',
+    fontSize: '14px',
+    color: '#6b7280',
+    cursor: 'pointer',
+    fontWeight: '600'
+  },
+  // Success
   successContainer: {
     background: '#fff',
     borderRadius: '20px',
@@ -907,8 +993,7 @@ const styles = {
     textAlign: 'center'
   },
   successIcon: {
-    marginBottom: '30px',
-    animation: 'scaleIn 0.5s ease'
+    marginBottom: '30px'
   },
   successTitle: {
     fontSize: '32px',
@@ -934,24 +1019,5 @@ const styles = {
     fontStyle: 'italic'
   }
 };
-
-// Add animations
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = `
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    @keyframes scaleIn {
-      0% { transform: scale(0); }
-      100% { transform: scale(1); }
-    }
-  `;
-  if (!document.head.querySelector('style[data-checkin-animation]')) {
-    styleSheet.setAttribute('data-checkin-animation', 'true');
-    document.head.appendChild(styleSheet);
-  }
-}
 
 export default PinEntry;

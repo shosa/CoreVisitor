@@ -30,6 +30,13 @@ const it = {
   pin_success_msg: 'Benvenuto',
   pin_success_sub: 'Il tuo badge sta per essere stampato.\nRitiralo presso la reception.',
   pin_redirect: 'Reindirizzamento automatico in 5 secondi...',
+  pin_err_invalid_pin: 'PIN non valido o visita non trovata',
+  pin_err_verify: 'Errore durante la verifica del PIN',
+  pin_err_checkin: 'Errore durante il check-in',
+  pin_err_signature_required: 'La firma è obbligatoria per procedere',
+  pin_sig_title: 'Firma richiesta',
+  pin_sig_subtitle: 'Firmare nello spazio sottostante per procedere con il check-in',
+  pin_sig_clear: 'Cancella',
 
   // ScanQR (Check-Out)
   qr_page_title: 'Self Check-Out',

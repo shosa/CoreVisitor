@@ -62,6 +62,12 @@ export class VisitorsController {
     return this.visitorsService.getDocumentUrl(id);
   }
 
+  @Get(':id/signature-url')
+  @Roles('admin', 'receptionist', 'security')
+  getSignatureUrl(@Param('id') id: string) {
+    return this.visitorsService.getSignatureUrl(id);
+  }
+
   @Patch(':id')
   @Roles('admin', 'receptionist')
   update(@Param('id') id: string, @Body() updateVisitorDto: UpdateVisitorDto) {

@@ -30,6 +30,13 @@ const en = {
   pin_success_msg: 'Welcome',
   pin_success_sub: 'Your badge is being printed.\nPlease collect it at reception.',
   pin_redirect: 'Redirecting automatically in 5 seconds...',
+  pin_err_invalid_pin: 'Invalid PIN or visit not found',
+  pin_err_verify: 'Error verifying PIN',
+  pin_err_checkin: 'Error during check-in',
+  pin_err_signature_required: 'Signature is required to proceed',
+  pin_sig_title: 'Signature required',
+  pin_sig_subtitle: 'Please sign in the space below to proceed with check-in',
+  pin_sig_clear: 'Clear',
 
   // ScanQR (Check-Out)
   qr_page_title: 'Self Check-Out',

@@ -85,10 +85,11 @@ model Visitor {
   documentType DocumentType? @map("document_type")
   documentNumber String? @map("document_number")
   documentExpiry DateTime? @map("document_expiry")
-  licensePlate String? @map("license_plate")
+  licensePlate   String? @map("license_plate")
+  signaturePath  String? @map("signature_path")
   privacyConsent Boolean @default(false) @map("privacy_consent")
-  notes       String?  @db.Text
-  isActive    Boolean  @default(true) @map("is_active")
+  notes          String? @db.Text
+  isActive       Boolean @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

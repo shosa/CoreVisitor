@@ -90,6 +90,9 @@ export default function VisitorDetailPage() {
   const [documentMimeType, setDocumentMimeType] = useState<string | null>(null);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [loadingDocument, setLoadingDocument] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [loadingSignature, setLoadingSignature] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -129,6 +132,19 @@ export default function VisitorDetailPage() {
       toast.showError('Errore nel caricamento del documento');
     } finally {
       setLoadingDocument(false);
+    }
+  };
+
+  const handleViewSignature = async () => {
+    setLoadingSignature(true);
+    try {
+      const res = await visitorsApi.getSignatureUrl(id);
+      setSignatureUrl(res.data.url);
+      setIsSignatureModalOpen(true);
+    } catch (err) {
+      toast.showError('Errore nel caricamento della firma');
+    } finally {
+      setLoadingSignature(false);
     }
   };
 
@@ -232,6 +248,20 @@ export default function VisitorDetailPage() {
               Vedi Documento
             </button>
           )}
+          {visitor.signaturePath && (
+            <button
+              onClick={handleViewSignature}
+              disabled={loadingSignature}
+              className="btn btn-primary"
+            >
+              {loadingSignature ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                <EyeIcon />
+              )}
+              Vedi Firma
+            </button>
+          )}
           <button
             onClick={handleDelete}
             className="btn btn-primary"
@@ -265,6 +295,9 @@ export default function VisitorDetailPage() {
           {visitor.privacyConsent && (
             <span className="badge badge-green mt-2">Consenso Privacy Fornito</span>
           )}
+          <span className={`badge mt-2 ${visitor.signaturePath ? 'badge-green' : 'badge-red'}`}>
+            {visitor.signaturePath ? '✓ Firma presente' : '✗ Firma assente'}
+          </span>
         </div>
 
         {/* Details Card */}
@@ -370,6 +403,56 @@ export default function VisitorDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Signature Modal */}
+      <AnimatePresence>
+        {isSignatureModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setIsSignatureModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-lg w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Firma di {visitor.firstName} {visitor.lastName}
+                </h3>
+                <button
+                  onClick={() => setIsSignatureModalOpen(false)}
+                  className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <XIcon />
+                </button>
+              </div>
+              <div className="p-6 flex justify-center items-center">
+                {signatureUrl && (
+                  <img
+                    src={signatureUrl}
+                    alt="Firma visitatore"
+                    className="max-w-full border border-gray-200 rounded-lg bg-white"
+                  />
+                )}
+              </div>
+              <div className="flex justify-end p-4 border-t border-gray-200">
+                <button
+                  onClick={() => setIsSignatureModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Chiudi
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Document Modal */}
       <AnimatePresence>

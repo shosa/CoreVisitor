@@ -31,6 +31,7 @@ export interface Visitor {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  signaturePath?: string | null;
   visits?: Visit[];
   documents?: VisitorDocument[];
 }

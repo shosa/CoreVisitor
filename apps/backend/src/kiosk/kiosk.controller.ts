@@ -20,18 +20,11 @@ export class KioskController {
       const { pin } = body;
 
       if (!pin) {
-        throw new HttpException(
-          'PIN is required',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new HttpException('PIN is required', HttpStatus.BAD_REQUEST);
       }
 
-      // Validate PIN format (4 digits)
       if (!/^\d{4}$/.test(pin)) {
-        throw new HttpException(
-          'PIN must be 4 digits',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new HttpException('PIN must be 4 digits', HttpStatus.BAD_REQUEST);
       }
 
       const visit = await this.kioskService.verifyPin(pin);
@@ -43,10 +36,7 @@ export class KioskController {
         };
       }
 
-      return {
-        status: 'success',
-        data: visit,
-      };
+      return { status: 'success', data: visit };
     } catch (error) {
       throw new HttpException(
         error.message || 'Error verifying PIN',
@@ -65,25 +55,16 @@ export class KioskController {
       const { badge_code } = body;
 
       if (!badge_code) {
-        throw new HttpException(
-          'Badge code is required',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new HttpException('Badge code is required', HttpStatus.BAD_REQUEST);
       }
 
       const visit = await this.kioskService.verifyBadge(badge_code);
 
       if (!visit) {
-        return {
-          status: 'error',
-          message: 'Badge non valido o scaduto',
-        };
+        return { status: 'error', message: 'Badge non valido o scaduto' };
       }
 
-      return {
-        status: 'success',
-        data: visit,
-      };
+      return { status: 'success', data: visit };
     } catch (error) {
       throw new HttpException(
         error.message || 'Error verifying badge',
@@ -102,10 +83,7 @@ export class KioskController {
       const { pin } = body;
 
       if (!pin) {
-        throw new HttpException(
-          'PIN is required',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new HttpException('PIN is required', HttpStatus.BAD_REQUEST);
       }
 
       const result = await this.kioskService.checkInWithPin(pin);
@@ -133,10 +111,7 @@ export class KioskController {
       const { visit_id, badge_code } = body;
 
       if (!visit_id || !badge_code) {
-        throw new HttpException(
-          'Visit ID and badge code are required',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new HttpException('Visit ID and badge code are required', HttpStatus.BAD_REQUEST);
       }
 
       const result = await this.kioskService.checkOut(visit_id, badge_code);
@@ -149,6 +124,27 @@ export class KioskController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Error during check-out',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Salva firma visitatore da kiosk (base64 PNG)
+   * POST /api/kiosk/upload-signature
+   */
+  @Post('upload-signature')
+  async uploadSignature(@Body() body: { visitorId: string; signatureBase64: string }) {
+    try {
+      const { visitorId, signatureBase64 } = body;
+      if (!visitorId || !signatureBase64) {
+        throw new HttpException('visitorId e signatureBase64 sono obbligatori', HttpStatus.BAD_REQUEST);
+      }
+      await this.kioskService.uploadSignature(visitorId, signatureBase64);
+      return { status: 'success', message: 'Firma salvata con successo' };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Errore durante il salvataggio della firma',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -257,11 +253,7 @@ export class KioskController {
   async getStats() {
     try {
       const stats = await this.kioskService.getStats();
-
-      return {
-        status: 'success',
-        data: stats,
-      };
+      return { status: 'success', data: stats };
     } catch (error) {
       throw new HttpException(
         error.message || 'Error fetching stats',

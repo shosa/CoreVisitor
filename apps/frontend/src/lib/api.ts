@@ -18,6 +18,7 @@ export const visitorsApi = {
     api.patch<Visitor>(`/visitors/${id}`, data),
   delete: (id: string) => api.delete(`/visitors/${id}`),
   getDocumentUrl: (id: string) => api.get<{ url: string }>(`/visitors/${id}/document-url`),
+  getSignatureUrl: (id: string) => api.get<{ url: string }>(`/visitors/${id}/signature-url`),
 };
 
 // Visits

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BadgeService } from '../badge/badge.service';
 import { PrintQueueService } from '../printer/print-queue.service';
 import { MeilisearchService } from '../meilisearch/meilisearch.service';
+import { MinioService } from '../minio/minio.service';
 import { VisitStatus } from '@prisma/client';
 import { SelfRegisterDto } from './dto/self-register.dto';
 
@@ -13,6 +14,7 @@ export class KioskService {
     private badge: BadgeService,
     private printQueue: PrintQueueService,
     private meilisearch: MeilisearchService,
+    private minio: MinioService,
   ) {}
 
   /**
@@ -40,6 +42,7 @@ export class KioskService {
             email: true,
             phone: true,
             company: true,
+            signaturePath: true,
           },
         },
         department: {
@@ -589,5 +592,27 @@ export class KioskService {
       scheduled,
       monthly,
     };
+  }
+
+  /**
+   * Salva firma visitatore su MinIO e aggiorna signaturePath nel DB
+   */
+  async uploadSignature(visitorId: string, signatureBase64: string): Promise<void> {
+    const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
+    if (!visitor) {
+      throw new HttpException('Visitatore non trovato', HttpStatus.NOT_FOUND);
+    }
+
+    // Rimuovi eventuale header data:image/png;base64,
+    const base64Data = signatureBase64.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+    const filePath = `visitors/${visitorId}/signature/signature.png`;
+
+    await this.minio.uploadRawFile(buffer, filePath, 'image/png');
+
+    await this.prisma.visitor.update({
+      where: { id: visitorId },
+      data: { signaturePath: filePath },
+    });
   }
 }
